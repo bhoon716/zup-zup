@@ -115,7 +115,7 @@ export function SearchPreview({ registered = false }: { registered?: boolean }) 
   return (
     <div className="relative grid content-start gap-3">
       <ExampleKeywordSearch />
-      <div className="flex items-center justify-between gap-3">
+      <div className={styles.searchSummary}>
         <p className="text-lg font-bold tracking-tight">&quot;{fullCourse.name}&quot;</p>
         <span className="rounded-md border border-border/50 bg-muted/30 px-2 py-1 text-xs font-medium text-muted-foreground">
           검색어: {fullCourse.name}

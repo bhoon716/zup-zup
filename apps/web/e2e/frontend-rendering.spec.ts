@@ -49,10 +49,16 @@ const walkthroughSteps = [
 ];
 
 for (const viewport of [
+  { width: 320, height: 568 },
+  { width: 390, height: 844 },
+  { width: 768, height: 1024 },
+  { width: 844, height: 390 },
+  { width: 1024, height: 768 },
   { width: 831, height: 923 },
   { width: 1463, height: 1313 },
   { width: 1783, height: 1327 },
   { width: 1463, height: 1700 },
+  { width: 1463, height: 1920 },
 ]) {
   test(`${viewport.width}×${viewport.height}에서 설명과 미리보기가 같은 단계로 전환된다`, async ({ page, baseURL }) => {
     await page.setViewportSize(viewport);
@@ -62,18 +68,18 @@ for (const viewport of [
     await page.goto("/");
 
     const stage = page.getByTestId("landing-walkthrough-stage");
-    const preview = stage.getByTestId("landing-walkthrough-sticky-preview");
+    const panel = stage.getByTestId("landing-walkthrough-sticky-panel");
+    const preview = panel.getByTestId("landing-walkthrough-sticky-preview");
     const scenes = preview.getByTestId("landing-walkthrough-scene");
-    const copies = stage.getByTestId("landing-walkthrough-copy");
-    const current = stage.locator('[aria-current="step"]');
-    await expect(preview).toHaveCSS("position", "sticky");
-    await expect(stage.getByRole("heading", { level: 3 })).toHaveText([walkthroughSteps[0].heading]);
+    const headings = stage.getByRole("heading", { level: 3 });
+    await expect(panel).toHaveCSS("position", "sticky");
+    await expect(headings).toHaveText([walkthroughSteps[0].heading]);
     for (const [index, { marker }] of walkthroughSteps.entries()) {
       await expect(scenes.nth(index).getByText(marker, { exact: true })).toHaveCount(1);
     }
     await page.evaluate(() => document.fonts.ready);
 
-    const { start, travel, inset } = await preview.evaluate((element) => {
+    const { start, travel, inset } = await panel.evaluate((element) => {
       const track = element.closest('[data-testid="landing-walkthrough-stage"]');
       if (!track) throw new Error("안내 영역을 찾지 못했습니다.");
       const bounds = track.getBoundingClientRect();
@@ -83,56 +89,74 @@ for (const viewport of [
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
       return { start, travel: Math.min(release, maxScroll) - start, inset };
     });
-    expect(travel).toBeGreaterThan(240);
+    expect(travel).toBeGreaterThanOrEqual(240);
     const scrollTo = (fraction: number) => page.evaluate(y => window.scrollTo(0, y), start + travel * fraction);
-    const opacity = () => scenes.evaluateAll(elements => elements.map(element => Number(getComputedStyle(element).opacity)));
-    const copyOffsets = () => copies.evaluateAll(elements => elements.map(element => parseFloat(getComputedStyle(element).translate)));
+    const layers = () => stage.evaluate(element => {
+      const read = (testId: string) => Array.from(
+        element.querySelectorAll(`[data-testid="${testId}"]`),
+        node => {
+          const { opacity, visibility, translate } = getComputedStyle(node);
+          return { opacity: Number(opacity), visible: visibility === "visible" && Number(opacity) > 0, translate };
+        },
+      );
+      return { left: read("landing-walkthrough-copy"), right: read("landing-walkthrough-scene") };
+    });
+    const visibleSteps = async () => {
+      const { left, right } = await layers();
+      const steps = (side: typeof left) => side.flatMap(({ visible }, index) => visible ? [index] : []);
+      return { left: steps(left), right: steps(right) };
+    };
+    const expectStep = async (index: number) => {
+      await expect.poll(visibleSteps).toEqual({ left: [index], right: [index] });
+      await expect(headings).toHaveText([walkthroughSteps[index].heading]);
+    };
+    const expectMatchingFade = async (index: number) => {
+      await expect.poll(async () => (await layers()).left[index].opacity).toBeLessThan(0.9);
+      const { left, right } = await layers();
+      expect(left[index].opacity).toBeGreaterThan(0.1);
+      expect(left[index]).toEqual(right[index]);
+      expect(left[index].translate).not.toBe("none");
+      return left[index].opacity;
+    };
 
     await scrollTo(0);
-    await expect.poll(opacity).toEqual([1, 0, 0]);
-    await expect.poll(copyOffsets).toEqual([10, 0, 0]);
-    await expect(current.getByRole("heading")).toHaveText("강의 검색");
+    await expectStep(0);
     await page.mouse.wheel(0, 32);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(start + 20);
-    await expect.poll(opacity).toEqual([1, 0, 0]);
+    await expectStep(0);
 
+    await scrollTo(0.2);
+    await expectStep(0);
+    const outgoingOpacity = await expectMatchingFade(0);
     await scrollTo(0.25);
-    await expect.poll(async () => (await opacity())[1]).toBeGreaterThan(0.12);
-    const [outgoing, incoming] = await opacity();
-    expect(outgoing).toBeGreaterThan(0.12);
-    expect(incoming).toBeLessThan(0.88);
-    const [outgoingOffset, incomingOffset] = await copyOffsets();
-    expect(outgoingOffset).toBeCloseTo(outgoing * 10, 3);
-    expect(incomingOffset).toBeCloseTo(incoming * 10, 3);
-
-    await page.mouse.wheel(0, 20);
-    await expect.poll(async () => (await opacity())[1]).toBeGreaterThan(incoming + 0.04);
-    const progressed = (await opacity())[1];
-    expect(progressed).toBeLessThan(0.99);
-    await expect.poll(async () => (await copyOffsets())[1]).toBeGreaterThan(incomingOffset);
-    await page.mouse.wheel(0, -20);
-    await expect.poll(async () => (await opacity())[1]).toBeLessThan(progressed - 0.04);
+    await expect.poll(async () => {
+      const { left, right } = await visibleSteps();
+      return left.length === 1 && left[0] === right[0] && right.length === 1;
+    }).toBe(true);
+    await scrollTo(0.3);
+    await expectStep(1);
+    await expectMatchingFade(1);
+    await scrollTo(0.2);
+    await expectStep(0);
+    const reverseOpacity = await expectMatchingFade(0);
+    expect(reverseOpacity).toBeCloseTo(outgoingOpacity, 3);
 
     await scrollTo(0.5);
-    await expect.poll(opacity).toEqual([0, 1, 0]);
-    await expect.poll(copyOffsets).toEqual([0, 10, 0]);
-    await expect(current.getByRole("heading")).toHaveText("빈자리 알림 등록");
-    await scrollTo(0.75);
-    await expect.poll(async () => (await opacity())[2]).toBeGreaterThan(0.12);
-    expect((await opacity())[1]).toBeGreaterThan(0.12);
+    await expectStep(1);
+    await scrollTo(0.8);
+    await expectStep(2);
+    await expectMatchingFade(2);
     await scrollTo(0.9);
-    await expect.poll(opacity).toEqual([0, 0, 1]);
-    await expect.poll(copyOffsets).toEqual([0, 0, 10]);
-    await expect(current.getByRole("heading")).toHaveText("빈자리 알림");
-    await expect.poll(async () => (await preview.boundingBox())?.y).toBeCloseTo(inset, 0);
-    await expect(preview).toBeInViewport({ ratio: 1 });
+    await expectStep(2);
+    await expect.poll(async () => (await layers()).left[2].opacity).toBe(1);
+    await expect.poll(async () => (await panel.boundingBox())?.y).toBeCloseTo(inset, 0);
+    await expect(panel).toBeInViewport({ ratio: 1 });
 
     const reviews = page.getByRole("heading", { name: "생생한 사용자 후기", exact: true });
-    const rows = stage.getByRole("listitem");
-    const lastRow = await rows.last().boundingBox();
+    const stageBounds = await stage.boundingBox();
     const reviewsBounds = await reviews.boundingBox();
-    if (!lastRow || !reviewsBounds) throw new Error("마지막 안내나 후기의 위치를 찾지 못했습니다.");
-    const gap = reviewsBounds.y - lastRow.y - lastRow.height;
+    if (!stageBounds || !reviewsBounds) throw new Error("안내 영역이나 후기의 위치를 찾지 못했습니다.");
+    const gap = reviewsBounds.y - stageBounds.y - stageBounds.height;
     expect(gap).toBeGreaterThanOrEqual(0);
     expect(gap).toBeLessThanOrEqual(64);
     await reviews.scrollIntoViewIfNeeded();
@@ -141,9 +165,8 @@ for (const viewport of [
 }
 
 for (const scenario of [
-  { width: 390, height: 844, reducedMotion: "no-preference" },
-  { width: 831, height: 600, reducedMotion: "no-preference" },
-  { width: 1463, height: 1920, reducedMotion: "no-preference" },
+  { width: 667, height: 320, reducedMotion: "no-preference" },
+  { width: 390, height: 844, reducedMotion: "reduce" },
   { width: 1463, height: 1313, reducedMotion: "reduce" },
 ] as const) {
   test(`${scenario.width}×${scenario.height} ${scenario.reducedMotion}에서 세 안내가 차례로 읽힌다`, async ({ page, baseURL }) => {

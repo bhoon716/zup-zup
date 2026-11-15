@@ -34,17 +34,10 @@
 
 .sceneStack {
   display: grid;
-  isolation: isolate;
 }
 
 .stickyScene {
   grid-area: 1 / 1;
-  opacity: 0;
-  mix-blend-mode: plus-lighter;
-}
-
-.stickyScene:first-child {
-  opacity: 1;
 }
 
 .frameBar {
@@ -71,6 +64,13 @@
   border-top: 1px solid var(--border);
   background: color-mix(in srgb, var(--primary) 4%, var(--card));
   padding: 1rem;
+}
+
+.searchSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .reviewList[aria-hidden] {
@@ -106,24 +106,102 @@
   }
 }
 
-@media (min-width: 48rem) and (min-height: 40rem) and (prefers-reduced-motion: no-preference) {
-  .stage[data-sticky] {
+@media (prefers-reduced-motion: no-preference) {
+  .stage[data-sticky]::after {
+    content: "";
+    display: block;
+    block-size: 22rem;
+  }
+
+  .stage[data-sticky] .stickyPanel {
     display: grid;
-    grid-template-columns: minmax(0, 0.83fr) minmax(0, 1.17fr);
-    column-gap: clamp(2rem, 8vw, 7.5rem);
+    position: sticky;
+    top: 5rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem clamp(2rem, 8vw, 7.5rem);
+    align-items: center;
+  }
+
+  @media (min-width: 48rem) {
+    .stage[data-sticky] .stickyPanel {
+      top: clamp(5rem, max(min(36vh, 32rem), var(--sticky-inset-minimum, 0px)), var(--sticky-inset-limit, 32rem));
+      grid-template-columns: minmax(0, 0.83fr) minmax(0, 1.17fr);
+    }
+  }
+
+  @media (max-height: 38rem), (width < 48rem) {
+    .stage[data-sticky] :is(.frameBar, .stickyScene) {
+      padding: 0.625rem;
+    }
+  }
+
+  @media (max-height: 38rem) {
+    .stage[data-sticky] :is(.searchSummary, .toastBody) {
+      display: none;
+    }
+
+    .stage[data-sticky] .progress {
+      padding-block: 0.375rem;
+    }
+
+    @media (min-width: 48rem) {
+      .stage[data-sticky] .stickyPanel {
+        grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+        column-gap: 2rem;
+      }
+    }
+  }
+
+  @media (width < 48rem) {
+    .stage[data-sticky] .copy {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 0.375rem 0.625rem;
+    }
+
+    .stage[data-sticky] .copy :is(h3, p) {
+      margin-top: 0;
+    }
+
+    .stage[data-sticky] .copy p {
+      grid-column: 1 / -1;
+    }
+
+    .stage[data-sticky] .stepMark {
+      padding: 0.375rem;
+    }
+
+    .stage[data-sticky] .secondCourse {
+      display: none;
+    }
   }
 
   .stage[data-sticky] .chapter {
-    display: flex;
-    min-height: 14rem;
+    grid-area: 1 / 1;
+    grid-template-columns: minmax(0, 1fr);
+    align-self: center;
   }
 
-  .stage[data-sticky] .copy {
-    translate: calc(0.625rem * var(--chapter-emphasis, 0)) 0;
+  .stage[data-sticky] :is(.chapter, .stickyScene) {
+    visibility: hidden;
+  }
+
+  .stage[data-sticky] :is(.copy, .stickyScene) {
+    opacity: 0;
+  }
+
+  .stage[data-sticky] :is(.chapter[aria-current="step"], .stickyScene[data-active]) {
+    visibility: visible;
+  }
+
+  .stage[data-sticky] :is(.chapter[aria-current="step"] .copy, .stickyScene[data-active]) {
+    opacity: var(--step-opacity);
+    translate: 0 var(--step-offset);
   }
 
   .stage[data-sticky] .stepMark {
-    background: color-mix(in srgb, var(--primary) calc(9% + 13% * var(--chapter-emphasis, 0)), transparent);
+    background: color-mix(in srgb, var(--primary) 22%, transparent);
   }
 
   .stage[data-sticky] .inlinePreview {
@@ -132,13 +210,8 @@
 
   .stage[data-sticky] .stickyPreview {
     display: block;
-    position: sticky;
-    top: clamp(5rem, 36vh, 32rem);
-    align-self: start;
   }
-}
 
-@media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) and (animation-range: entry 0% entry 70%) {
     .inlinePreview {
       animation: preview-enter linear both;

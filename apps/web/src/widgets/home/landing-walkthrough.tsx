@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, BellPlus, Search } from "lucide-react";
-import { useEffect, useRef, type ReactNode, type Ref } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import {
   SearchPreview,
@@ -34,16 +34,15 @@ const chapters = [
   },
 ] as const;
 
-function WalkthroughPreview({ activeIndex, children, stickyRef }: {
+function WalkthroughPreview({ activeIndex, children, sticky = false }: {
   activeIndex: number;
   children: ReactNode;
-  stickyRef?: Ref<HTMLDivElement>;
+  sticky?: boolean;
 }) {
   return (
     <div
-      ref={stickyRef}
-      className={`${styles.frame} ${stickyRef ? styles.stickyPreview : styles.inlinePreview}`}
-      data-testid={stickyRef ? "landing-walkthrough-sticky-preview" : "landing-walkthrough-preview"}
+      className={`${styles.frame} ${sticky ? styles.stickyPreview : styles.inlinePreview}`}
+      data-testid={sticky ? "landing-walkthrough-sticky-preview" : "landing-walkthrough-preview"}
       aria-hidden="true"
       inert
     >
@@ -61,20 +60,22 @@ function WalkthroughPreview({ activeIndex, children, stickyRef }: {
 
 export function LandingWalkthrough() {
   const stageRef = useRef<HTMLDivElement>(null);
-  const stickyRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const stage = stageRef.current;
-    const preview = stickyRef.current;
-    if (!stage || !preview) return;
+    const panel = panelRef.current;
+    if (!stage || !panel) return;
 
-    const desktop = window.matchMedia("(min-width: 48rem) and (min-height: 40rem) and (prefers-reduced-motion: no-preference)");
-    const chapterItems = stage.querySelectorAll<HTMLElement>(`.${styles.chapter}`);
-    const scenes = preview.querySelectorAll<HTMLElement>(`.${styles.stickyScene}`);
-    const progressIndicators = preview.querySelectorAll(`.${styles.progress} > span`);
+    const motion = window.matchMedia("(prefers-reduced-motion: no-preference)");
+    const chapterItems = panel.querySelectorAll(`.${styles.chapter}`);
+    const scenes = panel.querySelectorAll(`.${styles.stickyScene}`);
+    const progressIndicators = panel.querySelectorAll(`.${styles.stickyPreview} .${styles.progress} > span`);
     const minimumStickyDistance = 240;
     const fadePortion = 0.4;
     const holdPortion = (1 - fadePortion) / 2;
+    const minimumOpacity = 0.12;
+    const fadeTravel = 12;
     let frame: number | undefined;
     let range: { start: number; distance: number } | undefined;
     let needsMeasure = true;
@@ -82,22 +83,27 @@ export function LandingWalkthrough() {
     let lastActiveIndex: number | undefined;
 
     const measureRange = () => {
-      if (!desktop.matches) {
+      if (!motion.matches) {
         stage.removeAttribute("data-sticky");
         return;
       }
 
       stage.setAttribute("data-sticky", "");
-      const { top, height } = stage.getBoundingClientRect();
-      const inset = Number.parseFloat(window.getComputedStyle(preview).top);
       const { clientHeight, scrollHeight } = document.documentElement;
-      const previewHeight = preview.getBoundingClientRect().height;
+      const panelHeight = panel.getBoundingClientRect().height;
+      const { top, bottom, height } = stage.getBoundingClientRect();
+      const maxScroll = scrollHeight - clientHeight;
+      const trackLength = height - panelHeight;
+      const earliestInset = window.scrollY + top + trackLength - maxScroll;
+      panel.style.setProperty("--sticky-inset-limit", `${Math.floor(clientHeight - panelHeight)}px`);
+      panel.style.setProperty("--sticky-inset-minimum", `${Math.ceil(earliestInset)}px`);
+      const inset = Number.parseFloat(window.getComputedStyle(panel).top);
       const stickyStart = window.scrollY + top - inset;
-      const stickyEnd = stickyStart + height - previewHeight;
+      const stickyEnd = window.scrollY + bottom - inset - panelHeight;
       const start = Math.max(0, stickyStart);
-      const end = Math.min(stickyEnd, scrollHeight - clientHeight);
+      const end = Math.min(stickyEnd, maxScroll);
       const distance = end - start;
-      if (distance < minimumStickyDistance || inset + previewHeight > clientHeight) {
+      if (distance < minimumStickyDistance || inset + panelHeight > clientHeight) {
         stage.removeAttribute("data-sticky");
         return;
       }
@@ -105,14 +111,17 @@ export function LandingWalkthrough() {
       return { start, distance };
     };
 
-    const updatePreview = () => {
+    const updatePanel = () => {
       frame = undefined;
       if (needsMeasure) {
         needsMeasure = false;
         range = measureRange();
       }
       if (!range) {
-        if (lastActiveIndex !== undefined) chapterItems[lastActiveIndex]?.removeAttribute("aria-current");
+        if (lastActiveIndex !== undefined) {
+          chapterItems[lastActiveIndex]?.removeAttribute("aria-current");
+          scenes[lastActiveIndex]?.removeAttribute("data-active");
+        }
         lastActiveIndex = undefined;
         lastProgress = undefined;
         return;
@@ -126,17 +135,19 @@ export function LandingWalkthrough() {
       if (progress === lastProgress) return;
 
       lastProgress = progress;
-      scenes.forEach((scene, index) => {
-        const emphasis = String(Math.max(0, 1 - Math.abs(index - progress)));
-        scene.style.opacity = emphasis;
-        chapterItems[index]?.style.setProperty("--chapter-emphasis", emphasis);
-      });
-
       const activeIndex = Math.round(progress);
+      const offset = (activeIndex - progress) * 2;
+      const opacity = 1 - (1 - minimumOpacity) * Math.abs(offset);
+      panel.style.setProperty("--step-opacity", String(opacity));
+      panel.style.setProperty("--step-offset", `${offset * fadeTravel}px`);
       if (activeIndex === lastActiveIndex) return;
 
-      if (lastActiveIndex !== undefined) chapterItems[lastActiveIndex]?.removeAttribute("aria-current");
+      if (lastActiveIndex !== undefined) {
+        chapterItems[lastActiveIndex]?.removeAttribute("aria-current");
+        scenes[lastActiveIndex]?.removeAttribute("data-active");
+      }
       chapterItems[activeIndex]?.setAttribute("aria-current", "step");
+      scenes[activeIndex]?.setAttribute("data-active", "");
       lastActiveIndex = activeIndex;
       progressIndicators.forEach((indicator, index) => {
         indicator.toggleAttribute("data-complete", index <= activeIndex);
@@ -145,7 +156,7 @@ export function LandingWalkthrough() {
 
     const scheduleUpdate = () => {
       if (!needsMeasure && !range) return;
-      frame ??= window.requestAnimationFrame(updatePreview);
+      frame ??= window.requestAnimationFrame(updatePanel);
     };
     const scheduleMeasure = () => {
       needsMeasure = true;
@@ -154,18 +165,18 @@ export function LandingWalkthrough() {
 
     const resizeObserver = new ResizeObserver(scheduleMeasure);
     resizeObserver.observe(stage);
-    resizeObserver.observe(preview);
+    resizeObserver.observe(panel);
     resizeObserver.observe(document.body);
     window.addEventListener("scroll", scheduleUpdate, { passive: true });
     window.addEventListener("resize", scheduleMeasure);
-    desktop.addEventListener("change", scheduleMeasure);
+    motion.addEventListener("change", scheduleMeasure);
     scheduleMeasure();
 
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener("scroll", scheduleUpdate);
       window.removeEventListener("resize", scheduleMeasure);
-      desktop.removeEventListener("change", scheduleMeasure);
+      motion.removeEventListener("change", scheduleMeasure);
       if (frame !== undefined) window.cancelAnimationFrame(frame);
     };
   }, []);
@@ -181,33 +192,35 @@ export function LandingWalkthrough() {
         </p>
       </div>
       <div ref={stageRef} className={styles.stage} data-testid="landing-walkthrough-stage">
-        <ol className={styles.chapterList} role="list">
-          {chapters.map(({ id, title, description, Icon, Preview }, index) => (
-            <li key={id} className={styles.chapter}>
-              <div className={styles.copy} data-testid="landing-walkthrough-copy">
-                <div className={styles.stepMark} aria-hidden="true">
-                  <Icon className="size-[18px]" />
+        <div ref={panelRef} className={styles.stickyPanel} data-testid="landing-walkthrough-sticky-panel">
+          <ol className={styles.chapterList} role="list">
+            {chapters.map(({ id, title, description, Icon, Preview }, index) => (
+              <li key={id} className={styles.chapter}>
+                <div className={styles.copy} data-testid="landing-walkthrough-copy">
+                  <div className={styles.stepMark} aria-hidden="true">
+                    <Icon className="size-[18px]" />
+                  </div>
+                  <h3 className="mt-3 text-xl font-bold tracking-tight md:text-2xl">{title}</h3>
+                  <p className="mt-2 max-w-sm break-keep text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
                 </div>
-                <h3 className="mt-3 text-xl font-bold tracking-tight md:text-2xl">{title}</h3>
-                <p className="mt-2 max-w-sm break-keep text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
-              </div>
 
-              <WalkthroughPreview activeIndex={index}>
-                <div className={styles.scene}><Preview /></div>
-              </WalkthroughPreview>
-            </li>
-          ))}
-        </ol>
-
-        <WalkthroughPreview activeIndex={0} stickyRef={stickyRef}>
-          <div className={styles.sceneStack}>
-            {chapters.map(({ id, Preview }) => (
-              <div key={id} className={`${styles.scene} ${styles.stickyScene}`} data-chapter={id} data-testid="landing-walkthrough-scene">
-                <Preview />
-              </div>
+                <WalkthroughPreview activeIndex={index}>
+                  <div className={styles.scene}><Preview /></div>
+                </WalkthroughPreview>
+              </li>
             ))}
-          </div>
-        </WalkthroughPreview>
+          </ol>
+
+          <WalkthroughPreview activeIndex={0} sticky>
+            <div className={styles.sceneStack}>
+              {chapters.map(({ id, Preview }) => (
+                <div key={id} className={`${styles.scene} ${styles.stickyScene}`} data-chapter={id} data-testid="landing-walkthrough-scene">
+                  <Preview />
+                </div>
+              ))}
+            </div>
+          </WalkthroughPreview>
+        </div>
       </div>
     </section>
   );
