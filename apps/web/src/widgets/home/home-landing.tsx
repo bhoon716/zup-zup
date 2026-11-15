@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { ArrowRight, CalendarDays, Heart, Search, Star } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/shared/ui/button";
+import { LandingCourseTools } from "./landing-course-tools";
 import { LandingWalkthrough } from "./landing-walkthrough";
 
 import styles from "./landing-walkthrough.module.css";
@@ -11,24 +12,6 @@ const statistics = [
   { label: "빈자리 알림 발송", minimum: 7000, unit: "건" },
 ];
 const countFormatter = new Intl.NumberFormat("ko-KR");
-
-const courseTools = [
-  {
-    title: "내 시간표",
-    description: "강의와 개인 일정을 한 시간표에 담고, 완성한 시간표를 이미지로 저장할 수 있어요.",
-    Icon: CalendarDays,
-  },
-  {
-    title: "관심 강의 찜하기",
-    description: "고민 중인 강의를 찜해 두고, 내 시간표의 찜 목록에서 다시 찾아 담을 수 있어요.",
-    Icon: Heart,
-  },
-  {
-    title: "강의 리뷰",
-    description: "강의 상세에서 다른 사용자가 남긴 별점과 이모지 리뷰를 확인할 수 있어요.",
-    Icon: Star,
-  },
-];
 
 const everyTimeReviews = [
   {
@@ -125,29 +108,7 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
 
       <LandingWalkthrough />
 
-      <section
-        aria-labelledby="landing-course-tools-title"
-        className="mx-auto w-full max-w-[1200px] px-6 pb-10 md:pb-12"
-      >
-        <div className="border-t pt-8">
-          <h2 id="landing-course-tools-title" className="text-2xl font-bold tracking-tight md:text-3xl">
-            시간표부터 강의 리뷰까지
-          </h2>
-          <ul className="mt-5 grid gap-3 md:grid-cols-3 md:gap-4" role="list">
-            {courseTools.map(({ title, description, Icon }) => (
-              <li key={title} className="flex min-w-0 items-start gap-3 rounded-xl border bg-card p-4 sm:p-5 md:flex-col">
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                  <Icon className="size-[18px]" aria-hidden="true" />
-                </span>
-                <div className="min-w-0">
-                  <h3 className="font-bold text-card-foreground">{title}</h3>
-                  <p className="mt-1 break-keep text-sm leading-relaxed text-muted-foreground">{description}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      <LandingCourseTools />
 
       <section className="pb-10 md:pb-12">
         <div className="max-w-[1200px] mx-auto px-6">

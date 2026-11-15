@@ -38,6 +38,9 @@ test("홈 소개는 클라이언트 자바스크립트 없이 읽을 수 있다"
     await expect(landing.getByTestId("landing-hero-notifications")).toHaveCount(0);
     const courseTools = landing.getByRole("region", { name: "시간표부터 강의 리뷰까지" });
     await expect(courseTools.getByRole("heading", { level: 3 })).toHaveText(["내 시간표", "관심 강의 찜하기", "강의 리뷰"]);
+    await expect(courseTools.getByRole("link", { name: "내 시간표 열기" })).toHaveAttribute("href", "/timetable");
+    await expect(courseTools.getByRole("link", { name: "찜할 강의 찾아보기" })).toHaveAttribute("href", "/search");
+    await expect(courseTools.getByRole("link", { name: "리뷰 볼 강의 찾아보기" })).toHaveAttribute("href", "/search");
     expect(await courseTools.evaluate(element => element.nextElementSibling?.querySelector("h2")?.textContent)).toBe("생생한 사용자 후기");
     await expect(landing.getByRole("link", { name: "강의 먼저 둘러보기" })).toHaveAttribute("href", "/search");
   } finally {
