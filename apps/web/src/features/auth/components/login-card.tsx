@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/shared/ui/button";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Card,
@@ -64,7 +65,14 @@ export function LoginCard() {
           {isInApp ? (
             <ExternalLink className="w-5 h-5 shrink-0" />
           ) : (
-            <Globe className="w-5 h-5 shrink-0" />
+            <Image
+              src="/icons/google-g.png"
+              alt=""
+              width={20}
+              height={20}
+              unoptimized
+              className="size-5 shrink-0 object-contain"
+            />
           )}
           {isInApp ? "외부 브라우저로 접속해 주세요" : "Google로 시작하기"}
         </Button>
