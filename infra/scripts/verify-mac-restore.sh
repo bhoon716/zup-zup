@@ -216,15 +216,15 @@ verify_audit() {
 
 verify_full_database() {
   local required table rows failed version expected_version
-  # Current V32 schema. Intentional schema changes must update this contract and tests.
   required=(BATCH_JOB_EXECUTION BATCH_JOB_EXECUTION_CONTEXT BATCH_JOB_EXECUTION_PARAMS
     BATCH_JOB_EXECUTION_SEQ BATCH_JOB_INSTANCE BATCH_JOB_SEQ BATCH_STEP_EXECUTION
     BATCH_STEP_EXECUTION_CONTEXT BATCH_STEP_EXECUTION_SEQ admin_action_logs announcements
     course_emoji_reviews course_review_reactions course_reviews course_schedules
     course_seat_histories courses crawler_run_failures crawler_settings crawler_status
     custom_schedule_times custom_schedules dday_settings feedback_attachments feedback_replies
-    feedbacks flyway_schema_history notification_histories schedules seat_notification_deliveries
-    seat_notification_outbox subscriptions timetable_entries timetables user_devices users wishlists)
+    feedbacks flyway_schema_history inbox_channel_deliveries notification_histories schedules
+    seat_inbox_items seat_notification_deliveries seat_notification_outbox subscription_ends
+    subscriptions timetable_entries timetables user_devices users wishlists)
   [ "$TABLES" = "$(printf '%s\n' "${required[@]}" | LC_ALL=C sort)" ] || {
     log_restore_event failed schema '백업의 DB 테이블 목록이 현재 스키마와 일치하지 않습니다.' >&2; return 1;
   }

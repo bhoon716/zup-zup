@@ -27,14 +27,13 @@ if [[ "$*" == *'COLUMN_NAME'* ]]; then
   echo "${AUDIT_COLUMNS:-id:bigint:NO,admin_id:bigint:NO,action_type:varchar(50):NO,target_type:varchar(20):NO,target_id:bigint:NO,created_at:datetime(6):NO,updated_at:datetime(6):NO}"
   exit
 fi
-if [[ "$*" == *information_schema.tables* ]] && [[ "$*" == *'count(*)'* ]]; then echo 37; exit; fi
 if [[ "$*" == *information_schema.tables* ]]; then
   if [ "${AUDIT_MODE:-0}" = 1 ]; then echo admin_action_logs_archive; exit; fi
   grep -vx "${MISSING_TABLE:-not_a_table}" "$FIXTURE_TABLES"
   exit
 fi
 if [[ "$*" == *'WHERE success = 0'* ]]; then echo "${FAILED_MIGRATIONS:-0}"; exit; fi
-if [[ "$*" == *'ORDER BY installed_rank DESC'* ]]; then echo "${FLYWAY_VERSION:-32}"; exit; fi
+if [[ "$*" == *'ORDER BY installed_rank DESC'* ]]; then echo "${FLYWAY_VERSION:-38}"; exit; fi
 if [[ "$*" == *'SELECT count(*)'* ]]; then
   if [[ "$*" == *"sugang_helper.${MISSING_TABLE:-never_match};"* ]]; then exit 1; fi
   if [[ "$*" == *"${FAILED_TABLE_QUERY:-never_match}"* ]]; then exit 1; fi
@@ -75,10 +74,13 @@ feedback_attachments
 feedback_replies
 feedbacks
 flyway_schema_history
+inbox_channel_deliveries
 notification_histories
 schedules
+seat_inbox_items
 seat_notification_deliveries
 seat_notification_outbox
+subscription_ends
 subscriptions
 timetable_entries
 timetables
@@ -123,7 +125,7 @@ RESTORED_ROWS=0 run_restore "$full"
 grep -q '"status": "success"'  "$tmp/out"
 expect_cleanup
 for table in $(cat "$FIXTURE_TABLES"); do grep -Fq "SELECT count(*) FROM sugang_helper.\`$table\`;" "$DOCKER_CALLS"; done
-for failure in 'FAILED_TABLE_QUERY=feedbacks' 'FAILED_MIGRATIONS=1' 'FLYWAY_VERSION=31' 'MYSQL_VERSION=9.0.0' 'RESTORED_ROWS=not-a-number' 'IMPORT_FAIL=1' 'START_FAIL=1' 'READY_FAIL=1'; do
+for failure in 'FAILED_TABLE_QUERY=feedbacks' 'FAILED_MIGRATIONS=1' 'FLYWAY_VERSION=37' 'MYSQL_VERSION=9.0.0' 'RESTORED_ROWS=not-a-number' 'IMPORT_FAIL=1' 'START_FAIL=1' 'READY_FAIL=1'; do
   export "$failure"
   expect_failure "$full"
   expect_cleanup
@@ -183,11 +185,12 @@ printf 'schema=full-backup-v1\ndatabase=sugang_helper\ndump_file=%s\nuploads=inc
   "$(basename "$bundle_dump")" "$(basename "$archive")" > "$bundle/backup.manifest"
 shasum -a 256 "$bundle/backup.manifest" > "$bundle/backup.manifest.sha256"
 run_restore "$bundle_dump"
-python3 - "$tmp/out" <<'PYLOG'
+python3 - "$tmp/out" "$FIXTURE_TABLES" <<'PYLOG'
 import json, sys
 rows = [json.loads(line) for line in open(sys.argv[1])]
 assert rows[-1]['status'] == 'success'
-assert sum(row['event'] == 'restore_table_verified' for row in rows) == 37
+with open(sys.argv[2]) as fixture:
+    assert sorted(row['table'] for row in rows if row['event'] == 'restore_table_verified') == fixture.read().splitlines()
 PYLOG
 rm "$archive.sha256"
 expect_failure "$bundle_dump"

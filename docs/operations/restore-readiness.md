@@ -28,7 +28,7 @@ bash infra/scripts/backup-server-export.sh
 ## Docker 실행 전 준비
 
 1. 선택한 백업을 다룰 권한, 로컬 디스크의 접근 제한·여유 공간, 백업 출처와 시각을 확인한다. SQL·첨부 원문을 공유 채널에 출력하지 않는다.
-2. 저장소와 백업의 릴리스 버전을 맞춘다. 현재 전체 DB 검증은 V32의 37개 테이블 목록과 checkout의 마지막 Flyway 버전을 기준으로 한다. 오래된 백업을 통과시키려고 자동 migration하지 않는다.
+2. 저장소와 백업의 릴리스 버전을 맞춘다. 스크립트는 해당 체크아웃에 정의된 테이블 목록과 마지막 Flyway 버전을 확인한다. 오래된 백업을 통과시키려고 자동 migration하지 않는다.
 3. Python 3.8+, Bash, gzip, tar, shasum, Docker와 **이미 로컬에 준비된** 공식 MySQL 8.4 이미지가 필요하다. 스크립트는 `--pull=never`라서 이미지를 자동 다운로드하지 않는다.
 4. 운영자가 사전에 검증한 공식 이미지 digest를 사용하는 것을 권한다. 로컬 이미지 정보를 확인하는 명령은 다음과 같다. 등록소 조회나 pull은 이 검증 스크립트의 일부가 아니다.
 
@@ -63,7 +63,7 @@ bash infra/scripts/verify-mac-restore.sh \
 - 먼저 Docker의 실제 선택 endpoint가 local `unix://` socket인지 확인한다. `DOCKER_CONTEXT` 우선순위와 `DOCKER_HOST`를 반영하고 원격 SSH/TCP context는 거부한다. 다른 context로 자동 전환하지 않는다. 이어 독립 MySQL 컨테이너를 `--network none`으로 만든다. 호스트 포트, host bind mount, 운영 volume, 앱/worker 연결은 없다. MySQL event scheduler와 local infile도 기본 비활성화한다. 실제 운영 계정 비밀번호를 사용하지 않는다.
 - 컨테이너 생성 후 얻은 고유 ID만 start/exec/삭제 대상으로 삼는다. 생성 실패 때 같은 이름의 기존 컨테이너를 지우지 않는다.
 - TCP `SELECT 1`로 영구 MySQL 프로세스 준비를 확인한다. 이미지 초기화 중 socket-only 임시 MySQL이 떠 있다는 이유로 import를 시작하지 않는다. `RESTORE_WAIT_ATTEMPTS` 기본 120회, 허용 1~600회이며 MySQL 연결 timeout은 회당 2초, 실패 후 대기는 1초다. Docker daemon 자체 응답 지연까지 포함한 총 wall-clock timeout은 아니다.
-- 전체 DB는 37개 base table 목록, 실패 Flyway 이력 없음, checkout의 마지막 migration 버전 일치, 모든 테이블 `count(*)` 실행 성공과 숫자 결과를 확인한다. `users`나 `courses`가 적법하게 0행인 백업도 허용한다. 누락 테이블이나 query 실패를 0으로 바꾸지 않는다.
+- 전체 DB 검증은 기본 테이블 목록과 마지막 Flyway 버전이 체크아웃과 일치하고, 실패한 Flyway 이력이 없는지 확인한다. 모든 테이블에서 `count(*)`를 실행해 숫자 결과를 확인한다. `users`나 `courses`가 적법하게 0행인 백업도 허용한다. 누락 테이블이나 query 실패를 0으로 바꾸지 않는다.
 - 감사 DB는 archive table 이름, 컬럼 이름·타입·nullable 여부, id primary key와 manifest의 정확한 행 수를 확인한다. 0행도 정확히 비교한다.
 - 원문 SQL/error/사용자 행은 출력하지 않고, 의미 있는 단계와 테이블별 개수만 독립 JSON 필드로 기록한다. 성공 이벤트는 해당 임시 컨테이너와 익명 volume 제거가 완료된 뒤에만 나온다. 정리에 실패하면 nonzero exit와 대상 ID가 남는다.
 
