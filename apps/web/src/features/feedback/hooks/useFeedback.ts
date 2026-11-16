@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { 
   createFeedback, 
   getMyFeedbacks, 
@@ -12,11 +12,13 @@ import {
   deleteFeedbackReply,
   downloadFeedbackAttachmentForAdmin,
 } from "../api/feedback.api";
-import { 
+import type {
   FeedbackCreateRequest, 
   FeedbackReplyCreateRequest, 
   FeedbackReplyUpdateRequest, 
   AdminFeedbackDeletionFilter,
+  AdminFeedbackOrder,
+  AdminFeedbackSearch,
   FeedbackStatusUpdateRequest 
 } from "@/shared/types/api";
 
@@ -24,11 +26,18 @@ export const feedbackKeys = {
   all: ["feedback"] as const,
   myList: (page: number) => [...feedbackKeys.all, "my", { page }] as const,
 
-  adminList: (page: number, deletion: AdminFeedbackDeletionFilter) =>
-    [...feedbackKeys.all, "admin", { page, deletion }] as const,
+  adminList: (page: number, deletion: AdminFeedbackDeletionFilter, order: AdminFeedbackOrder, search?: AdminFeedbackSearch) =>
+    [...feedbackKeys.all, "admin", { page, deletion, order, ...search }] as const,
 
   detail: (id: number) => [...feedbackKeys.all, "detail", id] as const,
 };
+
+function invalidateFeedbackListsAndDetail(queryClient: QueryClient, id?: number) {
+  void queryClient.invalidateQueries({
+    queryKey: feedbackKeys.all,
+    predicate: ({ queryKey }) => queryKey[1] !== "detail" || queryKey[2] === id,
+  });
+}
 
 export function useMyFeedbacks(page: number = 0) {
   return useQuery({
@@ -58,7 +67,7 @@ export function useCreateFeedback() {
       createFeedback(request, files),
 
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedbackKeys.all });
+      invalidateFeedbackListsAndDetail(queryClient);
     },
   });
 }
@@ -68,22 +77,21 @@ export function useDeleteFeedback() {
   return useMutation({
     mutationFn: (id: number) => deleteFeedback(id),
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedbackKeys.all });
+    onSuccess: (_, id) => {
+      invalidateFeedbackListsAndDetail(queryClient, id);
     },
   });
 }
 
 export function useFeedbacksForAdmin(
   page: number = 0,
-  deletion: AdminFeedbackDeletionFilter = "ALL"
+  deletion: AdminFeedbackDeletionFilter = "ALL",
+  order: AdminFeedbackOrder = "NEWEST",
+  search?: AdminFeedbackSearch,
 ) {
   return useQuery({
-    queryKey: feedbackKeys.adminList(page, deletion),
-    queryFn: async () => {
-      const response = await getFeedbacksForAdmin(page, deletion);
-      return response;
-    },
+    queryKey: feedbackKeys.adminList(page, deletion, order, search),
+    queryFn: () => getFeedbacksForAdmin(page, deletion, order, search),
   });
 }
 
@@ -112,8 +120,7 @@ export function useUpdateFeedbackStatus() {
       updateFeedbackStatus(id, request),
 
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: feedbackKeys.all });
-      queryClient.invalidateQueries({ queryKey: feedbackKeys.detail(id) });
+      invalidateFeedbackListsAndDetail(queryClient, id);
     },
   });
 }
@@ -125,8 +132,7 @@ export function useCreateFeedbackReply() {
       createFeedbackReply(id, request),
 
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: feedbackKeys.all });
-      queryClient.invalidateQueries({ queryKey: feedbackKeys.detail(id) });
+      invalidateFeedbackListsAndDetail(queryClient, id);
     },
   });
 }
@@ -138,8 +144,7 @@ export function useUpdateFeedbackReply() {
       updateFeedbackReply(replyId, request),
 
     onSuccess: (_, { feedbackId }) => {
-      queryClient.invalidateQueries({ queryKey: feedbackKeys.all });
-      queryClient.invalidateQueries({ queryKey: feedbackKeys.detail(feedbackId) });
+      invalidateFeedbackListsAndDetail(queryClient, feedbackId);
     },
   });
 }
@@ -151,8 +156,7 @@ export function useDeleteFeedbackReply() {
       deleteFeedbackReply(replyId),
 
     onSuccess: (_, { feedbackId }) => {
-      queryClient.invalidateQueries({ queryKey: feedbackKeys.all });
-      queryClient.invalidateQueries({ queryKey: feedbackKeys.detail(feedbackId) });
+      invalidateFeedbackListsAndDetail(queryClient, feedbackId);
     },
   });
 }

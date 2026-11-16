@@ -2,7 +2,6 @@ package bhoon.sugang_helper.academic.review.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.academic.course.entity.Course;
@@ -18,19 +17,16 @@ import bhoon.sugang_helper.academic.review.repository.CourseEmojiReviewRepositor
 import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -45,7 +41,6 @@ class ReviewScopeContractTest {
     private static final String SUBJECT = "CSE101";
     private static final String CURRENT = "2026:U211600020:CSE101:02";
     private static final String PREVIOUS = "2025:U211600010:CSE101:01";
-    private static final String EMAIL = "reviewer@example.com";
 
     @Autowired private CourseRepository courses;
 
@@ -61,19 +56,11 @@ class ReviewScopeContractTest {
 
     @MockitoBean private UserIdentityQueryService users;
 
-    private MockedStatic<SecurityUtil> security;
-
     @BeforeEach
     void setUp() {
-        security = mockStatic(SecurityUtil.class);
-        security.when(SecurityUtil::getCurrentUserEmail).thenReturn(EMAIL);
-        security.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(EMAIL);
-        when(users.findByEmail(EMAIL)).thenReturn(Optional.of(new UserIdentity(1L, false)));
-    }
-
-    @AfterEach
-    void tearDown() {
-        security.close();
+        UserIdentity user = new UserIdentity(1L, false);
+        when(users.requireCurrentUser()).thenReturn(user);
+        when(users.findCurrentUser()).thenReturn(Optional.of(user));
     }
 
     @ParameterizedTest
@@ -94,7 +81,7 @@ class ReviewScopeContractTest {
         assertThat(reviewService.getReviews(CURRENT, PageRequest.of(0, 10)))
                 .extracting(ReviewResponse::id).containsExactly(otherReview.getId());
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
-                .containsExactly(new CourseEmojiReviewResponse("🔥", 1L, false));
+                .containsExactly(CourseEmojiReviewResponse.of("🔥", 1L, false));
 
         reviewService.createReview(CURRENT, new ReviewCreateRequest(3));
         emojiService.toggleEmoji(CURRENT, "👍");
@@ -105,8 +92,8 @@ class ReviewScopeContractTest {
         assertThat(previous.getReviewCount()).isZero();
         assertThat(emojis.count()).isEqualTo(3);
         assertThat(emojiService.getCourseEmojiStats(CURRENT)).containsExactlyInAnyOrder(
-                new CourseEmojiReviewResponse("👍", 1L, true),
-                new CourseEmojiReviewResponse("🔥", 1L, false));
+                CourseEmojiReviewResponse.of("👍", 1L, true),
+                CourseEmojiReviewResponse.of("🔥", 1L, false));
         assertDuplicateReviewRejected();
     }
 
@@ -133,32 +120,26 @@ class ReviewScopeContractTest {
         assertThat(reviewService.getReviews(CURRENT, PageRequest.of(0, 10)))
                 .extracting(ReviewResponse::id).containsExactly(myReview.getId(), otherReview.getId());
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
-                .containsExactly(new CourseEmojiReviewResponse("👍", 2L, true));
+                .containsExactly(CourseEmojiReviewResponse.of("👍", 2L, true));
 
         emojiService.toggleEmoji(CURRENT, "👍");
         reviewService.updateReview(myReview.getId(), new ReviewUpdateRequest(1));
 
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
-                .containsExactly(new CourseEmojiReviewResponse("👍", 1L, false));
+                .containsExactly(CourseEmojiReviewResponse.of("👍", 1L, false));
         assertThat(List.of(current, previous)).allSatisfy(course -> {
             assertThat(course.getReviewCount()).isEqualTo(2);
             assertThat(course.getAverageRating()).isEqualTo(2.0f);
         });
 
-        reviewService.deleteReview(myReview.getId());
         emojiService.toggleEmoji(CURRENT, "👍");
 
-        assertThat(List.of(current, previous)).allSatisfy(course -> {
-            assertThat(course.getReviewCount()).isEqualTo(1);
-            assertThat(course.getAverageRating()).isEqualTo(3.0f);
-        });
         assertThat(emojiService.getCourseEmojiStats(CURRENT))
-                .containsExactly(new CourseEmojiReviewResponse("👍", 2L, true));
+                .containsExactly(CourseEmojiReviewResponse.of("👍", 2L, true));
         assertThat(List.of(otherProfessor, otherSubject)).allSatisfy(course -> {
             assertThat(course.getReviewCount()).isZero();
             assertThat(course.getAverageRating()).isZero();
         });
-        reviewService.createReview(CURRENT, new ReviewCreateRequest(5));
         assertDuplicateReviewRejected();
     }
 

@@ -17,7 +17,7 @@ runtime_env_tmp=""
 app_quiesced=false
 
 fail() {
-  echo "deploy failed at ${stage}: $*" >&2
+  echo "배포 실패 단계 ${stage}: $*" >&2
   exit 1
 }
 
@@ -28,7 +28,7 @@ read_required_app_env_value() {
   local value
   count="$(awk -F= -v wanted="${key}" '$1 == wanted { count++ } END { print count + 0 }' "${env_file}")"
   if [ "${count}" -ne 1 ]; then
-    fail "${key} must appear exactly once in staging apps/server/.env"
+    fail "스테이징 apps/server/.env에 ${key}를 정확히 한 번 지정해야 합니다."
   fi
   value="$(awk -F= -v wanted="${key}" '$1 == wanted { sub(/^[^=]*=/, ""); print }' "${env_file}")"
   value="$(printf '%s' "${value%$'\r'}" | awk '{ sub(/^[[:space:]]+/, ""); sub(/[[:space:]]+$/, ""); print }')"
@@ -37,7 +37,7 @@ read_required_app_env_value() {
     value="${value:1:${#value}-2}"
   fi
   if [ -z "${value}" ]; then
-    fail "${key} must not be empty in staging apps/server/.env"
+    fail "스테이징 apps/server/.env의 ${key}는 비워둘 수 없습니다."
   fi
   printf '%s' "${value}"
 }
@@ -47,19 +47,19 @@ validate_app_env_file() {
   local discord_redirect_uri
   local google_redirect_uri
   if [ ! -f "${env_file}" ]; then
-    fail "staging apps/server/.env is missing"
+    fail "스테이징 apps/server/.env 파일이 없습니다."
   fi
   read_required_app_env_value "${env_file}" GOOGLE_CLIENT_ID >/dev/null
   read_required_app_env_value "${env_file}" GOOGLE_CLIENT_SECRET >/dev/null
   google_redirect_uri="$(read_required_app_env_value "${env_file}" GOOGLE_REDIRECT_URI)"
   if [ "${google_redirect_uri}" != "${PRODUCTION_GOOGLE_REDIRECT_URI}" ]; then
-    fail "GOOGLE_REDIRECT_URI must match the production browser callback"
+    fail "GOOGLE_REDIRECT_URI는 운영 브라우저 콜백 주소와 일치해야 합니다."
   fi
   read_required_app_env_value "${env_file}" DISCORD_CLIENT_ID >/dev/null
   read_required_app_env_value "${env_file}" DISCORD_CLIENT_SECRET >/dev/null
   discord_redirect_uri="$(read_required_app_env_value "${env_file}" DISCORD_REDIRECT_URI)"
   if [ "${discord_redirect_uri}" != "${PRODUCTION_DISCORD_REDIRECT_URI}" ]; then
-    fail "DISCORD_REDIRECT_URI must match the production browser callback"
+    fail "DISCORD_REDIRECT_URI는 운영 브라우저 콜백 주소와 일치해야 합니다."
   fi
 }
 
@@ -109,20 +109,20 @@ cleanup() {
     rm -rf -- "${staging_dir}" || true
   fi
   if [ "${rc}" -ne 0 ]; then
-    echo "deploy failed at ${stage}; no automatic rollback was performed; inspect application and migration state before recovery" >&2
+    echo "${stage} 단계에서 배포에 실패했습니다. 자동으로 롤백하지 않았으므로 복구 전에 앱과 마이그레이션 상태를 확인하세요." >&2
   fi
 }
 trap cleanup EXIT
 
 if [[ ! "${sha}" =~ ^[0-9a-f]{40}$ ]]; then
-  fail "release SHA must be exactly 40 lowercase hexadecimal characters"
+  fail "릴리스 SHA는 소문자 16진수 40자리여야 합니다."
 fi
 if [[ ! "${staging_dir}" =~ ^${STAGING_ROOT}/[0-9a-f]{40}$ ]] \
   || [ "${staging_dir##*/}" != "${sha}" ]; then
-  fail "staging directory is outside the fixed allowlist"
+  fail "스테이징 디렉터리가 허용 경로를 벗어났습니다."
 fi
 if [ ! -f "${RUNTIME_ENV}" ]; then
-  fail "${RUNTIME_ENV} is missing; bootstrap the Ubuntu runtime first"
+  fail "${RUNTIME_ENV} 파일이 없습니다. Ubuntu 실행 환경을 먼저 초기화하세요."
 fi
 if [ ! -f "${staging_dir}/docker-compose.yml" ] \
   || [ ! -f "${staging_dir}/application-prod.yml" ] \
@@ -142,13 +142,13 @@ if [ ! -f "${staging_dir}/docker-compose.yml" ] \
   || [ ! -f "${staging_dir}/scripts/check-storage-health.py" ] \
   || [ ! -f "${staging_dir}/scripts/backup-important-events.py" ] \
   || [ ! -d "${staging_dir}/systemd" ]; then
-  fail "staging release is incomplete"
+  fail "스테이징 릴리스에 필수 파일이 누락됐습니다."
 fi
 if [ -L "${staging_dir}" ] || find -P "${staging_dir}" -type l -print -quit | grep -q .; then
-  fail "staging release must not contain symbolic links"
+  fail "스테이징 릴리스에 심볼릭 링크가 포함되면 안 됩니다."
 fi
 
-command -v docker >/dev/null || fail "docker is required for Ubuntu deploys"
+command -v docker >/dev/null || fail "Ubuntu에 배포하려면 Docker가 필요합니다."
 mkdir -p "${RELEASE_ROOT}"
 
 read_env_value() {
@@ -158,14 +158,14 @@ read_env_value() {
 
 alerting_enabled="$(read_env_value ALERTING_ENABLED)"
 if [ -n "${alerting_enabled}" ] && [ "${alerting_enabled}" != true ] && [ "${alerting_enabled}" != false ]; then
-  fail "ALERTING_ENABLED must be true or false"
+  fail "ALERTING_ENABLED는 true 또는 false여야 합니다."
 fi
 if [ "${alerting_enabled}" = true ]; then
   if [ ! -f "${staging_dir}/docker-compose.alerting.yml" ] \
     || [ ! -f "${staging_dir}/alertmanager/alertmanager.yml" ] \
     || [ ! -f "${staging_dir}/scripts/validate-alerting-config.sh" ] \
     || [ ! -f "${staging_dir}/scripts/validate-alerting-settings.py" ]; then
-    fail "enabled alerting release is incomplete"
+    fail "알림을 활성화한 릴리스에 필수 파일이 누락됐습니다."
   fi
   stage="alerting-preflight"
   ALERTING_RELEASE_ROOT="${RELEASE_ROOT}" \
@@ -174,7 +174,7 @@ if [ "${alerting_enabled}" = true ]; then
     PROMETHEUS_ALERTMANAGER_TARGETS_FILE="$(read_env_value PROMETHEUS_ALERTMANAGER_TARGETS_FILE)" \
     ALERTMANAGER_PORT_HOST="$(read_env_value ALERTMANAGER_PORT_HOST)" \
     bash "${staging_dir}/scripts/validate-alerting-config.sh" --static-only \
-    || fail "enabled alerting settings validation failed"
+    || fail "활성화된 알림 설정을 검증하지 못했습니다."
 fi
 
 stage="app-env-preflight"
@@ -183,10 +183,10 @@ validate_app_env_file "${staging_dir}/apps/server/.env"
 app_image_name="$(read_env_value APP_IMAGE_NAME)"
 flyway_image="$(read_env_value FLYWAY_IMAGE)"
 if [[ "${app_image_name}" != ghcr.io/* ]]; then
-  fail "APP_IMAGE_NAME must point to GHCR"
+  fail "APP_IMAGE_NAME에는 GHCR 이미지 주소를 지정해야 합니다."
 fi
 if [[ "${flyway_image}" != *@sha256:* ]]; then
-  fail "FLYWAY_IMAGE must be digest-pinned"
+  fail "FLYWAY_IMAGE는 이미지 다이제스트로 고정해야 합니다."
 fi
 
 stage="staging-compose-validate"
@@ -204,7 +204,7 @@ if [ "${alerting_enabled}" = true ]; then
   compose_stage+=(-f "${staging_dir}/docker-compose.alerting.yml")
 fi
 "${compose_stage[@]}" --profile migration --profile observability config >/dev/null \
-  || fail "staging Compose config validation failed"
+  || fail "스테이징 Compose 설정을 검증하지 못했습니다."
 
 stage="promote-runtime-files"
 mkdir -p \
@@ -273,67 +273,67 @@ if [ "${alerting_enabled}" = true ]; then
   compose+=(-f "${RELEASE_ROOT}/docker-compose.alerting.yml")
 fi
 "${compose[@]}" --profile migration --profile observability config >/dev/null \
-  || fail "runtime Compose config validation failed"
+  || fail "실행 환경의 Compose 설정을 검증하지 못했습니다."
 
 stage="observability-probe-tools"
 "${compose[@]}" --profile observability run --rm --no-deps observability-probe-tools \
-  || fail "observability HTTP probe preparation failed"
+  || fail "모니터링 HTTP 점검을 준비하지 못했습니다."
 
 stage="infra-start"
 if [ "${alerting_enabled}" = true ]; then
   "${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 alertmanager \
-    || fail "Alertmanager startup failed"
+    || fail "Alertmanager를 시작하지 못했습니다."
 fi
 "${compose[@]}" --profile observability up -d --wait --wait-timeout 180 db redis \
-  || fail "MySQL/Redis startup failed"
+  || fail "MySQL 또는 Redis를 시작하지 못했습니다."
 "${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 loki prometheus docker-log-proxy \
-  || fail "Loki/Prometheus/Docker log proxy startup failed"
+  || fail "Loki, Prometheus 또는 Docker 로그 프록시를 시작하지 못했습니다."
 "${compose[@]}" --profile observability up -d --force-recreate --no-deps --wait --wait-timeout 180 alloy grafana \
-  || fail "Alloy/Grafana startup failed"
+  || fail "Alloy 또는 Grafana를 시작하지 못했습니다."
 
 stage="edge-network"
 if ! docker inspect sugang-helper-npm >/dev/null 2>&1; then
-  fail "existing NPM container sugang-helper-npm is missing"
+  fail "기존 NPM 컨테이너 sugang-helper-npm을 찾을 수 없습니다."
 fi
 if ! docker network inspect sugang-helper-runtime \
   --format '{{range .Containers}}{{.Name}}{{"\n"}}{{end}}' | grep -Fxq sugang-helper-npm; then
   docker network connect sugang-helper-runtime sugang-helper-npm \
-    || fail "NPM could not join sugang-helper-runtime"
+    || fail "NPM을 sugang-helper-runtime 네트워크에 연결하지 못했습니다."
 fi
 
 stage="app-image-pull"
-"${compose[@]}" pull app || fail "application image pull failed"
+"${compose[@]}" pull app || fail "앱 이미지를 내려받지 못했습니다."
 
 stage="stop-app"
 "${compose[@]}" stop app >/dev/null 2>&1 \
-  || fail "application stop failed; migration was not started"
+  || fail "앱을 중지하지 못했습니다. 마이그레이션을 시작하지 않았습니다."
 app_container_ids="$("${compose[@]}" ps --all --quiet app)" \
-  || fail "application container lookup failed; migration was not started"
+  || fail "앱 컨테이너를 조회하지 못했습니다. 마이그레이션을 시작하지 않았습니다."
 while IFS= read -r app_container_id; do
   [ -n "${app_container_id}" ] || continue
   if [[ ! "${app_container_id}" =~ ^[0-9a-f]{12,64}$ ]]; then
-    fail "application container lookup returned an invalid ID; migration was not started"
+    fail "앱 컨테이너 조회 결과의 ID가 올바르지 않습니다. 마이그레이션을 시작하지 않았습니다."
   fi
   app_running="$(docker inspect --type container --format '{{.State.Running}}' "${app_container_id}")" \
-    || fail "application state inspection failed; migration was not started"
+    || fail "앱 상태를 확인하지 못했습니다. 마이그레이션을 시작하지 않았습니다."
   if [ "${app_running}" != false ]; then
-    fail "application is not confirmed stopped; migration was not started"
+    fail "앱 중지를 확인하지 못했습니다. 마이그레이션을 시작하지 않았습니다."
   fi
 done <<<"${app_container_ids}"
 app_quiesced=true
 
 stage="flyway-migrate"
 "${compose[@]}" --profile migration run --rm --no-deps migrate migrate \
-  || fail "Flyway migrate failed; app remains stopped"
+  || fail "Flyway 마이그레이션에 실패했습니다. 앱은 중지 상태입니다."
 
 stage="app-start"
 "${compose[@]}" up -d --no-deps --wait --wait-timeout 180 app \
-  || fail "application container failed to start"
+  || fail "앱 컨테이너를 시작하지 못했습니다."
 
 stage="readiness"
 curl --fail --silent --show-error --max-time 10 \
   http://127.0.0.1:8081/actuator/health/readiness >/dev/null \
-  || fail "application readiness failed"
+  || fail "앱의 준비 상태를 확인하지 못했습니다."
 
 stage="observability-smoke"
 grafana_port_host="$(read_env_value GRAFANA_PORT_HOST)"
@@ -345,11 +345,11 @@ if ! GRAFANA_SMOKE_TOKEN_FILE="$(read_env_value GRAFANA_SMOKE_TOKEN_FILE)" \
   RUNTIME_NETWORK_NAME="$(read_env_value RUNTIME_NETWORK_NAME)" \
   GRAFANA_URL="http://127.0.0.1:${grafana_port_host}" \
     "${RELEASE_ROOT}/scripts/test-observability-smoke.sh"; then
-  echo "observability smoke warning; deployment remains active" >&2
+  echo "모니터링 점검에서 문제가 발견됐습니다. 배포는 유지됩니다." >&2
 fi
 
 stage="image-cleanup"
 docker image prune -f >/dev/null 2>&1 || true
 
 stage="complete"
-echo "deployed ${sha} with Ubuntu SSH-only deploy"
+echo "Ubuntu에 SSH로 ${sha} 배포를 완료했습니다."

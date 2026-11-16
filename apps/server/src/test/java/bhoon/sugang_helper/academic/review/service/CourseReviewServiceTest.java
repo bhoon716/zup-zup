@@ -4,32 +4,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.academic.course.dto.result.CourseReference;
 import bhoon.sugang_helper.academic.course.service.CourseReviewCatalogService;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewCreateRequest;
-import bhoon.sugang_helper.academic.review.dto.request.ReviewReactionRequest;
 import bhoon.sugang_helper.academic.review.dto.request.ReviewUpdateRequest;
 import bhoon.sugang_helper.academic.review.dto.response.ReviewResponse;
+import bhoon.sugang_helper.academic.review.dto.result.CourseReviewStats;
 import bhoon.sugang_helper.academic.review.entity.CourseReview;
-import bhoon.sugang_helper.academic.review.entity.CourseReviewReaction;
-import bhoon.sugang_helper.academic.review.enums.ReactionType;
-import bhoon.sugang_helper.academic.review.repository.CourseReviewReactionRepository;
 import bhoon.sugang_helper.academic.review.repository.CourseReviewRepository;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.enums.Role;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -37,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -60,28 +52,15 @@ class CourseReviewServiceTest {
     private CourseReviewRepository reviewRepository;
 
     @Mock
-    private CourseReviewReactionRepository reactionRepository;
-
-    @Mock
     private CourseReviewCatalogService courseReviewCatalog;
 
     @Mock
     private UserIdentityQueryService userIdentityQuery;
 
-    private MockedStatic<SecurityUtil> securityUtilMockedStatic;
-
     @BeforeEach
     void setUp() {
-        securityUtilMockedStatic = mockStatic(SecurityUtil.class);
         lenient().when(courseReviewCatalog.findReviewCourseKeys(any(CourseReference.class)))
                 .thenReturn(List.of(COURSE_KEY));
-    }
-
-    @AfterEach
-    void tearDown() {
-        if (securityUtilMockedStatic != null) {
-            securityUtilMockedStatic.close();
-        }
     }
 
     private User createUser(Long id, Role role) {
@@ -114,16 +93,13 @@ class CourseReviewServiceTest {
     }
 
     private void mockCurrentUser(User user) {
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmail).thenReturn(user.getEmail());
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(user.getEmail());
-        lenient().when(userIdentityQuery.findByEmail(user.getEmail())).thenReturn(Optional.of(identity(user)));
+        lenient().when(userIdentityQuery.requireCurrentUser()).thenReturn(identity(user));
+        lenient().when(userIdentityQuery.findCurrentUser()).thenReturn(Optional.of(identity(user)));
     }
 
     private void mockCourseStats(double avgRating, long count) {
-        lenient().when(reviewRepository.getAverageRatingByCourseKeys(List.of(COURSE_KEY)))
-                .thenReturn(avgRating);
-        lenient().when(reviewRepository.countByCourseKeys(List.of(COURSE_KEY)))
-                .thenReturn(count);
+        lenient().when(reviewRepository.findStatsByCourseKeys(List.of(COURSE_KEY)))
+                .thenReturn(new CourseReviewStats(avgRating, count));
 
     }
 
@@ -204,8 +180,7 @@ class CourseReviewServiceTest {
             when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
             when(reviewRepository.countByCourseKeysAndUserId(List.of(COURSE_KEY), user.getId())).thenReturn(0L);
             when(reviewRepository.saveAndFlush(any(CourseReview.class))).thenReturn(createReview(COURSE_KEY, user.getId()));
-            when(reviewRepository.countByCourseKeys(List.of(COURSE_KEY))).thenReturn(1L);
-            when(reviewRepository.getAverageRatingByCourseKeys(List.of(COURSE_KEY))).thenReturn(5.0);
+            when(reviewRepository.findStatsByCourseKeys(List.of(COURSE_KEY))).thenReturn(new CourseReviewStats(5.0, 1L));
 
             // when
             reviewService.createReview(COURSE_KEY, request);
@@ -375,154 +350,6 @@ class CourseReviewServiceTest {
             assertThatThrownBy(() -> reviewService.updateReview(REVIEW_ID, request))
                     .isInstanceOf(CustomException.class)
                     .hasMessageContaining("권한이 없습니다");
-        }
-    }
-
-    @Nested
-    @DisplayName("공감")
-    class ReactionTests {
-
-        @Test
-        @DisplayName("공감/비공감 토글 - 새로운 '공감' 추가")
-        void toggleReaction_AddNewReaction() {
-            // given
-            User user = createUser(USER_ID, Role.USER);
-            mockCurrentUser(user);
-
-            CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
-            ReviewReactionRequest request = new ReviewReactionRequest(ReactionType.LIKE);
-
-            when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
-            when(reactionRepository.findByReviewAndUserId(review, user.getId())).thenReturn(Optional.empty());
-
-            // when
-            reviewService.toggleReaction(REVIEW_ID, request);
-
-            // then
-            verify(reviewRepository).incrementLikeCount(any());
-            verify(reactionRepository).save(any(CourseReviewReaction.class));
-        }
-
-        @Test
-        @DisplayName("공감/비공감 토글 - '공감' 취소")
-        void toggleReaction_CancelExistingReaction() {
-            // given
-            User user = createUser(USER_ID, Role.USER);
-            mockCurrentUser(user);
-
-            CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
-            review.increaseLikeCount();
-
-            CourseReviewReaction existingReaction = CourseReviewReaction.builder()
-                    .review(review).userId(user.getId()).reactionType(ReactionType.LIKE).build();
-            ReviewReactionRequest request = new ReviewReactionRequest(ReactionType.LIKE);
-
-            when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
-            when(reactionRepository.findByReviewAndUserId(review, user.getId()))
-                    .thenReturn(Optional.of(existingReaction));
-
-            // when
-            reviewService.toggleReaction(REVIEW_ID, request);
-
-            // then
-            verify(reviewRepository).decrementLikeCount(any());
-            verify(reactionRepository).delete(existingReaction);
-        }
-
-        @Test
-        @DisplayName("공감/비공감 토글 - '공감'을 '비공감'으로 변경")
-        void toggleReaction_SwitchReaction() {
-            // given
-            User user = createUser(USER_ID, Role.USER);
-            mockCurrentUser(user);
-
-            CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
-            review.increaseLikeCount();
-
-            CourseReviewReaction existingReaction = CourseReviewReaction.builder()
-                    .review(review).userId(user.getId()).reactionType(ReactionType.LIKE).build();
-            ReviewReactionRequest request = new ReviewReactionRequest(ReactionType.DISLIKE);
-
-            when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
-            when(reactionRepository.findByReviewAndUserId(review, user.getId()))
-                    .thenReturn(Optional.of(existingReaction));
-
-            // when
-            reviewService.toggleReaction(REVIEW_ID, request);
-
-            // then
-            verify(reviewRepository).decrementLikeCount(any());
-            verify(reviewRepository).incrementDislikeCount(any());
-            assertThat(existingReaction.getReactionType()).isEqualTo(ReactionType.DISLIKE);
-            verify(reactionRepository, never()).delete(any());
-            verify(reactionRepository, never()).save(any());
-        }
-    }
-
-    @Nested
-    @DisplayName("리뷰 삭제")
-    class DeleteReviewTests {
-
-        @Test
-        @DisplayName("리뷰 삭제 성공")
-        void deleteReview_Success() {
-            // given
-            User user = createUser(USER_ID, Role.USER);
-            mockCurrentUser(user);
-
-            CourseReview review = createReview(COURSE_KEY, user.getId());
-            when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
-
-            CourseReference course = createCourse();
-            when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
-            mockCourseStats(4.0, 9L);
-
-            // when
-            reviewService.deleteReview(REVIEW_ID);
-
-            // then
-            verify(reviewRepository).delete(review);
-            verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 4.0f, 9);
-
-        }
-
-        @Test
-        @DisplayName("리뷰 삭제 실패 - 권한 없음")
-        void deleteReview_Fail_Unauthorized() {
-            // given
-            User user = createUser(USER_ID, Role.USER);
-            mockCurrentUser(user);
-
-            CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
-            when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
-
-            // when & then
-            assertThatThrownBy(() -> reviewService.deleteReview(REVIEW_ID))
-                    .isInstanceOf(CustomException.class)
-                    .hasMessageContaining("권한이 없습니다");
-        }
-
-        @Test
-        @DisplayName("리뷰 삭제 성공 - 관리자 권한")
-        void deleteReview_Admin_Success() {
-            // given
-            User admin = createUser(USER_ID, Role.ADMIN);
-            mockCurrentUser(admin);
-
-            CourseReview review = createReview(COURSE_KEY, OTHER_USER_ID);
-            when(reviewRepository.findById(REVIEW_ID)).thenReturn(Optional.of(review));
-
-            CourseReference course = createCourse();
-            when(courseReviewCatalog.findByCourseKey(COURSE_KEY)).thenReturn(Optional.of(course));
-            mockCourseStats(4.0, 9L);
-
-            // when
-            reviewService.deleteReview(REVIEW_ID);
-
-            // then
-            verify(reviewRepository).delete(review);
-            verify(courseReviewCatalog).updateReviewStats(List.of(COURSE_KEY), 4.0f, 9);
-
         }
     }
 }

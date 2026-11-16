@@ -40,6 +40,9 @@ for (const action of ["create", "update"] as const) {
         writeCsrfTokens.push(route.request().headers()["x-csrf-token"]);
       }
       if (path === "/api/v1/users/me") return fulfill(user);
+      if (path === "/api/v1/notifications/inbox" && method === "GET") {
+        return fulfill({ content: [], number: 0, totalPages: 0, totalElements: 0 });
+      }
       if (path === "/api/v1/courses/search-default-semester") return fulfill({ semester: course.semester });
       if (path === "/api/v1/courses/search") {
         searchCsrfTokens.push(route.request().headers()["x-csrf-token"]);
@@ -72,7 +75,7 @@ for (const action of ["create", "update"] as const) {
     });
     await page.addInitScript(() => localStorage.setItem("course-guide-modal-seen-v1", "seen"));
     await page.goto("/search");
-    await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByText("수강생 님", { exact: true })).toBeVisible();
+    await expect(page.getByRole("group", { name: "사용자 메뉴", exact: true }).getByRole("link", { name: "설정", exact: true })).toBeVisible();
 
     const otherCard = page.locator("article").filter({ hasText: "학수-02" });
     const dialog = page.getByRole("dialog", { name: "강의 상세 정보" });

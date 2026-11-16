@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Loader2, Play, Save, Settings2 } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
@@ -65,30 +64,30 @@ export function AdminCrawlTargetPanel({
   const yearOptions = getCrawlYearOptions();
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-200/40 lg:rounded-[2.5rem] lg:p-8"
+    <section
+      aria-labelledby="admin-crawl-target-heading"
+      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
     >
-      <div className="mb-6 flex items-center gap-2">
-        <Settings2 className="h-5 w-5 text-primary" />
-        <h3 className="text-xl font-black tracking-tight text-slate-900">크롤링 대상 제어</h3>
-      </div>
+      <h2 id="admin-crawl-target-heading" className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
+        <Settings2 className="size-5 text-primary" />
+        크롤링 대상 제어
+      </h2>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
-          <h4 className="mb-3 text-sm font-black text-slate-900">기본 대상 설정</h4>
-          <p className="mb-4 text-xs font-medium text-slate-500">
-            스케줄러 및 기본 크롤링 버튼에서 사용할 년도/학기를 저장합니다.
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+          <h3 className="text-sm font-semibold text-slate-900">기본 대상 설정</h3>
+          <p className="mb-3 mt-1 text-sm text-slate-600">
+            자동 크롤링과 기본 실행에 사용할 연도와 학기를 저장합니다.
           </p>
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
             <select
+              aria-label="기본 대상 연도"
               value={configuredYear}
               onChange={(event) => onConfiguredYearChange(event.target.value)}
               disabled={isConfiguredTargetLoading || isSavingConfiguredTarget}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-full min-w-0 rounded-md border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="">년도 선택</option>
+              <option value="">연도 선택</option>
               {yearOptions.map((year) => (
                 <option key={year} value={year}>
                   {year}
@@ -96,10 +95,11 @@ export function AdminCrawlTargetPanel({
               ))}
             </select>
             <select
+              aria-label="기본 대상 학기"
               value={configuredSemester}
               onChange={(event) => onConfiguredSemesterChange(event.target.value)}
               disabled={isConfiguredTargetLoading || isSavingConfiguredTarget}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-full min-w-0 rounded-md border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">학기 선택</option>
               {CRAWL_SEMESTER_OPTIONS.map((option) => (
@@ -108,14 +108,13 @@ export function AdminCrawlTargetPanel({
                 </option>
               ))}
             </select>
-            <div className="flex flex-wrap gap-2">
+            <div className="col-span-2 flex flex-wrap gap-2">
               <Button
                 type="button"
                 onClick={onSaveConfiguredTarget}
                 disabled={isConfiguredTargetLoading || isSavingConfiguredTarget || !canSaveConfiguredTarget}
-                className="h-9 rounded-xl bg-primary px-4 text-xs font-bold text-white hover:bg-primary-dark"
               >
-                {isSavingConfiguredTarget ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+                {isSavingConfiguredTarget ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                 저장
               </Button>
               <Button
@@ -123,12 +122,11 @@ export function AdminCrawlTargetPanel({
                 variant="outline"
                 onClick={onRunConfiguredTarget}
                 disabled={isConfiguredTargetLoading || isRunningConfiguredTarget}
-                className="h-9 rounded-xl px-4 text-xs font-bold"
               >
                 {isRunningConfiguredTarget ? (
-                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <Play className="mr-1 h-4 w-4" />
+                  <Play className="size-4" />
                 )}
                 이 설정으로 실행
               </Button>
@@ -136,19 +134,20 @@ export function AdminCrawlTargetPanel({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-5">
-          <h4 className="mb-3 text-sm font-black text-slate-900">특정 대상 즉시 실행</h4>
-          <p className="mb-4 text-xs font-medium text-slate-500">
-            저장과 무관하게 1회성으로 원하는 년도/학기를 즉시 크롤링합니다.
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+          <h3 className="text-sm font-semibold text-slate-900">특정 대상 즉시 실행</h3>
+          <p className="mb-3 mt-1 text-sm text-slate-600">
+            선택한 연도와 학기의 강의를 한 번 수집합니다.
           </p>
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
             <select
+              aria-label="즉시 실행 대상 연도"
               value={runYear}
               onChange={(event) => onRunYearChange(event.target.value)}
               disabled={isRunningCustomTarget}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-full min-w-0 rounded-md border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="">년도 선택</option>
+              <option value="">연도 선택</option>
               {yearOptions.map((year) => (
                 <option key={year} value={year}>
                   {year}
@@ -156,10 +155,11 @@ export function AdminCrawlTargetPanel({
               ))}
             </select>
             <select
+              aria-label="즉시 실행 대상 학기"
               value={runSemester}
               onChange={(event) => onRunSemesterChange(event.target.value)}
               disabled={isRunningCustomTarget}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-full min-w-0 rounded-md border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">학기 선택</option>
               {CRAWL_SEMESTER_OPTIONS.map((option) => (
@@ -171,20 +171,16 @@ export function AdminCrawlTargetPanel({
             <Button
               type="button"
               variant="outline"
+              className="col-span-2 justify-self-start"
               onClick={onRunCustomTarget}
               disabled={isRunningCustomTarget || !canRunCustomTarget}
-              className="h-9 rounded-xl px-4 text-xs font-bold"
             >
-              {isRunningCustomTarget ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Play className="mr-1 h-4 w-4" />}
+              {isRunningCustomTarget ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
               지정 값으로 실행
             </Button>
           </div>
         </div>
       </div>
-
-      <div className="mt-4 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-medium text-slate-500">
-        학기 선택: 1학기, 2학기, 하기/동기 계절학기, 여름/겨울/신입생/SW 특별학기
-      </div>
-    </motion.section>
+    </section>
   );
 }

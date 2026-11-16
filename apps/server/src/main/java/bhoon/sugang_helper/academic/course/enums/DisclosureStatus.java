@@ -3,6 +3,7 @@ package bhoon.sugang_helper.academic.course.enums;
 import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Getter
 @RequiredArgsConstructor
@@ -13,7 +14,7 @@ public enum DisclosureStatus {
     private final String description;
 
     public static DisclosureStatus from(String description) {
-        if (description == null || description.isBlank()) {
+        if (!StringUtils.hasText(description)) {
             return null;
         }
         return Arrays.stream(values())

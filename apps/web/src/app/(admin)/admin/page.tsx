@@ -1,40 +1,53 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { AlertCircle, BellRing, CloudCog, Gauge, Loader2, RefreshCcw, Users, Settings } from "lucide-react";
-import Link from "next/link";
+import { AlertCircle, CloudCog, Loader2, RefreshCcw, Users } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
-import { useAdminDashboardSnapshot } from "@/features/admin/hooks/useAdminDashboard";
+import { AdminOverview } from "@/features/admin/components/admin-overview";
+import { AdminStatGroup } from "@/features/admin/components/admin-stat-group";
+import { AdminTrafficChart } from "@/features/admin/components/admin-traffic-chart";
+import { useSendTestNotification } from "@/features/admin/hooks/useAdminActions";
+import { useAdminDashboardSnapshot, useAdminNotificationTraffic } from "@/features/admin/hooks/useAdminDashboard";
+import { CRAWL_SEMESTER_OPTIONS } from "@/features/admin/lib/crawl-semester-options";
+import { formatRelative, formatTime, getStatusMeta } from "@/features/admin/lib/formatters";
+import type { AdminTrafficRange } from "@/shared/types/api";
 import { Button } from "@/shared/ui/button";
 
-import { AdminStatCard } from "@/features/admin/components/admin-stat-card";
-import { AdminTrafficChart } from "@/features/admin/components/admin-traffic-chart";
-import { AdminActivityLog } from "@/features/admin/components/admin-activity-log";
-import { AdminOverview } from "@/features/admin/components/admin-overview";
-import {
-  formatDateTime,
-  formatNumber,
-  formatRelative,
-  formatTime,
-  getLogMeta,
-  getStatusMeta,
-} from "@/features/admin/lib/formatters";
-
 export default function AdminDashboardPage() {
+  const [range, setRange] = useState<AdminTrafficRange>("LAST_24_HOURS");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const traffic = useAdminNotificationTraffic(range);
+  const { mutate: sendTestNotification, isPending: isSendingTest } = useSendTestNotification();
   const {
     data: snapshot,
     isLoading: isSnapshotLoading,
-    isError: isSnapshotError,
     refetch: refetchSnapshot,
   } = useAdminDashboardSnapshot();
 
-  const overview = snapshot?.overview;
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    const options = { throwOnError: true, cancelRefetch: false };
+    const [snapshotResult, trafficResult] = await Promise.allSettled([
+      refetchSnapshot(options),
+      traffic.refetch(options),
+    ]);
+    setIsRefreshing(false);
 
-  const handleRefresh = () => {
-    void refetchSnapshot();
+    const snapshotFailed = snapshotResult.status === "rejected";
+    const trafficFailed = trafficResult.status === "rejected";
+    if (snapshotFailed && trafficFailed) {
+      toast.error("대시보드 데이터를 새로고침하지 못했습니다.");
+    } else if (snapshotFailed) {
+      toast.error("시스템 현황을 새로고침하지 못했습니다.");
+    } else if (trafficFailed) {
+      toast.error("알림 발송량을 새로고침하지 못했습니다.");
+    } else {
+      toast.success("대시보드 데이터를 새로고침했습니다.");
+    }
   };
 
-  if (isSnapshotLoading) {
+  if (isSnapshotLoading && !isRefreshing) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 min-h-[70dvh]">
         <div className="flex flex-col items-center gap-4">
@@ -45,14 +58,10 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (isSnapshotError || !snapshot || !overview) {
+  if (!snapshot) {
     return (
       <div className="flex h-full items-center justify-center bg-slate-50 px-6 min-h-[70dvh]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-[2.5rem] border border-red-100 bg-white p-12 text-center shadow-xl shadow-red-500/5 max-w-md w-full"
-        >
+        <div className="rounded-[2.5rem] border border-red-100 bg-white p-12 text-center shadow-xl shadow-red-500/5 max-w-md w-full">
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-red-50 text-red-500">
             <AlertCircle className="h-10 w-10" />
           </div>
@@ -62,104 +71,74 @@ export default function AdminDashboardPage() {
           </p>
           <Button
             onClick={handleRefresh}
+            disabled={isRefreshing}
             className="w-full h-14 rounded-2xl bg-primary hover:bg-primary-dark transition-all text-base font-semibold"
           >
-            <RefreshCcw className="mr-2 h-5 w-5" />
-            다시 시도하기
+            {isRefreshing ? <Loader2 aria-hidden="true" className="mr-2 h-5 w-5 animate-spin" /> : <RefreshCcw aria-hidden="true" className="mr-2 h-5 w-5" />}
+            {isRefreshing ? "새로고침 중…" : "다시 시도하기"}
           </Button>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
-  const statusMeta = getStatusMeta(overview.crawlingStatus || "UNKNOWN");
-  const serverClockText = formatTime(overview.serverTime);
-
-  const statItems = [
-    { label: "크롤러 상태", value: overview.crawlingStatus || "UNKNOWN", sub: `마지막: ${formatRelative(overview.lastCrawledAt)}`, icon: CloudCog, meta: statusMeta, color: "primary" as const },
-    { label: "JBNU 지연시간", value: overview.jbnuLatencyMs === null ? "-" : `${overview.jbnuLatencyMs}ms`, sub: "실시간 연동 준비 중", icon: Gauge, color: "amber" as const },
-    { label: "누적 사용자 수", value: formatNumber(overview.totalUsers), sub: "이번 학기 활성 학생", icon: Users, badge: "LIVE", color: "green" as const },
-    { label: "현재 가동 중인 알림", value: formatNumber(overview.totalActiveSubscriptions), sub: "수강신청 빈자리 대기", icon: BellRing, badge: "Push", color: "indigo" as const }
-  ];
+  const { overview, crawlTarget: { year, semester } } = snapshot;
+  const semesterLabel = CRAWL_SEMESTER_OPTIONS.find((option) => option.code === semester)?.label ?? semester;
+  const status = getStatusMeta(overview.crawlingStatus);
 
   return (
-    <div className="bg-[#f3f4f6] text-slate-900 min-h-[calc(100dvh-4rem)]">
-      <div className="sticky top-16 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[1920px] items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <span className="font-medium text-slate-800">시스템 현황 관제</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/admin/announcements">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-8 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
-              >
-                공지사항 관리
-              </Button>
-            </Link>
-            <Link href="/admin/settings">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-8 gap-1.5 rounded-lg border-indigo-200 bg-indigo-50/50 px-3 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
-              >
-                <Settings className="h-3.5 w-3.5" />
-                시스템 제어 & 설정
-              </Button>
-            </Link>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-8 gap-1 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
-              onClick={handleRefresh}
-            >
-              <RefreshCcw className="h-3.5 w-3.5" />
-              새로고침
-            </Button>
-          </div>
+    <main>
+      <AdminOverview
+        serverClock={formatTime(overview.serverTime)}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+        onSendTest={() => sendTestNotification()}
+        isSendingTest={isSendingTest}
+      />
+
+      <div className="@container mx-auto max-w-[1920px] space-y-4 px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+        <div className="grid divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white @min-[680px]:grid-cols-2 @min-[680px]:divide-x @min-[680px]:divide-y-0">
+          <AdminStatGroup title="크롤러 상태" icon={CloudCog}>
+            <div>
+              <dt className="text-xs font-medium text-slate-600 sm:text-sm">최근 크롤링</dt>
+              <dd className="mt-1.5">
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-sm font-semibold ${status.badgeClass}`}>
+                  <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+                  {status.label}
+                </span>
+                <span className="mt-1 block text-xs text-slate-600">{formatRelative(overview.lastCrawledAt)}</span>
+              </dd>
+            </div>
+          </AdminStatGroup>
+
+          <AdminStatGroup title="사용자 및 빈자리 구독" icon={Users}>
+            <div>
+              <dt className="text-xs font-medium text-slate-600 sm:text-sm">누적 사용자</dt>
+              <dd className="mt-1 text-lg font-semibold tabular-nums text-slate-900">
+                {overview.totalUsers.toLocaleString("ko-KR")}명
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-slate-600 sm:text-sm">활성 빈자리 구독</dt>
+              <dd className="mt-1">
+                <span className="block text-lg font-semibold tabular-nums text-slate-900">
+                  {overview.totalActiveSubscriptions.toLocaleString("ko-KR")}건
+                </span>
+                <span className="block text-xs text-slate-600">{year}학년도 {semesterLabel}</span>
+              </dd>
+            </div>
+          </AdminStatGroup>
         </div>
+
+        <AdminTrafficChart
+          range={range}
+          onRangeChange={setRange}
+          traffic={traffic.data}
+          isLoading={traffic.isLoading}
+          isError={traffic.isError}
+          onRetry={() => void traffic.refetch({ cancelRefetch: false })}
+        />
       </div>
-
-      <main>
-        <AdminOverview serverClock={serverClockText} onRefresh={handleRefresh} />
-
-        <div className="mx-auto max-w-[1920px] space-y-8 px-4 py-6 sm:space-y-10 sm:px-6 sm:py-8 lg:space-y-12 lg:px-8">
-          {                  }
-          <section className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
-            {statItems.map((stat, i) => (
-              <AdminStatCard key={stat.label} {...stat} index={i} />
-            ))}
-          </section>
-
-          {                                        }
-          <section className="grid grid-cols-1 gap-12 lg:grid-cols-3">
-            <div className="lg:col-span-3">
-              <AdminTrafficChart traffic={overview.notificationTraffic ?? []} />
-            </div>
-          </section>
-
-          {                  }
-          <AdminActivityLog 
-            logs={overview.recentLogs} 
-            formatDateTime={formatDateTime}
-            getLogMeta={getLogMeta}
-          />
-
-          {           }
-          <footer className="py-20 text-center">
-            <div className="flex items-center justify-center gap-2 text-slate-300 font-black text-[10px] uppercase tracking-[0.3em] mb-4">
-               <div className="h-px w-8 bg-slate-100"></div>
-               내부 대시보드 관제
-               <div className="h-px w-8 bg-slate-100"></div>
-            </div>
-            <p className="text-xs font-bold text-slate-400">
-              © 2026 JBNU 수강신청 도우미 관리자. <br className="sm:hidden" /> 모든 권리 보유. V2.0.0-GOLD
-            </p>
-          </footer>
-        </div>
-      </main>
-    </div>
+    </main>
   );
 }

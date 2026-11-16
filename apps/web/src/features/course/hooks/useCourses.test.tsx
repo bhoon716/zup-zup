@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import * as courseApi from "@/features/course/api/course.api";
-import { useCourseDetail, useCourseHistory, useCourses, useSearchDefaultSemester } from "./useCourses";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
+import { useCourseDetail, useCourses, useSearchDefaultSemester } from "./useCourses";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
-import type { CourseSearchCondition, CourseSearchPageResponse } from "@/shared/types/api";
+import type { Course, CourseSearchCondition, CourseSearchPageResponse } from "@/shared/types/api";
 
 vi.mock("@/features/course/api/course.api", () => ({
   searchCourses: vi.fn(),
-  getCourseHistory: vi.fn(),
   getCourseDetail: vi.fn(),
   getSearchDefaultSemester: vi.fn(),
 }));
@@ -15,6 +15,7 @@ vi.mock("@/features/course/api/course.api", () => ({
 describe("useCourses hooks", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useAuthStore.getState().logout();
   });
 
   it("강의 목록 응답을 화면용 필드로 정규화한다", async () => {
@@ -77,14 +78,42 @@ describe("useCourses hooks", () => {
     expect(mockedSearchCourses).toHaveBeenNthCalledWith(2, condition, 1);
   });
 
-  it("courseKey가 없으면 강의 이력 조회를 실행하지 않는다", async () => {
-    const mockedHistory = vi.mocked(courseApi.getCourseHistory);
-    const queryClient = createTestQueryClient();
-    const wrapper = createQueryWrapper(queryClient);
-    const { result } = renderHook(() => useCourseHistory(""), { wrapper });
+  it("같은 공개 검색에 바로 돌아오면 기존 결과를 재사용한다", async () => {
+    const sort = { empty: true, sorted: false, unsorted: true };
+    vi.mocked(courseApi.searchCourses).mockResolvedValue({
+      content: [], last: true, first: true, number: 0, size: 30, numberOfElements: 0, empty: true, sort,
+      pageable: { pageNumber: 0, pageSize: 30, sort, offset: 0, paged: true, unpaged: false },
+    });
+    const wrapper = createQueryWrapper(createTestQueryClient());
+    const condition = { name: "자료" };
+    const first = renderHook(() => useCourses(condition), { wrapper });
+    await waitFor(() => expect(first.result.current.isSuccess).toBe(true));
+    first.unmount();
 
-    await waitFor(() => expect(result.current.fetchStatus).toBe("idle"));
-    expect(mockedHistory).not.toHaveBeenCalled();
+    const second = renderHook(() => useCourses({ ...condition }), { wrapper });
+    expect(second.result.current.isSuccess).toBe(true);
+    expect(courseApi.searchCourses).toHaveBeenCalledTimes(1);
+  });
+
+  it("공개 강의 초기값을 사용해도 인증 후 개인 리뷰 여부를 새로 조회한다", async () => {
+    const course: Course = { courseKey: "CSE-201", subjectCode: "CSE201", classNumber: "02", name: "운영체제" };
+    vi.mocked(courseApi.getCourseDetail).mockResolvedValue({ ...course, isReviewed: true });
+    const client = createTestQueryClient();
+    client.setDefaultOptions({ queries: { retry: false, staleTime: 60_000 } });
+    const { result } = renderHook(() => useCourseDetail(course.courseKey, { data: course, updatedAt: Date.now() }), {
+      wrapper: createQueryWrapper(client),
+    });
+    expect(result.current.data?.isReviewed).toBe(false);
+    expect(courseApi.getCourseDetail).not.toHaveBeenCalled();
+
+    act(() => useAuthStore.getState().setUser({
+      id: 7, name: "사용자", email: "course@example.invalid", role: "USER", onboardingCompleted: true,
+      emailEnabled: true, webPushEnabled: false, discordEnabled: false,
+    }));
+
+    await waitFor(() => expect(result.current.data?.isReviewed).toBe(true));
+    expect(courseApi.getCourseDetail).toHaveBeenCalledExactlyOnceWith(course.courseKey);
+    expect(client.getQueryData<Course>(["public-course-detail", course.courseKey])?.isReviewed).toBe(false);
   });
 
   it("강의 상세 조회 결과를 동일한 규격으로 정규화한다", async () => {

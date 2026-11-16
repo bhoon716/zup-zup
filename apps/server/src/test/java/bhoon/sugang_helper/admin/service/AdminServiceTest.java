@@ -2,7 +2,6 @@ package bhoon.sugang_helper.admin.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -19,7 +18,6 @@ import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import bhoon.sugang_helper.identity.user.service.UserNotificationQueryService;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
-import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationService;
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import java.time.LocalDateTime;
@@ -28,6 +26,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -46,9 +46,6 @@ class AdminServiceTest {
     private SubscriptionQueryService subscriptionQueryService;
 
     @Mock
-    private NotificationHistoryQueryService notificationHistoryQuery;
-
-    @Mock
     private NotificationService notificationTestSender;
 
     @Mock
@@ -60,18 +57,22 @@ class AdminServiceTest {
     @InjectMocks
     private AdminService adminService;
 
-    @Test
-    @DisplayName("관리자 대시보드 스냅샷을 한 번에 조회한다")
-    void getDashboardSnapshot() {
+    @ParameterizedTest
+    @CsvSource(value = {
+            "없음|UNKNOWN",
+            "30|DEGRADED",
+            "0|RUNNING"
+    }, delimiter = '|', nullValues = "없음")
+    @DisplayName("관리자 대시보드는 수집 대상 학기의 구독 수와 크롤러 상태를 반환한다")
+    void getDashboardSnapshot(Long minutesAgo, String status) {
         // given
+        LocalDateTime lastCrawledAt = minutesAgo == null ? null : LocalDateTime.now().minusMinutes(minutesAgo);
+        CrawlerAdminSnapshot crawlTarget = new CrawlerAdminSnapshot("2026", "U211600020");
         when(userIdentityQuery.countUsers()).thenReturn(100L);
-        when(subscriptionQueryService.countActiveSubscriptions()).thenReturn(50L);
-        when(notificationHistoryQuery.countCreatedAfter(any(LocalDateTime.class))).thenReturn(20L);
-        when(notificationHistoryQuery.findCreatedAtAfter(any(LocalDateTime.class))).thenReturn(List.of());
-        when(notificationHistoryQuery.findLatest()).thenReturn(List.of());
-        when(crawlerStatusQuery.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
-        when(crawlerAdminSnapshotQuery.findCurrentAdminSnapshot())
-                .thenReturn(new CrawlerAdminSnapshot("2026", "U211600020"));
+        when(subscriptionQueryService.countActiveSubscriptions(crawlTarget.year(), crawlTarget.semester()))
+                .thenReturn(50L);
+        when(crawlerStatusQuery.findLastSuccessAt()).thenReturn(Optional.ofNullable(lastCrawledAt));
+        when(crawlerAdminSnapshotQuery.findCurrentAdminSnapshot()).thenReturn(crawlTarget);
 
         // when
         AdminDashboardSnapshotResponse result = adminService.getDashboardSnapshot();
@@ -79,10 +80,9 @@ class AdminServiceTest {
         // then
         assertThat(result.getOverview().getTotalUsers()).isEqualTo(100L);
         assertThat(result.getOverview().getTotalActiveSubscriptions()).isEqualTo(50L);
-        assertThat(result.getOverview().getTodayNotificationCount()).isEqualTo(20L);
-        assertThat(result.getOverview().getCrawlingStatus()).isEqualTo("RUNNING");
-        assertThat(result.getCrawlTarget().year()).isEqualTo("2026");
-        assertThat(result.getCrawlTarget().semester()).isEqualTo("U211600020");
+        assertThat(result.getOverview().getCrawlingStatus()).isEqualTo(status);
+        assertThat(result.getOverview().getLastCrawledAt()).isEqualTo(lastCrawledAt);
+        assertThat(result.getCrawlTarget()).isEqualTo(crawlTarget);
     }
 
     @Test

@@ -97,7 +97,7 @@ describe("지원 채널 설정 저장", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     act(() => result.current.setValue("notificationEmail", "draft@example.invalid"));
     act(() => useAuthStore.getState().setUser({ ...useAuthStore.getState().user!, name: "수정된 이름" }));
-    expect(result.current.watch("notificationEmail")).toBe("draft@example.invalid");
+    expect(result.current.notificationEmail).toBe("draft@example.invalid");
     expect(result.current.user?.name).toBe("수정된 이름");
   });
 

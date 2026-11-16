@@ -2,25 +2,25 @@ package bhoon.sugang_helper.planning.timetable.dto.response;
 
 import bhoon.sugang_helper.planning.timetable.entity.CustomScheduleTime;
 import java.time.LocalTime;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CustomScheduleTimeResponse {
-    private Long id;
-    private String dayOfWeek;
-    private LocalTime startTime;
-    private LocalTime endTime;
-    private String classroom;
+    private final Long id;
+    private final String dayOfWeek;
+    private final LocalTime startTime;
+    private final LocalTime endTime;
+    private final String classroom;
 
-    public static CustomScheduleTimeResponse of(CustomScheduleTime time) {
-        return CustomScheduleTimeResponse.builder()
-                .id(time.getId())
-                .dayOfWeek(time.getDayOfWeek())
-                .startTime(time.getStartTime())
-                .endTime(time.getEndTime())
-                .classroom(time.getClassroom())
-                .build();
+    public static CustomScheduleTimeResponse from(CustomScheduleTime time) {
+        return new CustomScheduleTimeResponse(
+                time.getId(),
+                time.getDayOfWeek(),
+                time.getStartTime(),
+                time.getEndTime(),
+                time.getClassroom());
     }
 }

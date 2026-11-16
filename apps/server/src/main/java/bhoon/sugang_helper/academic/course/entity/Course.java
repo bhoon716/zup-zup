@@ -204,82 +204,91 @@ public class Course extends BaseTimeEntity {
         schedule.setCourse(this);
     }
 
-    @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.NPathComplexity"})
     public boolean hasMetadataOrScheduleChanged(Course other) {
-        if (other.getStdtrNo() != null && !Objects.equals(this.stdtrNo, other.getStdtrNo())) {
+        return hasMetadataChanged(other) || !isSameSchedules(other.schedules);
+    }
+
+    @SuppressWarnings({"PMD.CyclomaticComplexity", "PMD.NPathComplexity"})
+    private boolean hasMetadataChanged(Course other) {
+        if (other.stdtrNo != null && !Objects.equals(this.stdtrNo, other.stdtrNo)) {
             return true;
         }
-        if (!Objects.equals(this.name, other.getName())
-                || !Objects.equals(this.professor, other.getProfessor())
-                || !Objects.equals(this.capacity, other.getCapacity())
-                || !Objects.equals(this.current, other.getCurrent())
-                || !Objects.equals(this.targetGrade, other.getTargetGrade())
-                || !Objects.equals(this.academicYear, other.getAcademicYear())
-                || !Objects.equals(this.semester, other.getSemester())
-                || !Objects.equals(this.classification, other.getClassification())
-                || !Objects.equals(this.department, other.getDepartment())
-                || !Objects.equals(this.gradingMethod, other.getGradingMethod())
-                || !Objects.equals(this.lectureLanguage, other.getLectureLanguage())
-                || !Objects.equals(this.classTime, other.getClassTime())
-                || !Objects.equals(this.credits, other.getCredits())
-                || !Objects.equals(this.disclosure, other.getDisclosure())
-                || !Objects.equals(this.disclosureReason, other.getDisclosureReason())
-                || !Objects.equals(this.lectureHours, other.getLectureHours())
-                || !Objects.equals(this.generalCategory, other.getGeneralCategory())
-                || !Objects.equals(this.generalDetail, other.getGeneralDetail())
-                || !Objects.equals(this.accreditation, other.getAccreditation())
-                || !Objects.equals(this.status, other.getStatus())
-                || !Objects.equals(this.classroom, other.getClassroom())
-                || !Objects.equals(this.hasSyllabus, other.getHasSyllabus())
-                || !Objects.equals(this.generalCategoryByYear, other.getGeneralCategoryByYear())
-                || !Objects.equals(this.courseDirection, other.getCourseDirection())
-                || !Objects.equals(this.classDuration, other.getClassDuration())) {
-            return true;
-        }
-        return !isSameSchedules(other.getSchedules());
+        return !Objects.equals(this.name, other.name)
+                || !Objects.equals(this.professor, other.professor)
+                || !Objects.equals(this.capacity, other.capacity)
+                || !Objects.equals(this.current, other.current)
+                || !Objects.equals(this.targetGrade, other.targetGrade)
+                || !Objects.equals(this.academicYear, other.academicYear)
+                || !Objects.equals(this.semester, other.semester)
+                || !Objects.equals(this.classification, other.classification)
+                || !Objects.equals(this.department, other.department)
+                || !Objects.equals(this.gradingMethod, other.gradingMethod)
+                || !Objects.equals(this.lectureLanguage, other.lectureLanguage)
+                || !Objects.equals(this.classTime, other.classTime)
+                || !Objects.equals(this.credits, other.credits)
+                || !Objects.equals(this.disclosure, other.disclosure)
+                || !Objects.equals(this.disclosureReason, other.disclosureReason)
+                || !Objects.equals(this.lectureHours, other.lectureHours)
+                || !Objects.equals(this.generalCategory, other.generalCategory)
+                || !Objects.equals(this.generalDetail, other.generalDetail)
+                || !Objects.equals(this.accreditation, other.accreditation)
+                || !Objects.equals(this.status, other.status)
+                || !Objects.equals(this.classroom, other.classroom)
+                || !Objects.equals(this.hasSyllabus, other.hasSyllabus)
+                || !Objects.equals(this.generalCategoryByYear, other.generalCategoryByYear)
+                || !Objects.equals(this.courseDirection, other.courseDirection)
+                || !Objects.equals(this.classDuration, other.classDuration);
     }
 
     public boolean updateMetadata(Course other) {
         if (!hasMetadataOrScheduleChanged(other)) {
             return false;
         }
-        if (other.getStdtrNo() != null) {
-            this.stdtrNo = other.getStdtrNo();
-        }
-        this.name = other.getName();
-        this.professor = other.getProfessor();
-        this.capacity = other.getCapacity();
-        this.current = other.getCurrent();
-        this.targetGrade = other.getTargetGrade();
-        this.academicYear = other.getAcademicYear();
-        this.semester = other.getSemester();
-        this.classification = other.getClassification();
-        this.department = other.getDepartment();
-        this.gradingMethod = other.getGradingMethod();
-        this.lectureLanguage = other.getLectureLanguage();
-        this.classTime = other.getClassTime();
-        this.credits = other.getCredits();
-        this.disclosure = other.getDisclosure();
-        this.disclosureReason = other.getDisclosureReason();
-        this.lectureHours = other.getLectureHours();
-        this.generalCategory = other.getGeneralCategory();
-        this.generalDetail = other.getGeneralDetail();
-        this.accreditation = other.getAccreditation();
-        this.status = other.getStatus();
-        this.classroom = other.getClassroom();
-        this.hasSyllabus = other.getHasSyllabus();
-        this.generalCategoryByYear = other.getGeneralCategoryByYear();
-        this.courseDirection = other.getCourseDirection();
-        this.classDuration = other.getClassDuration();
-
-        if (!isSameSchedules(other.getSchedules())) {
-            this.schedules.clear();
-            for (CourseSchedule schedule : other.getSchedules()) {
-                this.addSchedule(
-                        new CourseSchedule(schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()));
-            }
-        }
+        copyMetadata(other);
+        replaceSchedulesIfChanged(other);
         return true;
+    }
+
+    private void copyMetadata(Course other) {
+        if (other.stdtrNo != null) {
+            this.stdtrNo = other.stdtrNo;
+        }
+        this.name = other.name;
+        this.professor = other.professor;
+        this.capacity = other.capacity;
+        this.current = other.current;
+        this.targetGrade = other.targetGrade;
+        this.academicYear = other.academicYear;
+        this.semester = other.semester;
+        this.classification = other.classification;
+        this.department = other.department;
+        this.gradingMethod = other.gradingMethod;
+        this.lectureLanguage = other.lectureLanguage;
+        this.classTime = other.classTime;
+        this.credits = other.credits;
+        this.disclosure = other.disclosure;
+        this.disclosureReason = other.disclosureReason;
+        this.lectureHours = other.lectureHours;
+        this.generalCategory = other.generalCategory;
+        this.generalDetail = other.generalDetail;
+        this.accreditation = other.accreditation;
+        this.status = other.status;
+        this.classroom = other.classroom;
+        this.hasSyllabus = other.hasSyllabus;
+        this.generalCategoryByYear = other.generalCategoryByYear;
+        this.courseDirection = other.courseDirection;
+        this.classDuration = other.classDuration;
+    }
+
+    private void replaceSchedulesIfChanged(Course other) {
+        if (isSameSchedules(other.schedules)) {
+            return;
+        }
+        this.schedules.clear();
+        for (CourseSchedule schedule : other.schedules) {
+            this.addSchedule(
+                    new CourseSchedule(schedule.getDayOfWeek(), schedule.getStartTime(), schedule.getEndTime()));
+        }
     }
 
     private boolean isSameSchedules(List<CourseSchedule> otherSchedules) {

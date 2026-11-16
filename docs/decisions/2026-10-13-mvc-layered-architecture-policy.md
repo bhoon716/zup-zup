@@ -4,7 +4,7 @@
 - 결정일: 2026-10-13
 - 범위: 백엔드 아키텍처, 현재 변경 취소, 폴더 정리와 기능 재설계의 실행 순서
 - 대체 결정: [클린 아키텍처의 강제 경계](2026-10-13-clean-architecture-policy.md)
-- 관련 자료: [MVC 패키지 이동 목록](../backend-mvc-package-moves.md), [재설계 계획](../backend-redesign-plan.md)
+- 관련 자료: [MVC 패키지 이동 목록](../backend-mvc-package-moves.md)
 
 ## 사용자 요구
 
@@ -96,7 +96,7 @@ academic/crawling/
 
 현재 누락된 내부 결과 SeatNotificationDeliveryDispatch·SeatNotificationDeliveryFailureResult·SanitizedImage는 dto/result로, HealthCheckResponse는 common/dto/response로 이동했다. 필요한 public 접근성과 import만 조정하고 HTTP JSON·업무 동작·DB·설정을 바꾸지 않는다. 영구 알림함의 미완성 변경을 완성·삭제하지 않으며 이번 요청으로 commit/push/배포를 하지 않는다.
 
-이동 목록·기존 미커밋과의 구분·검증 결과 및 기존 전체 테스트 컴파일 차단은 [작업 기록](../dto-package-classification-20261027.md)에 남긴다.
+DTO 분류 기준과 예시는 [DTO 역할 분류](../dto-classification.md)를 참고한다.
 
 
 ## 후속 승인: DTO 분류 변경만 로컬 커밋한다

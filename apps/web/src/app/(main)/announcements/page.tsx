@@ -1,206 +1,175 @@
 "use client";
 
-import { useDeferredValue, useState } from "react";
+import { Fragment, useDeferredValue, useRef, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence, type Variants } from "framer-motion";
-import {
-  Loader2, 
-  Megaphone, 
-  Pin, 
-  Search, 
-  Calendar,
-  ChevronRight,
-  FilterX
-} from "lucide-react";
-import { useAnnouncements } from "@/features/announcement/hooks/useAnnouncements";
+import { ChevronLeft, ChevronRight, Pin, Search } from "lucide-react";
+import { useAnnouncementPage } from "@/features/announcement/hooks/useAnnouncements";
 import type { AnnouncementSearchType } from "@/shared/types/api";
+import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
-import { cn } from "@/shared/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 
-const formatDateTime = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-};
+const searchOptions = [
+  { value: "TITLE_CONTENT", label: "제목 + 내용" },
+  { value: "TITLE", label: "제목" },
+  { value: "CONTENT", label: "내용" },
+] satisfies { value: AnnouncementSearchType; label: string }[];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-};
+const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  timeZone: "UTC",
+});
 
-const itemVariants: Variants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 15
-    }
-  }
-};
+function formatDate(value: string) {
+  const date = new Date(`${value.slice(0, 10)}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) ? "-" : dateFormatter.format(date);
+}
 
 export default function AnnouncementsPage() {
-  const [keyword, setKeyword] = useState("");
-  const [searchType, setSearchType] = useState<AnnouncementSearchType>("TITLE_CONTENT");
-  const deferredKeyword = useDeferredValue(keyword);
-  const { data: announcements, isLoading } = useAnnouncements({
-    keyword: deferredKeyword,
-    searchType,
+  const [search, setSearch] = useState<{ keyword: string; searchType: AnnouncementSearchType; page: number }>({
+    keyword: "",
+    searchType: "TITLE_CONTENT",
+    page: 0,
   });
+  const listTop = useRef<HTMLFormElement>(null);
+  const deferredSearch = useDeferredValue(search);
+  const { data, isPending, isError, refetch } = useAnnouncementPage(deferredSearch);
+  const lastPage = Math.max(0, (data?.totalPages ?? 1) - 1);
+  if (data && search === deferredSearch && search.page > lastPage) {
+    setSearch({ ...search, page: lastPage });
+  }
+
+  const changePage = (page: number) => {
+    if (page === search.page) return;
+    setSearch({ ...search, page });
+    listTop.current?.focus({ preventScroll: true });
+    listTop.current?.scrollIntoView({ block: "start" });
+  };
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f7f7fb_45%,#f8fafc_100%)]">
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        {           }
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-10 flex flex-col items-center text-center sm:items-start sm:text-left"
-        >
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20">
-            <Megaphone className="h-7 w-7" />
-          </div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-            공지사항
-          </h1>
-          <p className="mt-2 max-w-2xl text-base font-medium text-slate-500">
-            &apos;줍줍&apos;의 새로운 소식과 안내를 확인하세요.
-          </p>
-        </motion.div>
+    <main className="font-schedule mx-auto w-full max-w-5xl px-4 pt-7 pb-12 sm:px-6 sm:pt-10">
+      <header className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">공지사항</h1>
 
-        {                }
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="mb-8 rounded-3xl border border-white/40 bg-white/70 p-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl sm:p-4"
+        <form
+          ref={listTop}
+          role="search"
+          aria-label="공지사항 검색"
+          tabIndex={-1}
+          className="flex w-full scroll-mt-20 items-center rounded-lg border bg-card px-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary sm:w-80"
+          onSubmit={(event) => event.preventDefault()}
         >
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="w-full sm:w-40 lg:w-48">
-              <Select
-                value={searchType}
-                onValueChange={(value) => setSearchType(value as AnnouncementSearchType)}
-              >
-                <SelectTrigger className="h-11 rounded-2xl border-none bg-slate-100/50 font-bold focus:ring-2 focus:ring-primary/20">
-                  <SelectValue placeholder="검색 기준" />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-none shadow-xl">
-                  <SelectItem value="TITLE" className="rounded-xl font-medium">제목</SelectItem>
-                  <SelectItem value="CONTENT" className="rounded-xl font-medium">내용</SelectItem>
-                  <SelectItem value="TITLE_CONTENT" className="rounded-xl font-medium">제목 + 내용</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="relative flex-1">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                <Search className="h-4 w-4" />
-              </div>
-              <Input
-                value={keyword}
-                onChange={(event) => setKeyword(event.target.value)}
-                placeholder="검색어를 입력하여 공지를 찾아보세요"
-                className="h-11 rounded-2xl border-none bg-slate-100/50 pl-11 font-bold placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-primary/20"
-              />
-            </div>
+          <div className="relative min-w-0 flex-1">
+            <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              aria-label="공지 검색어"
+              value={search.keyword}
+              maxLength={100}
+              onChange={(event) => setSearch({ ...search, keyword: event.target.value, page: 0 })}
+              placeholder="공지 검색"
+              className="h-10 rounded-md border-0 pr-2 pl-9 text-sm shadow-none"
+            />
           </div>
-        </motion.div>
-
-        {             }
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border border-white bg-white/50 py-24 shadow-sm backdrop-blur">
-            <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
-            <p className="mt-4 text-sm font-bold text-slate-400">공지사항을 불러오는 중입니다...</p>
-          </div>
-        ) : (
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="grid gap-4 sm:gap-5"
+          <Select
+            value={search.searchType}
+            onValueChange={(value) => {
+              const option = searchOptions.find((candidate) => candidate.value === value);
+              if (option) setSearch({ ...search, searchType: option.value, page: 0 });
+            }}
           >
-            <AnimatePresence mode="popLayout">
-              {(announcements ?? []).map((announcement) => (
-                <motion.div
-                  layout
-                  key={announcement.id}
-                  variants={itemVariants}
-                  exit={{ opacity: 0, scale: 0.95 }}
+            <SelectTrigger aria-label="검색 기준" className="shrink-0 rounded-md border-0 px-2 shadow-none before:mr-1 before:h-4 before:w-px before:bg-border hover:bg-muted">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start" className="font-schedule">
+              {searchOptions.map(({ value, label }) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </form>
+      </header>
+
+      <section aria-label="공지 목록" className="overflow-hidden rounded-xl border bg-card">
+        {isPending ? (
+          <p role="status" className="px-4 py-12 text-center text-sm text-muted-foreground">공지사항을 불러오는 중입니다.</p>
+        ) : isError ? (
+          <div role="alert" className="flex flex-wrap items-center justify-center gap-3 px-4 py-12 text-sm text-muted-foreground">
+            공지사항을 불러오지 못했습니다.
+            <Button variant="outline" size="sm" onClick={() => { void refetch(); }}>다시 시도</Button>
+          </div>
+        ) : data.content.length === 0 ? (
+          <p className="px-4 py-12 text-center text-sm text-muted-foreground">
+            {search.keyword.trim() ? "검색 결과가 없습니다." : "등록된 공지사항이 없습니다."}
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {data.content.map((announcement) => (
+              <li key={announcement.id}>
+                <Link
+                  href={`/announcements/${announcement.id}`}
+                  data-pinned={announcement.pinned || undefined}
+                  className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 border-l-2 border-transparent px-3.5 py-3 transition-colors hover:bg-muted/70 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary data-pinned:border-l-primary/45 data-pinned:bg-primary/12 data-pinned:hover:bg-primary/16 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:gap-x-5 sm:px-5"
                 >
-                  <Link href={`/announcements/${announcement.id}`} className="group block">
-                    <article className={cn(
-                      "relative overflow-hidden rounded-[2rem] border border-white bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all duration-300 group-hover:-translate-y-1 group-hover:border-primary/20 group-hover:shadow-[0_12px_30px_rgba(0,0,0,0.06)] sm:p-7",
-                      announcement.pinned && "ring-1 ring-primary/20"
-                    )}>
-                      {           }
+                  <div className="col-start-1 row-start-1 min-w-0">
+                    <h2 className="flex items-start gap-2 text-[0.9375rem] leading-snug font-medium text-foreground group-hover:text-primary sm:text-base">
+                      {announcement.pinned && <span className="sr-only">상단 고정 </span>}
                       {announcement.pinned && (
-                        <div className="mb-4 flex">
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black text-primary ring-1 ring-primary/30">
-                            <Pin className="h-3 w-3" />
-                            중요 공지
-                          </span>
-                        </div>
+                        <Pin aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
                       )}
-
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-                        <div className="flex-1">
-                          <h2 className="line-clamp-2 text-lg font-black leading-tight text-slate-900 transition-colors group-hover:text-primary sm:text-xl">
-                            {announcement.title}
-                          </h2>
-                          <p className="mt-3 line-clamp-2 text-sm font-medium leading-relaxed text-slate-500 sm:text-base">
-                            {announcement.previewContent || "본문 내용이 없습니다."}
-                          </p>
-                        </div>
-                        <div className="mt-5 flex items-center justify-between border-t border-slate-50 pt-4 sm:mt-0 sm:flex-col sm:items-end sm:justify-center sm:border-none sm:pt-0">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 sm:text-sm">
-                            <Calendar className="h-3.5 w-3.5" />
-                            {formatDateTime(announcement.createdAt)}
-                          </div>
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors group-hover:bg-primary group-hover:text-white sm:mt-3">
-                            <ChevronRight className="h-5 w-5" />
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  </Link>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {(announcements ?? []).length === 0 && !isLoading && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center justify-center rounded-[2.5rem] border-2 border-dashed border-slate-200 bg-slate-50/50 py-24 text-center"
-              >
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-300">
-                  <FilterX className="h-8 w-8" />
-                </div>
-                <h3 className="text-lg font-black text-slate-900">검색 결과가 없습니다</h3>
-                <p className="mt-2 text-sm font-medium text-slate-400">다른 검색어를 입력해 보시겠어요?</p>
-              </motion.div>
-            )}
-          </motion.div>
+                      <span className="min-w-0 wrap-anywhere break-keep">{announcement.title}</span>
+                    </h2>
+                    {announcement.previewContent && <p className="mt-1 truncate text-sm leading-normal text-muted-foreground">{announcement.previewContent}</p>}
+                  </div>
+                  <time dateTime={announcement.createdAt} className="col-start-1 row-start-2 text-xs whitespace-nowrap tabular-nums text-muted-foreground sm:col-start-2 sm:row-start-1">
+                    {formatDate(announcement.createdAt)}
+                  </time>
+                  <ChevronRight aria-hidden="true" className="col-start-2 row-span-2 row-start-1 size-4 text-muted-foreground/65 group-hover:text-primary sm:col-start-3 sm:row-span-1" />
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
-      </main>
-    </div>
+      </section>
+
+      {data && search === deferredSearch && data.totalPages > 1 && (
+        <AnnouncementPagination page={data.number} totalPages={data.totalPages} onChange={changePage} />
+      )}
+    </main>
+  );
+}
+
+function AnnouncementPagination({ page, totalPages, onChange }: {
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void;
+}) {
+  const pages = [...new Set([0, page - 1, page, page + 1, totalPages - 1])]
+    .filter((number) => number >= 0 && number < totalPages)
+    .sort((first, second) => first - second);
+  return (
+    <nav aria-label="공지 페이지 이동" className="mx-auto mt-4 flex w-fit max-w-full flex-wrap items-center justify-center gap-1 rounded-lg border bg-card p-1">
+      <Button type="button" variant="ghost" size="icon-sm" aria-label="이전 페이지" disabled={page === 0} onClick={() => onChange(page - 1)}>
+        <ChevronLeft aria-hidden="true" />
+      </Button>
+      {pages.map((number, index) => (
+        <Fragment key={number}>
+          {index > 0 && number - pages[index - 1] > 1 && <span aria-hidden="true" className="text-xs text-muted-foreground">…</span>}
+          <Button
+            type="button"
+            variant={number === page ? "default" : "ghost"}
+            size="icon-sm"
+            aria-label={`${number + 1} 페이지`}
+            aria-current={number === page ? "page" : undefined}
+            onClick={() => onChange(number)}
+          >
+            {number + 1}
+          </Button>
+        </Fragment>
+      ))}
+      <Button type="button" variant="ghost" size="icon-sm" aria-label="다음 페이지" disabled={page + 1 >= totalPages} onClick={() => onChange(page + 1)}>
+        <ChevronRight aria-hidden="true" />
+      </Button>
+    </nav>
   );
 }

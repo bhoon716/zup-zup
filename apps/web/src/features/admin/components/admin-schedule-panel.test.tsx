@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminSchedulePanel } from "./admin-schedule-panel";
 
 const mockAdminSchedules = vi.fn();
@@ -30,7 +30,50 @@ beforeEach(() => {
   mockAdminSchedules.mockReturnValue([schedule]);
 });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("AdminSchedulePanel", () => {
+  it("설정에서는 삭제된 일정과 한국 시간으로 종료된 일정을 숨긴다", () => {
+    vi.setSystemTime(new Date("2026-07-02T14:00:00Z"));
+    mockAdminSchedules.mockReturnValue([
+      { ...schedule, scheduleType: "시간이 끝난 일정", endTime: "23:00" },
+      { ...schedule, id: 2, scheduleType: "오늘까지인 일정", endTime: null },
+      { ...schedule, id: 3, scheduleType: "진행 중인 일정" },
+      { ...schedule, id: 4, scheduleType: "삭제한 예정 일정", startDate: "2026-07-03", endDate: "2026-07-03", deletedAt: "2026-07-01T10:00:00" },
+    ]);
+
+    const { rerender } = render(<AdminSchedulePanel upcomingOnly />);
+
+    expect(screen.queryByText("시간이 끝난 일정")).not.toBeInTheDocument();
+    expect(screen.getByText("오늘까지인 일정")).toBeInTheDocument();
+    expect(screen.getByText("진행 중인 일정")).toBeInTheDocument();
+    expect(screen.queryByText("삭제한 예정 일정")).not.toBeInTheDocument();
+
+    vi.setSystemTime(new Date("2026-07-02T15:00:00Z"));
+    rerender(<AdminSchedulePanel upcomingOnly />);
+
+    expect(screen.queryByText("오늘까지인 일정")).not.toBeInTheDocument();
+    expect(screen.queryByText("진행 중인 일정")).not.toBeInTheDocument();
+    expect(screen.queryByText("삭제한 예정 일정")).not.toBeInTheDocument();
+  });
+
+  it("설정에서 모든 일정이 종료되면 빈 상태를 표시하고 전체 목록에서는 종료된 일정을 관리한다", () => {
+    vi.setSystemTime(new Date("2026-07-03T00:00:00Z"));
+
+    const { rerender } = render(<AdminSchedulePanel upcomingOnly />);
+
+    expect(screen.getByText("진행 중이거나 예정된 일정이 없습니다.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "전체 일정 관리" })).toHaveAttribute("href", "/admin/schedules");
+    expect(screen.queryByText(schedule.scheduleType)).not.toBeInTheDocument();
+
+    rerender(<AdminSchedulePanel />);
+
+    expect(screen.queryByRole("link", { name: "전체 일정 관리" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "새 학사 일정 수정" })).toBeEnabled();
+  });
+
   it("커스텀 일정의 날짜를 수정해도 기존 대표 지정과 시간을 보존한다", () => {
     render(<AdminSchedulePanel />);
     fireEvent.click(screen.getByRole("button", { name: "새 학사 일정 수정" }));

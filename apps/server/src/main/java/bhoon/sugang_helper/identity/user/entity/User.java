@@ -16,6 +16,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -114,11 +115,6 @@ public class User extends BaseEntity {
         this.onboardingCompleted = true;
     }
 
-    public User update(String name) {
-        this.name = name;
-        return this;
-    }
-
     public boolean hasOAuthIdentity() {
         return oauthIssuer != null && oauthSubject != null;
     }
@@ -126,12 +122,12 @@ public class User extends BaseEntity {
     public void bindOAuthIdentity(String issuer, String subject) {
         if (hasOAuthIdentity()) {
             if (!oauthIssuer.equals(issuer) || !oauthSubject.equals(subject)) {
-                throw new IllegalStateException("OAuth identity is already bound");
+                throw new IllegalStateException("이미 연동된 OAuth 계정입니다.");
             }
             return;
         }
-        if (issuer == null || issuer.isBlank() || subject == null || subject.isBlank()) {
-            throw new IllegalArgumentException("OAuth issuer and subject are required");
+        if (!StringUtils.hasText(issuer) || !StringUtils.hasText(subject)) {
+            throw new IllegalArgumentException("OAuth 발급자와 사용자 식별자가 필요합니다.");
         }
         this.oauthIssuer = issuer;
         this.oauthSubject = subject;

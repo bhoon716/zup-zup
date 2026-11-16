@@ -4,29 +4,19 @@ import bhoon.sugang_helper.academic.api.operations.CrawlerAdminSnapshot;
 import bhoon.sugang_helper.academic.api.operations.CrawlerRuns;
 import bhoon.sugang_helper.academic.api.operations.CrawlerTargets;
 import bhoon.sugang_helper.admin.dto.response.AdminDashboardSnapshotResponse;
-import bhoon.sugang_helper.admin.dto.response.AdminHourlyTrafficResponse;
 import bhoon.sugang_helper.admin.dto.response.AdminOverviewResponse;
-import bhoon.sugang_helper.admin.dto.response.AdminRecentLogResponse;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
 import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
-import bhoon.sugang_helper.identity.api.users.Users;
+import bhoon.sugang_helper.identity.api.users.UserStatistics;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
-import bhoon.sugang_helper.seatalert.api.NotificationHistoryItem;
-import bhoon.sugang_helper.seatalert.api.NotificationHistoryQueries;
 import bhoon.sugang_helper.seatalert.api.NotificationOperations;
 import bhoon.sugang_helper.seatalert.api.Subscriptions;
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,45 +26,34 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AdminService {
 
-    private static final DateTimeFormatter HOUR_LABEL_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final long CRAWLER_DELAY_MINUTES = 15L;
-    private final Users userIdentityQuery;
+    private final UserStatistics userStatistics;
     private final NotificationRecipients userNotificationQuery;
     private final Subscriptions subscriptionQueryService;
-    private final NotificationHistoryQueries notificationHistoryQuery;
     private final NotificationOperations notificationTestSender;
     private final CrawlerTargets crawlerAdminSnapshotQuery;
     private final CrawlerRuns crawlerStatusQuery;
 
-    private AdminOverviewResponse getDashboardOverview() {
+    private AdminOverviewResponse getDashboardOverview(CrawlerAdminSnapshot crawlTarget) {
         LocalDateTime now = LocalDateTime.now();
-        long totalUsers = userIdentityQuery.countUsers();
-        long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions();
-        LocalDateTime startOfToday = LocalDateTime.of(now.toLocalDate(), LocalTime.MIN);
-        long todayNotifications = notificationHistoryQuery.countCreatedAfter(startOfToday);
+        long totalUsers = userStatistics.countUsers();
+        long totalActiveSubscriptions = subscriptionQueryService.countActiveSubscriptions(
+                crawlTarget.year(), crawlTarget.semester());
         LocalDateTime lastCrawledAt = crawlerStatusQuery.findLastSuccessAt().orElse(null);
 
-        return AdminOverviewResponse.builder()
-                .totalUsers(totalUsers)
-                .totalActiveSubscriptions(totalActiveSubscriptions)
-                .todayNotificationCount(todayNotifications)
-                .crawlingStatus(resolveCrawlerStatus(now, lastCrawledAt))
-                .lastCrawledAt(lastCrawledAt)
-                .jbnuLatencyMs(null)
-                .serverTime(now)
-                .notificationTraffic(buildHourlyNotificationTraffic(now))
-                .recentLogs(buildRecentLogs(now, lastCrawledAt))
-                .build();
+        return AdminOverviewResponse.of(
+                totalUsers,
+                totalActiveSubscriptions,
+                resolveCrawlerStatus(now, lastCrawledAt),
+                lastCrawledAt,
+                now);
     }
 
     public AdminDashboardSnapshotResponse getDashboardSnapshot() {
-        AdminOverviewResponse overview = getDashboardOverview();
         CrawlerAdminSnapshot crawlTarget = crawlerAdminSnapshotQuery.findCurrentAdminSnapshot();
+        AdminOverviewResponse overview = getDashboardOverview(crawlTarget);
 
-        return AdminDashboardSnapshotResponse.builder()
-                .overview(overview)
-                .crawlTarget(crawlTarget)
-                .build();
+        return AdminDashboardSnapshotResponse.of(overview, crawlTarget);
     }
 
     private String resolveCrawlerStatus(LocalDateTime now, LocalDateTime lastCrawledAt) {
@@ -85,88 +64,6 @@ public class AdminService {
             return "DEGRADED";
         }
         return "RUNNING";
-    }
-
-    private List<AdminHourlyTrafficResponse> buildHourlyNotificationTraffic(LocalDateTime now) {
-        LocalDateTime startHour = now.minusHours(23)
-                .withMinute(0)
-                .withSecond(0)
-                .withNano(0);
-
-        List<LocalDateTime> histories = notificationHistoryQuery.findCreatedAtAfter(startHour);
-        long[] hourlyCounts = new long[24];
-
-        for (LocalDateTime createdAt : histories) {
-            if (createdAt == null || createdAt.isBefore(startHour)) {
-                continue;
-            }
-
-            long index = Duration.between(startHour, createdAt).toHours();
-            if (index < 0 || index >= hourlyCounts.length) {
-                continue;
-            }
-            hourlyCounts[(int) index]++;
-        }
-
-        return IntStream.range(0, hourlyCounts.length)
-                .mapToObj(i -> AdminHourlyTrafficResponse.builder()
-                        .label(startHour.plusHours(i).format(HOUR_LABEL_FORMATTER))
-                        .count(hourlyCounts[i])
-                        .build())
-                .toList();
-    }
-
-    private List<AdminRecentLogResponse> buildRecentLogs(LocalDateTime now, LocalDateTime lastCrawledAt) {
-        List<AdminRecentLogResponse> notificationLogs = notificationHistoryQuery.findLatest()
-                .stream()
-                .map(this::toNotificationLog)
-                .toList();
-
-        List<AdminRecentLogResponse> allLogs = new ArrayList<>(notificationLogs);
-        allLogs.add(buildCrawlerLog(now, lastCrawledAt));
-
-        return allLogs.stream()
-                .sorted(Comparator.comparing(AdminRecentLogResponse::getTimestamp,
-                        Comparator.nullsLast(Comparator.reverseOrder())))
-                .limit(20)
-                .collect(Collectors.toList());
-    }
-
-    private AdminRecentLogResponse toNotificationLog(NotificationHistoryItem history) {
-        String message = String.format("알림 발송 완료: %s (%s)", history.title(), history.channel().name());
-        return AdminRecentLogResponse.builder()
-                .timestamp(history.createdAt())
-                .level("INFO")
-                .message(message)
-                .source("NotificationService")
-                .build();
-    }
-
-    private AdminRecentLogResponse buildCrawlerLog(LocalDateTime now, LocalDateTime lastCrawledAt) {
-        if (lastCrawledAt == null) {
-            return AdminRecentLogResponse.builder()
-                    .timestamp(now)
-                    .level("WARN")
-                    .message("크롤링 이력이 없어 상태를 확인할 수 없습니다.")
-                    .source("CourseCrawler")
-                    .build();
-        }
-
-        if (now.minusMinutes(CRAWLER_DELAY_MINUTES).isAfter(lastCrawledAt)) {
-            return AdminRecentLogResponse.builder()
-                    .timestamp(now)
-                    .level("WARN")
-                    .message("크롤러 실행 지연이 감지되었습니다.")
-                    .source("CourseCrawler")
-                    .build();
-        }
-
-        return AdminRecentLogResponse.builder()
-                .timestamp(lastCrawledAt)
-                .level("INFO")
-                .message("크롤러 주기가 정상 동작 중입니다.")
-                .source("CourseCrawler")
-                .build();
     }
 
     @Transactional

@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   AlertCircle,
-  ArrowLeft,
   BellRing,
   ChevronLeft,
   ChevronRight,
@@ -75,26 +73,41 @@ export default function AdminNotificationDeliveriesPage() {
   const {
     data: dlqPage,
     isLoading: isListLoading,
+    isFetching: isListFetching,
     isError: isListError,
-    refetch,
+    refetch: refetchList,
   } = useAdminDlqNotificationDeliveries(page);
   const {
     data: selectedDelivery,
     isLoading: isDetailLoading,
+    isFetching: isDetailFetching,
     isError: isDetailError,
-  } = useAdminNotificationDelivery(selectedId, selectedId !== null);
+    refetch: refetchDetail,
+  } = useAdminNotificationDelivery(selectedId);
   const replayMutation = useReplayAdminNotificationDelivery();
-  const totalPages = dlqPage?.totalPages
-    ?? Math.max(1, Math.ceil((dlqPage?.totalElements ?? 0) / (dlqPage?.size ?? 30)));
+  const totalPages = dlqPage?.totalPages ?? 0;
+  const lastPage = Math.max(totalPages - 1, 0);
+
+  if (dlqPage && !isListFetching && !isListError && page > lastPage) {
+    setSelectedId(null);
+    setPage(lastPage);
+  }
 
   const moveToPage = (nextPage: number) => {
     setSelectedId(null);
-    setPage(Math.min(Math.max(nextPage, 0), Math.max(totalPages - 1, 0)));
+    setPage(Math.min(Math.max(nextPage, 0), lastPage));
+  };
+
+  const refreshDeliveries = () => {
+    void refetchList({ cancelRefetch: false });
+    if (selectedId !== null) {
+      void refetchDetail({ cancelRefetch: false });
+    }
   };
 
   const handleReplay = async () => {
     if (selectedId === null) return;
-    if (!window.confirm("원인 수정이 확인된 선택 delivery만 재처리합니다. 계속할까요?")) return;
+    if (!window.confirm("원인 수정이 확인된 선택한 발송 작업만 재처리합니다. 계속할까요?")) return;
 
     try {
       await replayMutation.mutateAsync({ id: selectedId, request: {} });
@@ -105,29 +118,6 @@ export default function AdminNotificationDeliveriesPage() {
 
   return (
     <div className="min-h-[calc(100dvh-4rem)] bg-[#f3f4f6] text-slate-900">
-      <div className="sticky top-16 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-[1920px] items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <Link href="/admin" className="flex items-center gap-1.5 font-semibold text-slate-600 hover:text-slate-900">
-              <ArrowLeft className="h-4 w-4" />
-              대시보드 돌아가기
-            </Link>
-            <span className="text-slate-300">|</span>
-            <span className="font-medium text-slate-800">알림 DLQ 관리</span>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-8 gap-1 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
-            onClick={() => void refetch()}
-            disabled={isListLoading}
-          >
-            <RefreshCcw className="h-3.5 w-3.5" />
-            새로고침
-          </Button>
-        </div>
-      </div>
-
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <section className="flex items-start gap-3 border-b border-slate-200 pb-5">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-500">
@@ -136,18 +126,27 @@ export default function AdminNotificationDeliveriesPage() {
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900">알림 DLQ 관리</h1>
             <p className="mt-1 text-sm text-slate-500">
-              원인을 수정한 delivery만 선택해 다시 대기열에 넣습니다. 자동 재처리나 SENT 재발송은 이 화면에서 하지 않습니다.
+              실패 원인을 해결한 뒤 해당 알림을 다시 발송할 수 있습니다.
             </p>
           </div>
         </section>
 
         <section className="grid min-h-[560px] grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="flex min-h-[360px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-5">
-            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3">
-              <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/70 px-4 py-3">
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-500">
                 DLQ 목록 ({dlqPage?.totalElements ?? 0}건)
-              </span>
-              <span className="text-[11px] font-medium text-slate-400">최신 DLQ 우선</span>
+              </h2>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-8 gap-1 rounded-lg border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                onClick={refreshDeliveries}
+                disabled={isListFetching}
+              >
+                <RefreshCcw className="h-3.5 w-3.5" />
+                새로고침
+              </Button>
             </div>
 
             <div className="flex-1 divide-y divide-slate-100 overflow-y-auto">
@@ -242,7 +241,7 @@ export default function AdminNotificationDeliveriesPage() {
                     <div>
                       <div className="mb-2 flex items-center gap-2">
                         <DeliveryStatusBadge delivery={selectedDelivery} />
-                        <span className="text-xs font-medium text-slate-400">delivery #{selectedDelivery.id}</span>
+                        <span className="text-xs font-medium text-slate-400">발송 작업 #{selectedDelivery.id}</span>
                       </div>
                       <h2 className="text-xl font-black text-slate-900">{selectedDelivery.courseName}</h2>
                       <p className="mt-1 text-sm font-medium text-slate-500">{selectedDelivery.courseKey}</p>
@@ -250,18 +249,18 @@ export default function AdminNotificationDeliveriesPage() {
                     <Button
                       type="button"
                       onClick={() => void handleReplay()}
-                      disabled={replayMutation.isPending || selectedDelivery.status !== "DLQ"}
+                      disabled={isDetailFetching || replayMutation.isPending || selectedDelivery.status !== "DLQ"}
                       className="gap-2 rounded-xl bg-primary text-xs font-bold text-white hover:bg-primary-dark"
                     >
                       {replayMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                      선택 delivery 재처리
+                      선택한 발송 작업 재처리
                     </Button>
                   </div>
                 </div>
 
                 <dl className="grid gap-x-6 gap-y-4 p-6 text-sm sm:grid-cols-2">
                   <div>
-                    <dt className="text-xs font-bold text-slate-400">outbox ID</dt>
+                    <dt className="text-xs font-bold text-slate-400">발송 대기열 ID</dt>
                     <dd className="mt-1 font-semibold text-slate-700">{selectedDelivery.outboxId}</dd>
                   </div>
                   <div>

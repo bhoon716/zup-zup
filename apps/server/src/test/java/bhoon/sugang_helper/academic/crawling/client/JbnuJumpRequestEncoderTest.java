@@ -1,7 +1,9 @@
 package bhoon.sugang_helper.academic.crawling.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -50,9 +52,18 @@ class JbnuJumpRequestEncoderTest {
     @DisplayName("기존 학기 코드를 JUMP 학기 코드로 변환한다")
     void mapsLegacySemesterCodesToJumpCodes() {
         // when & then
-        assertThat(JbnuCourseApiClient.toJumpSemesterCode("U211600010")).isEqualTo("SUSR016.010");
-        assertThat(JbnuCourseApiClient.toJumpSemesterCode("U211600020")).isEqualTo("SUSR016.020");
-        assertThat(JbnuCourseApiClient.toJumpSemesterCode("SUSR016.015")).isEqualTo("SUSR016.015");
+        assertThat(SemesterType.toJumpCode("U211600010")).isEqualTo("SUSR016.010");
+        assertThat(SemesterType.toJumpCode("U211600020")).isEqualTo("SUSR016.020");
+        assertThat(SemesterType.toJumpCode("U211600015")).isEqualTo("SUSR016.015");
+        assertThat(SemesterType.toJumpCode("U211600025")).isEqualTo("SUSR016.025");
+        assertThat(SemesterType.toJumpCode("U211600016")).isEqualTo("SUSR016.016");
+        assertThat(SemesterType.toJumpCode("U211600026")).isEqualTo("SUSR016.026");
+        assertThat(SemesterType.toJumpCode("U211600009")).isEqualTo("SUSR016.009");
+        assertThat(SemesterType.toJumpCode("U211600008")).isEqualTo("SUSR016.008");
+        assertThat(SemesterType.toJumpCode("SUSR016.015")).isEqualTo("SUSR016.015");
+        assertThat(SemesterType.toJumpCode("UNKNOWN")).isEqualTo("UNKNOWN");
+        assertThat(SemesterType.toJumpCode("")).isEmpty();
+        assertThatNullPointerException().isThrownBy(() -> SemesterType.toJumpCode(null));
     }
 
     @Test

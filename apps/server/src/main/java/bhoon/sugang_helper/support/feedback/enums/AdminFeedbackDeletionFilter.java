@@ -3,6 +3,7 @@ package bhoon.sugang_helper.support.feedback.enums;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import java.util.Locale;
+import org.springframework.util.StringUtils;
 
 public enum AdminFeedbackDeletionFilter {
     ALL,
@@ -10,7 +11,7 @@ public enum AdminFeedbackDeletionFilter {
     DELETED;
 
     public static AdminFeedbackDeletionFilter from(String value) {
-        if (value == null || value.isBlank()) {
+        if (!StringUtils.hasText(value)) {
             return ALL;
         }
 

@@ -6,7 +6,7 @@ import bhoon.sugang_helper.seatalert.notification.exception.NotificationProvider
 public final class NotificationFailureClassifier {
 
     private NotificationFailureClassifier() {
-        throw new IllegalStateException("Utility class");
+        throw new IllegalStateException("유틸리티 클래스는 인스턴스를 생성할 수 없습니다.");
     }
 
     public static boolean isRetryable(Throwable throwable) {

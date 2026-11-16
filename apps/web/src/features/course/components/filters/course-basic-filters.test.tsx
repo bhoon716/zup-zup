@@ -31,12 +31,10 @@ describe("CourseBasicFilters", () => {
   it("교수명과 학과명 입력란에 다중 입력 안내 문구를 보여준다", () => {
     render(<FiltersHarness />);
 
-    expect(
-      screen.getByText("쉼표(,)로 여러 명을 입력하면 OR 조건으로 검색됩니다."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("쉼표(,)로 여러 학과를 입력하면 OR 조건으로 검색됩니다."),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "교수명" }))
+      .toHaveAccessibleDescription("여러 교수명을 쉼표로 구분해 입력할 수 있습니다.");
+    expect(screen.getByRole("textbox", { name: "학과명" }))
+      .toHaveAccessibleDescription("여러 학과명을 쉼표로 구분해 입력할 수 있습니다.");
   });
 
   it("교수명과 학과명 입력값을 상태에 반영한다", () => {

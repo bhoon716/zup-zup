@@ -8,16 +8,22 @@ import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.provider.NotificationTarget;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import org.springframework.web.util.HtmlUtils;
 
 @Component
 @Slf4j
 public class EmailNotificationSender implements NotificationSender {
+
+    private static final String EVENT_KEY = "event";
+    private static final String RECIPIENT_FINGERPRINT_KEY = "recipientFingerprint";
 
     private final JavaMailSender javaMailSender;
     private final EmailTemplates templateService;
@@ -51,25 +57,39 @@ public class EmailNotificationSender implements NotificationSender {
         String recipientFingerprint = SensitiveDataRedactor.fingerprint(recipient);
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, StandardCharsets.UTF_8.name());
 
-            String htmlContent = templateService.loadTemplate("notification", Map.of("message", message));
+            String htmlContent = templateService.loadTemplate("notification", Map.of("message", HtmlUtils.htmlEscape(message)));
 
-            helper.setFrom(new InternetAddress(from, fromName, "UTF-8"));
+            helper.setFrom(new InternetAddress(from, fromName, StandardCharsets.UTF_8.name()));
             helper.setTo(recipient);
             helper.setSubject(title);
             helper.setText(htmlContent, true);
-            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            if (StringUtils.hasText(idempotencyKey)) {
                 mimeMessage.setHeader("X-Idempotency-Key", idempotencyKey);
             }
 
             javaMailSender.send(mimeMessage);
-            log.debug("[EmailNotification] 이메일 발송 완료. recipientFingerprint={}, fromFingerprint={}",
-                    recipientFingerprint, SensitiveDataRedactor.fingerprint(from));
+            logEmailSent(recipientFingerprint, SensitiveDataRedactor.fingerprint(from));
         } catch (Exception e) {
-            log.debug("[EmailNotification] 이메일 발송 실패. recipientFingerprint={}, failureCode={}, exceptionType={}",
-                    recipientFingerprint, ErrorCode.EMAIL_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
+            logEmailFailed(recipientFingerprint, ErrorCode.EMAIL_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(e));
             throw new CustomException(ErrorCode.EMAIL_SEND_ERROR);
         }
     }
+
+    private void logEmailSent(String recipientFingerprint, String fromFingerprint) {
+        log.atDebug().addKeyValue(EVENT_KEY, "email_notification_sent")
+                .addKeyValue(RECIPIENT_FINGERPRINT_KEY, recipientFingerprint)
+                .addKeyValue("fromFingerprint", fromFingerprint)
+                .log("[EmailNotification] 이메일 발송 완료.");
+    }
+
+    private void logEmailFailed(String recipientFingerprint, String failureCode, String exceptionType) {
+        log.atDebug().addKeyValue(EVENT_KEY, "email_notification_failed")
+                .addKeyValue(RECIPIENT_FINGERPRINT_KEY, recipientFingerprint)
+                .addKeyValue("failureCode", failureCode)
+                .addKeyValue("exceptionType", exceptionType)
+                .log("[EmailNotification] 이메일 발송 실패.");
+    }
+
 }

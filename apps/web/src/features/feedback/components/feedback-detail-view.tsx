@@ -40,7 +40,7 @@ export function FeedbackDetailView({
   if (!feedbackDetail) return null;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div>
       <div className="pb-6 border-b border-gray-100 dark:border-gray-800 mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -107,7 +107,7 @@ export function FeedbackDetailView({
               <div key={reply.id} className="bg-gray-50 dark:bg-black/20 rounded-xl p-5 border border-gray-100 dark:border-gray-800">
                 <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-100 dark:border-gray-800/50">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">ADM</div>
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">관리자</div>
                     <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">관리자</span>
                   </div>
                   <span className="text-[11px] text-gray-400 font-medium">{reply.createdAt.split('T')[0]}</span>

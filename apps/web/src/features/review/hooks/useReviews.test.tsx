@@ -10,7 +10,6 @@ import {
   useCreateReview,
   useReviews,
   useToggleCourseEmoji,
-  useToggleReviewReaction,
   useUpdateReview,
 } from "./useReviews";
 
@@ -18,7 +17,6 @@ vi.mock("@/features/review/api/review.api", () => ({
   getReviews: vi.fn(),
   createReview: vi.fn(),
   updateReview: vi.fn(),
-  toggleReviewReaction: vi.fn(),
   getCourseEmojis: vi.fn(),
   toggleCourseEmoji: vi.fn(),
 }));
@@ -262,22 +260,6 @@ describe("강의 리뷰 훅", () => {
     expect(updatedCourses?.pages[0].content[2]).toEqual(DIFFERENT_SCOPE_COURSE);
     expect(queryClient.getQueryData(["course-detail", DIFFERENT_SCOPE_COURSE_KEY]))
       .toEqual(DIFFERENT_SCOPE_COURSE);
-  });
-
-  it("리뷰 반응(좋아요/싫어요)을 토글한다", async () => {
-    vi.mocked(reviewApi.toggleReviewReaction).mockResolvedValue(undefined as Awaited<ReturnType<typeof reviewApi.toggleReviewReaction>>);
-
-    const queryClient = createTestQueryClient();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
-    const wrapper = createQueryWrapper(queryClient);
-    const { result } = renderHook(() => useToggleReviewReaction(REVIEW_SCOPE_KEY), { wrapper });
-
-    await act(async () => {
-      await result.current.mutateAsync({ reviewId: 1, request: { reactionType: "LIKE" } });
-    });
-
-    expect(reviewApi.toggleReviewReaction).toHaveBeenCalledWith(1, { reactionType: "LIKE" });
-    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ["review", REVIEW_SCOPE_KEY] }));
   });
 
   it("이모지 통계를 성공적으로 불러온다", async () => {

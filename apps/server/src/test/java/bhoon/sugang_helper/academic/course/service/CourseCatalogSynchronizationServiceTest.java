@@ -9,7 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
@@ -49,8 +49,8 @@ class CourseCatalogSynchronizationServiceTest {
     void unchangedCourse_DoesNotUseDomainSavePaths() {
         // given
         Course existing = createCourse(null, 50, 20);
-        ParsedCourseDto crawled = createDto("   ", 50, 20);
-        given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
+        ParsedCourse crawled = createDto("   ", 50, 20);
+        given(courseRepository.findWithSchedulesByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
 
         // when
         synchronizationService.synchronize(List.of(crawled));
@@ -65,8 +65,8 @@ class CourseCatalogSynchronizationServiceTest {
     @DisplayName("새 강의는 강의와 최초 좌석 이력을 저장한다")
     void newCourse_SavesCourseAndSeatHistory() {
         // given
-        ParsedCourseDto crawled = createDto("김교수", 50, 20);
-        given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of());
+        ParsedCourse crawled = createDto("김교수", 50, 20);
+        given(courseRepository.findWithSchedulesByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of());
 
         // when
         synchronizationService.synchronize(List.of(crawled));
@@ -82,8 +82,8 @@ class CourseCatalogSynchronizationServiceTest {
     void allowedEnrollmentFull_DoesNotPublishSeatOpenedEvent() {
         // given
         Course existing = createCourse("함운철", 60, 60);
-        ParsedCourseDto crawled = createDto("함운철", 18, 59);
-        given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
+        ParsedCourse crawled = createDto("함운철", 18, 59);
+        given(courseRepository.findWithSchedulesByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
 
         // when
         synchronizationService.synchronize(List.of(crawled));
@@ -98,7 +98,7 @@ class CourseCatalogSynchronizationServiceTest {
     void seatOpening_EnqueuesOnlyTheFullToAvailableTransition() {
         // given
         Course existing = createCourse("김교수", 50, 50);
-        given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
+        given(courseRepository.findWithSchedulesByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
 
         // when
         synchronizationService.synchronize(List.of(createDto("김교수", 50, 49)));
@@ -114,7 +114,7 @@ class CourseCatalogSynchronizationServiceTest {
     void outboxWriteFailure_PropagatesFailure() {
         // given
         Course existing = createCourse("김교수", 50, 50);
-        given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
+        given(courseRepository.findWithSchedulesByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of(existing));
         IllegalStateException failure = new IllegalStateException("outbox write failed");
         doThrow(failure).when(eventPublisher).publishEvent(any(Object.class));
 
@@ -127,8 +127,8 @@ class CourseCatalogSynchronizationServiceTest {
     @DisplayName("도메인 저장 실패를 호출자에게 전달한다")
     void domainWriteFailure_PropagatesFailure() {
         // given
-        ParsedCourseDto crawled = createDto("김교수", 50, 20);
-        given(courseRepository.findByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of());
+        ParsedCourse crawled = createDto("김교수", 50, 20);
+        given(courseRepository.findWithSchedulesByCourseKeyIn(List.of(COURSE_KEY))).willReturn(List.of());
         doThrow(new IllegalStateException("write failed")).when(courseRepository).saveAll(any());
 
         // when & then
@@ -150,8 +150,8 @@ class CourseCatalogSynchronizationServiceTest {
                 .build();
     }
 
-    private ParsedCourseDto createDto(String professor, int capacity, int current) {
-        return new ParsedCourseDto(
+    private ParsedCourse createDto(String professor, int capacity, int current) {
+        return new ParsedCourse(
                 COURSE_KEY,
                 "COMP101",
                 null,

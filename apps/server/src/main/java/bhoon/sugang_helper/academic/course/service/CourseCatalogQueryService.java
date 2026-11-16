@@ -19,20 +19,24 @@ public class CourseCatalogQueryService implements CourseCatalog {
 
     private final CourseRepository courseRepository;
 
-    public Optional<CourseSummary> findByCourseKey(String courseKey) {
-        return courseRepository.findByCourseKey(courseKey).map(CourseCatalogQueryService::toSummary);
+    public Optional<CourseSummary> findWithoutSchedulesByCourseKey(String courseKey) {
+        return courseRepository.findByCourseKey(courseKey).map(course -> toSummary(course, List.of()));
     }
 
     public List<CourseSummary> findByCourseKeyIn(List<String> courseKeys) {
-        return courseRepository.findByCourseKeyIn(courseKeys).stream()
+        return courseRepository.findWithSchedulesByCourseKeyIn(courseKeys).stream()
                 .map(CourseCatalogQueryService::toSummary)
                 .toList();
     }
 
-    public List<CourseName> findNamesByCourseKeyIn(List<String> courseKeys) {
+    public List<CourseSummary> findWithoutSchedulesByCourseKeyIn(List<String> courseKeys) {
         return courseRepository.findByCourseKeyIn(courseKeys).stream()
-                .map(course -> new CourseName(course.getCourseKey(), course.getName(), course.getProfessor()))
+                .map(course -> toSummary(course, List.of()))
                 .toList();
+    }
+
+    public List<CourseName> findNamesByCourseKeyIn(List<String> courseKeys) {
+        return courseRepository.findNamesByCourseKeyIn(courseKeys);
     }
 
     public boolean existsByCourseKey(String courseKey) {
@@ -40,6 +44,16 @@ public class CourseCatalogQueryService implements CourseCatalog {
     }
 
     private static CourseSummary toSummary(Course course) {
+        List<CourseScheduleSummary> schedules = course.getSchedules().stream()
+                .map(schedule -> CourseScheduleSummary.of(
+                        schedule.getDayOfWeek().name(),
+                        schedule.getStartTime(),
+                        schedule.getEndTime()))
+                .toList();
+        return toSummary(course, schedules);
+    }
+
+    private static CourseSummary toSummary(Course course, List<CourseScheduleSummary> schedules) {
         return new CourseSummary(
                 course.getCourseKey(),
                 course.getSubjectCode(),
@@ -54,11 +68,6 @@ public class CourseCatalogQueryService implements CourseCatalog {
                 course.getCredits(),
                 course.getClassTime(),
                 course.getClassroom(),
-                course.getSchedules().stream()
-                        .map(schedule -> new CourseScheduleSummary(
-                                schedule.getDayOfWeek().name(),
-                                schedule.getStartTime().toString(),
-                                schedule.getEndTime().toString()))
-                        .toList());
+                schedules);
     }
 }

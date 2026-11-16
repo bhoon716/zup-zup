@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import { mobileMenuHeadingClass, mobileMenuRowClass, mobileMenuSectionClass } from "./mobile-menu-styles";
 
 const JBNU_SITES = [
   { name: "수강신청시스템", url: "https://sugang.jbnu.ac.kr/index.do" },
@@ -27,15 +28,13 @@ export function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
 
   if (isMobile) {
     return (
-      <div className="mt-4 space-y-1 pt-4 border-t border-gray-100">
-        <p className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-          바로가기
-        </p>
-        <div className="flex flex-col gap-0.5 pl-3">
+      <div className={mobileMenuSectionClass}>
+        <h3 className={mobileMenuHeadingClass}>바로가기</h3>
+        <div className="flex flex-col gap-0.5">
           {JBNU_SITES.map((site) => (
-            <Button asChild key={site.url} variant="ghost" size="sm" className="w-full justify-start gap-3 h-11 px-4 text-sm font-medium hover:bg-primary/5 text-gray-600">
+            <Button asChild key={site.url} variant="ghost" size="sm" className={mobileMenuRowClass}>
               <a href={site.url} target="_blank" rel="noopener noreferrer" onClick={onLinkClick}>
-                <ExternalLink className="w-4 h-4 opacity-50" />
+                <ExternalLink aria-hidden="true" className="text-muted-foreground" />
                 {site.name}
               </a>
             </Button>
@@ -49,8 +48,8 @@ export function JBNUSiteLinks({ isMobile, onLinkClick }: JBNUSiteLinksProps) {
     <div className="flex items-center">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button id={dropdownTriggerId} aria-controls={dropdownContentId} variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 text-gray-600 font-medium hover:bg-primary/5 group transition-colors">
-            <ExternalLink className="w-[1.1rem] h-[1.1rem]" />
+          <Button id={dropdownTriggerId} aria-controls={dropdownContentId} variant="ghost" size="sm" className="gap-1.5 rounded-xl px-3 h-9 leading-5 text-gray-600 font-medium hover:bg-primary/5 group transition-colors xl:has-[>svg]:px-2 2xl:has-[>svg]:px-3">
+            <ExternalLink aria-hidden="true" />
             <span className="text-sm">바로가기</span>
             <ChevronDown className="w-3.5 h-3.5 opacity-40" />
           </Button>

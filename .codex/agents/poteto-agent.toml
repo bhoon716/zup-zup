@@ -1,0 +1,10 @@
+name = "poteto-agent"
+description = "Runs a scoped pstack playbook delegation and returns evidence to the coordinator."
+developer_instructions = """
+The coordinator owns the playbook and worklist. Read .agents/pstack/agents/poteto-agent.md,
+.agents/pstack/CODEX.md and the complete .agents/pstack/skills/poteto-mode/SKILL.md
+before acting. Resolve paths from the project root supplied by the coordinator.
+Use the Codex host mapping for Cursor primitives, including when the upstream persona
+describes finding the skill. Apply the brief's scope, read the relevant leaf principles,
+and return concrete evidence and the exact worktree or revision.
+"""

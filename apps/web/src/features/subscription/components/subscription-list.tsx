@@ -1,29 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { Loader2, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useRef, useState } from "react";
 import { useSubscriptions, useUnsubscribe, useUnsubscribeAll } from "@/features/subscription/hooks/useSubscriptions";
-import { Loader2, Bookmark, Trash2, XCircle } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { CourseDetailDialog } from "@/features/course/components/course-detail-dialog";
-import type { Course, Subscription } from "@/shared/types/api";
+import { SEMESTERS } from "@/features/course/constants/course-options";
+import { parseCourseKey } from "@/shared/lib/course";
+import type { Course, Subscription, User } from "@/shared/types/api";
 
-export function SubscriptionList() {
-  const { data: subscriptions, isLoading } = useSubscriptions();
+export function SubscriptionList({ user }: { user: User }) {
+  const { data: subscriptions, isLoading, isError, isFetching, refetch } = useSubscriptions(true, user);
   const { mutate: unsubscribe, isPending: isUnsubscribing } = useUnsubscribe();
   const { mutate: unsubscribeAll, isPending: isUnsubscribingAll } = useUnsubscribeAll();
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const detailTrigger = useRef<HTMLButtonElement>(null);
 
-  const handleCardClick = (sub: Subscription) => {
-    const parts = sub.courseKey.split(':');
+  const openCourseDetail = (sub: Subscription, { subjectCode, classNumber }: ReturnType<typeof parseCourseKey>, trigger: HTMLButtonElement) => {
+    detailTrigger.current = trigger;
     const mapped: Course = {
       courseKey: sub.courseKey,
       name: sub.courseName,
       professor: sub.professorName,
-      subjectCode: parts[2] || '',
-      classNumber: parts[3] || '',
+      subjectCode,
+      classNumber,
     };
     setSelectedCourse(mapped);
     setIsDialogOpen(true);
@@ -31,114 +35,114 @@ export function SubscriptionList() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-10">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      <p role="status" className="flex items-center gap-2 p-4 text-sm text-muted-foreground sm:px-5">
+        <Loader2 aria-hidden="true" className="size-4 animate-spin text-primary" />
+        강의 구독을 불러오는 중입니다.
+      </p>
+    );
+  }
+
+  if (isError && !subscriptions) {
+    return (
+      <div className="space-y-3 p-4 sm:p-5">
+        <p role="alert" className="text-sm text-muted-foreground">강의 구독을 불러오지 못했습니다.</p>
+        <Button type="button" variant="outline" disabled={isFetching} onClick={() => void refetch()}>
+          다시 불러오기
+        </Button>
       </div>
     );
   }
 
   if (!subscriptions || subscriptions.length === 0) {
     return (
-      <div className="rounded-[1.25rem] border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-        <p className="text-sm text-slate-400">구독 중인 강의가 없습니다.</p>
+      <div className="p-4 sm:p-5">
+        <p className="text-sm font-medium">구독 중인 강의가 없습니다.</p>
+        <p className="mt-1 break-keep text-sm text-muted-foreground">강의 검색에서 빈자리 알림을 신청할 수 있습니다.</p>
+        <Button asChild variant="outline" className="mt-4">
+          <Link href="/search">강의 검색</Link>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5 mb-1 mt-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2 text-slate-900">
-            <Bookmark className="text-primary w-5 h-5 fill-primary" />
-            나의 구독 강의
-          </h2>
-          <span className="text-[10px] px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg font-bold">
-            {subscriptions.length}개 구독 중
-          </span>
-        </div>
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (confirm('현재 구독 중인 모든 강의 알림을 해제하시겠습니까?')) {
-                unsubscribeAll();
-              }
-            }}
-            disabled={isUnsubscribingAll || subscriptions.length === 0}
-            className="h-7 px-2 text-[11px] font-bold text-red-500 hover:text-red-600 hover:bg-red-50 gap-1 rounded-lg"
-          >
-            <XCircle className="w-3 h-3" />
-            구독 전부 삭제
-          </Button>
-        </div>
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 sm:px-5">
+        <p className="text-sm tabular-nums text-muted-foreground">{subscriptions.length}개 구독 중</p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            if (confirm("모든 강의의 알림 구독을 해제할까요?")) {
+              unsubscribeAll();
+            }
+          }}
+          disabled={isUnsubscribingAll}
+          className="rounded-md text-destructive hover:text-destructive"
+        >
+          모두 구독 해제
+        </Button>
       </div>
 
-      <div className="space-y-4">
+      <ul className="divide-y border-t">
         {subscriptions.map((sub) => {
-          const parts = sub.courseKey.split(':');
-          const subjectCode = parts[2] || sub.courseKey;
-          const classNumber = parts[3] || '01';
+          const courseKey = parseCourseKey(sub.courseKey);
+          const yearLabel = /^\d{4}$/.test(courseKey.year) ? courseKey.year : "";
+          const semesterLabel = SEMESTERS.find(({ value }) => value === courseKey.semester)?.label;
+          const termLabel = [yearLabel, semesterLabel].filter(Boolean).join(" · ");
 
           return (
-            <div 
-              key={sub.id} 
-              className="bg-white rounded-[1.25rem] p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all group relative cursor-pointer"
-              onClick={() => handleCardClick(sub)}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex gap-3">
-                  <div>
-                    <h3 className="font-bold text-base text-slate-900 leading-tight group-hover:text-primary transition-colors">
+            <li key={sub.id} className="group relative flex items-center gap-3 px-4 py-3 hover:bg-muted/40 last:rounded-b-xl sm:px-5">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <h3 className="min-w-0 text-sm font-semibold group-hover:text-primary">
+                    <button
+                      type="button"
+                      className="wrap-anywhere rounded-sm text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      onClick={(event) => openCourseDetail(sub, courseKey, event.currentTarget)}
+                    >
                       {sub.courseName}
-                    </h3>
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <span className="text-[10px] text-slate-500 font-bold bg-slate-50 px-1.5 py-0.5 rounded">
-                        {classNumber}분반
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        {subjectCode}
-                      </span>
-                    </div>
-                  </div>
+                    </button>
+                  </h3>
+                  {termLabel && (
+                    <Badge variant="secondary" className="rounded-md bg-primary/10 px-1.5 py-0 text-primary">
+                      {termLabel}
+                    </Badge>
+                  )}
                 </div>
-                
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm('이 강의의 알림 구독을 해제하시겠습니까?')) {
-                      unsubscribe(sub.id);
-                    }
-                  }}
-                  disabled={isUnsubscribing || isUnsubscribingAll}
-                  className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <p className="mt-1 wrap-anywhere text-xs text-muted-foreground">
+                  {courseKey.classNumber || "01"}분반
+                  <span className="mx-1">{" · "}</span>
+                  {sub.professorName || "교수 미지정"}
+                </p>
               </div>
-
-              <div className="flex flex-col gap-2 pt-3 border-t border-slate-50">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-slate-500 flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-slate-300" />
-                    {sub.professorName || '교수 미지정'}
-                  </span>
-                  <Badge variant="secondary" className="h-5 px-1.5 text-[9px] font-bold rounded-md bg-slate-50 text-slate-500 border-none">
-                    알림 활성
-                  </Badge>
-                </div>
-              </div>
-            </div>
+              <Button
+                type="button"
+                aria-label={`${sub.courseName} 알림 구독 해제`}
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => {
+                  if (confirm("이 강의의 알림 구독을 해제할까요?")) {
+                    unsubscribe(sub.id);
+                  }
+                }}
+                disabled={isUnsubscribing || isUnsubscribingAll}
+                className="relative z-10 rounded-md text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 aria-hidden="true" />
+              </Button>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
       <CourseDetailDialog
         course={selectedCourse}
+        returnFocusRef={detailTrigger}
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
       />
-    </div>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import api from "@/shared/api/client";
 import type { AxiosRequestConfig } from "axios";
-import type { User, UserDeviceRequest, UserUpdateRequest, UserSettingsRequest, OnboardingRequest, EmailRequest, EmailVerificationRequest, UserDeviceResponse } from '@/shared/types/api';
+import type { User, UserDeviceRequest, UserSettingsRequest, OnboardingRequest, EmailRequest, EmailVerificationRequest, UserDeviceResponse } from '@/shared/types/api';
 
 export const completeOnboarding = async (request: OnboardingRequest): Promise<User> => {
   const { data } = await api.post('/api/v1/users/onboard', request);
@@ -62,11 +62,6 @@ export const unregisterDevice = async (token: string): Promise<void> => {
   return data;
 };
 
-export const updateProfile = async (request: UserUpdateRequest): Promise<User> => {
-  const { data } = await api.patch('/api/v1/users/me', request);
-  return data;
-};
-
 export const updateSettings = async (request: UserSettingsRequest): Promise<User> => {
   const { data } = await api.patch('/api/v1/users/settings', request);
   return data;
@@ -80,4 +75,8 @@ export const unlinkDiscord = async (): Promise<void> => {
 export const sendTestNotification = async (): Promise<void> => {
   const { data } = await api.post('/api/v1/notifications/test');
   return data;
+};
+
+export const sendOnboardingTestNotification = async (request: OnboardingRequest): Promise<void> => {
+  await api.post('/api/v1/users/notifications/test/onboarding', request);
 };

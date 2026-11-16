@@ -72,12 +72,12 @@ class CustomOAuth2UserServiceTest {
         OAuth2User delegate = delegateUser(Map.of(EMAIL_ATTRIBUTE, EMAIL, "name", NAME, "sub", "different-subject"));
         given(accountProvisioner.findOrCreate(ISSUER, "different-subject", EMAIL, NAME))
                 .willThrow(new OAuthAccountProvisioningException(
-                        "oauth_identity_conflict", "OAuth identity is already bound"));
+                        "oauth_identity_conflict", "이미 연동된 OAuth 계정입니다."));
 
         // when & then
         assertThatThrownBy(() -> serviceReturning(delegate).loadUser(oauth2UserRequest()))
                 .isInstanceOf(OAuth2AuthenticationException.class)
-                .hasMessageContaining("already bound");
+                .hasMessageContaining("이미 연동된 OAuth 계정");
     }
 
     @Test

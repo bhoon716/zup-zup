@@ -7,7 +7,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
-import bhoon.sugang_helper.academic.crawling.dto.response.AdminCrawlTargetResponse;
 import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.entity.CrawlerSetting;
 import bhoon.sugang_helper.academic.crawling.repository.CrawlerSettingRepository;
@@ -52,19 +51,19 @@ class CourseCrawlerTargetServiceTest {
     }
 
     @Test
-    @DisplayName("DB에 설정이 존재하지 않으면 현재 타겟은 기본 설정값을 조회만 하고 저장하지 않는다")
-    void getCurrentTarget_NotFound_ReturnsDefaultValueWithoutSaving() {
+    @DisplayName("DB에 설정이 존재하지 않으면 관리자 대시보드는 기본 크롤링 타겟을 조회만 하고 저장하지 않는다")
+    void findCurrentAdminSnapshot_NotFound_ReturnsDefaultValueWithoutSaving() {
         // given
         ReflectionTestUtils.setField(crawlerTargetService, "defaultYear", ACADEMIC_YEAR);
         ReflectionTestUtils.setField(crawlerTargetService, "defaultSemester", SemesterType.FIRST_SEMESTER.getCode());
         given(crawlerSettingRepository.findTopByOrderByIdAsc()).willReturn(Optional.empty());
 
         // when
-        AdminCrawlTargetResponse response = crawlerTargetService.getCurrentTarget();
+        var snapshot = crawlerTargetService.findCurrentAdminSnapshot();
 
         // then
-        assertThat(response.getYear()).isEqualTo(ACADEMIC_YEAR);
-        assertThat(response.getSemester()).isEqualTo(SemesterType.FIRST_SEMESTER.getCode());
+        assertThat(snapshot.year()).isEqualTo(ACADEMIC_YEAR);
+        assertThat(snapshot.semester()).isEqualTo(SemesterType.FIRST_SEMESTER.getCode());
         verify(crawlerSettingRepository, never()).save(any(CrawlerSetting.class));
     }
 

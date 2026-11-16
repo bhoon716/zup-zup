@@ -4,7 +4,7 @@
 - 결정일: 2026-10-05
 - 범위: 관심 강의 저장과 여석 알림 신청의 관계
 - 대체 결정: 없음
-- 관련 자료: [WishlistService](../../apps/server/src/main/java/bhoon/sugang_helper/planning/wishlist/application/WishlistService.java), [SubscriptionService](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/subscription/application/SubscriptionService.java), [채널 없는 구독의 안내 정책](2026-10-04-authentication-policy.md)
+- 관련 자료: [WishlistService](../../apps/server/src/main/java/bhoon/sugang_helper/planning/wishlist/service/WishlistService.java), [SubscriptionService](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/subscription/service/SubscriptionService.java), [채널 없는 구독의 안내 정책](2026-10-04-authentication-policy.md)
 
 ## 문제와 목표
 
@@ -43,7 +43,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-05
 - 범위: 사용자별 활성 여석 구독 개수의 상한
-- 관련 자료: [기본 설정](../../apps/server/src/main/resources/application.yml), [운영 프로필 설정](../../apps/server/src/main/resources/application-prod.yml), [SubscriptionService](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/subscription/application/SubscriptionService.java)
+- 관련 자료: [기본 설정](../../apps/server/src/main/resources/application.yml), [운영 프로필 설정](../../apps/server/src/main/resources/application-prod.yml), [SubscriptionService](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/subscription/service/SubscriptionService.java)
 
 ### 비교와 결정
 

@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.support.feedback.dto.response;
 
-import bhoon.sugang_helper.support.feedback.entity.Feedback;
+import bhoon.sugang_helper.support.feedback.dto.result.FeedbackListItem;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
 import java.time.LocalDateTime;
@@ -12,13 +12,13 @@ public record FeedbackResponse(
         FeedbackStatus status,
         LocalDateTime createdAt,
         boolean hasReplies) {
-    public static FeedbackResponse from(Feedback feedback) {
+    public static FeedbackResponse from(FeedbackListItem feedback) {
         return new FeedbackResponse(
-                feedback.getId(),
-                feedback.getType(),
-                feedback.getTitle(),
-                feedback.getStatus(),
-                feedback.getCreatedAt(),
-                !feedback.getReplies().isEmpty());
+                feedback.id(),
+                feedback.type(),
+                feedback.title(),
+                feedback.status(),
+                feedback.createdAt(),
+                feedback.hasReplies());
     }
 }

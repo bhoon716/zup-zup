@@ -1,14 +1,19 @@
 package bhoon.sugang_helper.admin.dto.response;
 
 import bhoon.sugang_helper.academic.api.operations.CrawlerAdminSnapshot;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AdminDashboardSnapshotResponse {
 
-    private AdminOverviewResponse overview;
+    private final AdminOverviewResponse overview;
 
-    private CrawlerAdminSnapshot crawlTarget;
+    private final CrawlerAdminSnapshot crawlTarget;
+
+    public static AdminDashboardSnapshotResponse of(AdminOverviewResponse overview, CrawlerAdminSnapshot crawlTarget) {
+        return new AdminDashboardSnapshotResponse(overview, crawlTarget);
+    }
 }

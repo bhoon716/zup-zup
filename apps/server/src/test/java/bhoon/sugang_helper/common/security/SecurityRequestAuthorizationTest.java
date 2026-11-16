@@ -16,8 +16,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bhoon.sugang_helper.admin.controller.AdminController;
 import bhoon.sugang_helper.admin.service.AdminService;
-import bhoon.sugang_helper.audit.controller.AdminActionLogController;
-import bhoon.sugang_helper.audit.service.AdminAuditService;
 import bhoon.sugang_helper.campus.announcement.controller.AnnouncementController;
 import bhoon.sugang_helper.campus.announcement.enums.AnnouncementSearchType;
 import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
@@ -37,11 +35,15 @@ import bhoon.sugang_helper.identity.auth.service.SessionPrincipal;
 import bhoon.sugang_helper.identity.auth.session.SessionAuthenticationFilter;
 import bhoon.sugang_helper.identity.user.dto.result.AuthenticatedUser;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.seatalert.api.NotificationTraffic;
 import bhoon.sugang_helper.seatalert.notification.controller.AdminNotificationDeliveryController;
+import bhoon.sugang_helper.seatalert.notification.controller.UserNotificationTestController;
 import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
+import bhoon.sugang_helper.seatalert.notification.service.UserNotificationTestService;
 import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
 import bhoon.sugang_helper.support.feedback.controller.FeedbackController;
 import bhoon.sugang_helper.support.feedback.dto.result.FeedbackAttachmentDownload;
+import bhoon.sugang_helper.support.feedback.service.AdminFeedbackService;
 import bhoon.sugang_helper.support.feedback.service.FeedbackService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -81,6 +83,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.unit.DataSize;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @SpringBootTest(classes = SecurityRequestAuthorizationTest.TestApplication.class)
 @AutoConfigureMockMvc
@@ -123,16 +126,22 @@ class SecurityRequestAuthorizationTest {
     private AdminService adminService;
 
     @MockitoBean
-    private AdminAuditService adminAuditService;
+    private NotificationTraffic notificationTraffic;
 
     @MockitoBean
     private AdminNotificationDeliveryService adminNotificationDeliveryService;
+
+    @MockitoBean
+    private UserNotificationTestService userNotificationTestService;
 
     @MockitoBean
     private AnnouncementService announcementService;
 
     @MockitoBean
     private FeedbackService feedbackService;
+
+    @MockitoBean
+    private AdminFeedbackService adminFeedbackService;
 
     @MockitoBean
     private UserIdentityQueryService userIdentityQuery;
@@ -145,6 +154,21 @@ class SecurityRequestAuthorizationTest {
 
     @MockitoBean
     private OAuth2FailureHandler oAuth2FailureHandler;
+
+    @Test
+    @DisplayName("Google 로그인은 계정 선택을 요청한다")
+    void googleLoginRequestsAccountChooser() throws Exception {
+        // when
+        MvcResult result = mockMvc.perform(get("/oauth2/authorization/google"))
+                .andExpect(status().isFound())
+                .andReturn();
+
+        // then
+        var redirect = UriComponentsBuilder.fromUriString(result.getResponse().getRedirectedUrl()).build();
+        assertThat(redirect.getHost()).isEqualTo("accounts.google.com");
+        assertThat(redirect.getQueryParams().getFirst("prompt")).isEqualTo("select_account");
+        assertThat(redirect.getQueryParams().getFirst("state")).isNotBlank();
+    }
 
     @Test
     @DisplayName("인증 없이 관리자 대시보드에 접근하면 거부한다")
@@ -164,37 +188,6 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("A002"))
                 .andExpect(jsonPath("$.path").value("/api/v1/admin/dashboard"));
-    }
-
-    @Test
-    @DisplayName("인증 없이 관리자 감사 로그에 접근하면 거부한다")
-    void adminAuditLogsWithoutAuthenticationAreRejected() throws Exception {
-        // when & then
-        mockMvc.perform(get("/api/v1/admin/audit-logs"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("A001"));
-    }
-
-    @Test
-    @DisplayName("일반 사용자의 관리자 감사 로그 접근을 금지한다")
-    void adminAuditLogsWithNonAdminUserAreForbidden() throws Exception {
-        // when & then
-        mockMvc.perform(get("/api/v1/admin/audit-logs").session(authenticatedSession("ROLE_USER")))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("A002"));
-    }
-
-    @Test
-    @DisplayName("관리자는 감사 로그를 조회할 수 있다")
-    void adminCanAccessAllAuditLogs() throws Exception {
-        // given
-        given(adminAuditService.getActionLogs(any()))
-                .willReturn(Page.empty());
-
-        // when & then
-        mockMvc.perform(get("/api/v1/admin/audit-logs?page=1&size=2").session(authenticatedSession("ROLE_ADMIN")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test
@@ -232,6 +225,29 @@ class SecurityRequestAuthorizationTest {
     }
 
     @Test
+    @DisplayName("온보딩 테스트 알림에는 로그인과 CSRF 토큰이 필요하다")
+    void onboardingTestRequiresAuthenticationAndCsrf() throws Exception {
+        // given
+        String path = "/api/v1/users/notifications/test/onboarding";
+        String request = """
+                {"notificationEmail":"user@example.com","emailEnabled":true}
+                """;
+
+        // when & then
+        mockMvc.perform(post(path).with(csrf().asHeader())
+                        .contentType(MediaType.APPLICATION_JSON).content(request))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("A001"));
+        mockMvc.perform(post(path).session(authenticatedSession("ROLE_USER"))
+                        .contentType(MediaType.APPLICATION_JSON).content(request))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("A003"));
+        mockMvc.perform(post(path).session(authenticatedSession("ROLE_USER")).with(csrf().asHeader())
+                        .contentType(MediaType.APPLICATION_JSON).content(request))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("관리자 피드백 목록에는 관리자 권한이 필요하다")
     void adminFeedbackListRequiresAdminRole() throws Exception {
         // when & then
@@ -243,8 +259,8 @@ class SecurityRequestAuthorizationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("A002"));
 
-        given(feedbackService.getFeedbacksForAdmin(
-                any(), any()))
+        given(adminFeedbackService.getFeedbacksForAdmin(
+                any(), any(), any(), any()))
                 .willReturn(Page.empty());
         mockMvc.perform(get("/api/v1/admin/feedbacks?deletion=DELETED")
                         .session(authenticatedSession("ROLE_ADMIN")))
@@ -274,7 +290,7 @@ class SecurityRequestAuthorizationTest {
     @DisplayName("관리자는 정제된 첨부를 실제 콘텐츠 타입으로 미리 볼 수 있다")
     void adminCanPreviewSanitizedAttachmentWithItsActualContentType() throws Exception {
         // given
-        given(feedbackService.getAttachmentForCurrentAdmin(10L, 20L, true)).willReturn(
+        given(adminFeedbackService.getAttachmentForCurrentAdmin(10L, 20L, true)).willReturn(
                 new FeedbackAttachmentDownload(new ByteArrayResource(new byte[] {1, 2, 3}),
                         "attachment.png", MediaType.IMAGE_PNG));
 
@@ -293,7 +309,7 @@ class SecurityRequestAuthorizationTest {
     @DisplayName("피드백과 첨부의 연결이 맞지 않으면 찾을 수 없음으로 응답한다")
     void adminAttachmentRequestWithMismatchedFeedbackAndAttachmentReturnsNotFound() throws Exception {
         // given
-        given(feedbackService.getAttachmentForCurrentAdmin(10L, 99L, true))
+        given(adminFeedbackService.getAttachmentForCurrentAdmin(10L, 99L, true))
                 .willThrow(new CustomException(ErrorCode.FEEDBACK_NOT_FOUND));
 
         // when & then
@@ -383,6 +399,21 @@ class SecurityRequestAuthorizationTest {
     void sessionSecurityContextAuthenticatesProtectedRequestWithIdentity() throws Exception {
         // when & then
         mockMvc.perform(get("/api/v1/admin/dashboard").session(authenticatedSession("ROLE_ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("알림 트래픽은 관리자만 조회할 수 있다")
+    void notificationTrafficRequiresAdminRole() throws Exception {
+        // given
+        String path = "/api/v1/admin/notifications/traffic";
+
+        // when & then
+        mockMvc.perform(get(path).param("range", "LAST_7_DAYS"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get(path).param("range", "LAST_7_DAYS").session(authenticatedSession("ROLE_USER")))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get(path).param("range", "LAST_7_DAYS").session(authenticatedSession("ROLE_ADMIN")))
                 .andExpect(status().isOk());
     }
 
@@ -490,8 +521,8 @@ class SecurityRequestAuthorizationTest {
             CustomAccessDeniedHandler.class,
             CustomAuthenticationEntryPoint.class,
             AdminController.class,
-            AdminActionLogController.class,
             AdminNotificationDeliveryController.class,
+            UserNotificationTestController.class,
             AdminFeedbackController.class,
             AnnouncementController.class,
             FeedbackController.class,

@@ -1,5 +1,6 @@
 package bhoon.sugang_helper.campus.announcement.service;
 
+import bhoon.sugang_helper.campus.announcement.AnnouncementPreviewText;
 import bhoon.sugang_helper.campus.announcement.dto.request.AnnouncementRequest;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementDetailResponse;
 import bhoon.sugang_helper.campus.announcement.dto.response.AnnouncementListResponse;
@@ -11,9 +12,13 @@ import bhoon.sugang_helper.campus.api.Announcements;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.web.PageableGuard;
+import bhoon.sugang_helper.seatalert.api.NotificationPublications;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -31,6 +36,7 @@ public class AnnouncementService implements Announcements {
 
     private final AnnouncementRepository announcementRepository;
     private final MeterRegistry meterRegistry;
+    private final NotificationPublications notificationPublications;
 
     public List<AnnouncementListResponse> getPublicAnnouncements(String keyword, AnnouncementSearchType searchType) {
         return getPublicAnnouncements(keyword, searchType, PageRequest.of(0, MAX_PAGE_SIZE)).getContent();
@@ -38,33 +44,36 @@ public class AnnouncementService implements Announcements {
 
     public Page<AnnouncementListResponse> getPublicAnnouncements(
             String keyword, AnnouncementSearchType searchType, Pageable pageable) {
-        Pageable bounded = PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, 10_000);
-        String normalizedKeyword = normalizeKeyword(keyword);
-        AnnouncementSearchType effectiveSearchType = searchType == null
-                ? AnnouncementSearchType.TITLE_CONTENT : searchType;
-        long started = System.nanoTime();
-        try {
-            return findPublicAnnouncements(normalizedKeyword, effectiveSearchType, bounded)
-                    .map(AnnouncementListResponse::from);
-        } finally {
-            if (meterRegistry != null) {
-                meterRegistry.timer("announcement.search.latency", "searchType", effectiveSearchType.name(),
-                        "hasKeyword", Boolean.toString(!normalizedKeyword.isEmpty()))
-                        .record(System.nanoTime() - started, TimeUnit.NANOSECONDS);
-            }
-        }
+        return queryPublicAnnouncements(keyword, searchType, pageable, AnnouncementListResponse::from);
     }
 
     public List<AnnouncementPreview> findDashboardAnnouncements(int limit) {
-        return getPublicAnnouncements(null, AnnouncementSearchType.TITLE_CONTENT, PageRequest.of(0, limit))
-                .getContent().stream()
-                .map(item -> new AnnouncementPreview(
-                        item.getId(), item.getTitle(), item.getPreviewContent(), item.isPinned(), item.getCreatedAt()))
-                .toList();
+        return queryPublicAnnouncements(null, AnnouncementSearchType.TITLE_CONTENT, PageRequest.of(0, limit),
+                AnnouncementService::toPreview).getContent();
+    }
+
+    private <T> Page<T> queryPublicAnnouncements(
+            String keyword, AnnouncementSearchType searchType, Pageable pageable, Function<Announcement, T> mapper) {
+        Pageable bounded = PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, PageableGuard.DEFAULT_MAX_OFFSET);
+        String normalizedKeyword = normalizeKeyword(keyword);
+        AnnouncementSearchType effectiveSearchType = Objects.requireNonNullElse(
+                searchType, AnnouncementSearchType.TITLE_CONTENT);
+        long startedAtNanos = System.nanoTime();
+        try {
+            return findPublicAnnouncements(normalizedKeyword, effectiveSearchType, bounded).map(mapper);
+        } finally {
+            recordSearchLatency(effectiveSearchType, !normalizedKeyword.isEmpty(), startedAtNanos);
+        }
+    }
+
+    private static AnnouncementPreview toPreview(Announcement announcement) {
+        return new AnnouncementPreview(announcement.getId(), announcement.getTitle(),
+                AnnouncementPreviewText.from(announcement.getContent()), announcement.isPinned(),
+                announcement.getCreatedAt());
     }
 
     public AnnouncementDetailResponse getPublicAnnouncement(Long id) {
-        Announcement announcement = announcementRepository.findByIdAndPublishedTrue(id)
+        Announcement announcement = announcementRepository.findByIdAndPublishedTrueAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "공개된 공지사항을 찾을 수 없습니다."));
         return AnnouncementDetailResponse.from(announcement);
     }
@@ -74,8 +83,8 @@ public class AnnouncementService implements Announcements {
     }
 
     public Page<AnnouncementDetailResponse> getAdminAnnouncements(Pageable pageable) {
-        return announcementRepository.findAllByOrderByPinnedDescCreatedAtDesc(
-                        PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, 10_000))
+        return announcementRepository.findAllByOrderByPinnedDescCreatedAtDescIdDesc(
+                        PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, PageableGuard.DEFAULT_MAX_OFFSET))
                 .map(AnnouncementDetailResponse::from);
     }
 
@@ -87,41 +96,95 @@ public class AnnouncementService implements Announcements {
                 .pinned(request.isPinnedOrDefault())
                 .published(request.isPublishedOrDefault())
                 .build();
-        return AnnouncementDetailResponse.from(announcementRepository.save(announcement));
+        Announcement saved = announcementRepository.save(announcement);
+        updatePublication(saved, false, request.isNotify());
+        return AnnouncementDetailResponse.from(saved);
     }
 
     @Transactional
     public AnnouncementDetailResponse updateAnnouncement(Long id, AnnouncementRequest request) {
-        Announcement announcement = getAnnouncement(id);
+        Announcement announcement = requireAnnouncementForUpdate(id);
+        if (announcement.getDeletedAt() != null) {
+            throw announcementNotFound();
+        }
+
+        boolean wasVisible = announcement.isPubliclyVisible();
         announcement.update(
                 request.getTitle().trim(),
                 request.getContent().trim(),
                 request.isPinnedOrDefault(),
                 request.isPublishedOrDefault());
+        updatePublication(announcement, wasVisible, request.isNotify());
         return AnnouncementDetailResponse.from(announcement);
     }
 
     @Transactional
     public void deleteAnnouncement(Long id) {
-        Announcement announcement = getAnnouncement(id);
-        announcementRepository.delete(announcement);
+        Announcement announcement = requireAnnouncementForUpdate(id);
+        if (announcement.getDeletedAt() != null) {
+            return;
+        }
+
+        boolean wasVisible = announcement.isPubliclyVisible();
+        announcement.delete(LocalDateTime.now());
+        if (wasVisible) {
+            notificationPublications.setAnnouncementAvailable(id, false);
+        }
     }
 
-    private Announcement getAnnouncement(Long id) {
-        return announcementRepository.findById(id)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "공지사항을 찾을 수 없습니다."));
+    @Transactional
+    public AnnouncementDetailResponse restoreAnnouncement(Long id) {
+        Announcement announcement = requireAnnouncementForUpdate(id);
+        if (announcement.getDeletedAt() != null) {
+            announcement.restore();
+            if (announcement.isPubliclyVisible()) {
+                notificationPublications.setAnnouncementAvailable(id, true);
+            }
+        }
+        return AnnouncementDetailResponse.from(announcement);
+    }
+
+    private void updatePublication(Announcement announcement, boolean wasVisible, boolean notify) {
+        if (announcement.recordFirstPublication(LocalDateTime.now())) {
+            if (notify) {
+                notificationPublications.publishAnnouncement(announcement.getId(), announcement.getTitle());
+            }
+            return;
+        }
+
+        boolean visible = announcement.isPubliclyVisible();
+        if (wasVisible != visible) {
+            notificationPublications.setAnnouncementAvailable(announcement.getId(), visible);
+        }
+    }
+
+    private Announcement requireAnnouncementForUpdate(Long id) {
+        return announcementRepository.findByIdForUpdate(id).orElseThrow(this::announcementNotFound);
+    }
+
+    private CustomException announcementNotFound() {
+        return new CustomException(ErrorCode.NOT_FOUND, "공지사항을 찾을 수 없습니다.");
     }
 
     private Page<Announcement> findPublicAnnouncements(
             String keyword, AnnouncementSearchType searchType, Pageable pageable) {
         if (keyword.isEmpty()) {
-            return announcementRepository.findByPublishedTrueOrderByPinnedDescCreatedAtDesc(pageable);
+            return announcementRepository.findByPublishedTrueAndDeletedAtIsNullOrderByPinnedDescCreatedAtDescIdDesc(pageable);
         }
         return switch (searchType) {
             case TITLE -> announcementRepository.searchPublishedByTitle(keyword, pageable);
             case CONTENT -> announcementRepository.searchPublishedByContent(keyword, pageable);
             case TITLE_CONTENT -> announcementRepository.searchPublishedByTitleOrContent(keyword, pageable);
         };
+    }
+
+    private void recordSearchLatency(AnnouncementSearchType searchType, boolean hasKeyword, long startedAtNanos) {
+        if (meterRegistry == null) {
+            return;
+        }
+        meterRegistry.timer("announcement.search.latency", "searchType", searchType.name(),
+                        "hasKeyword", Boolean.toString(hasKeyword))
+                .record(System.nanoTime() - startedAtNanos, TimeUnit.NANOSECONDS);
     }
 
     private String normalizeKeyword(String keyword) {

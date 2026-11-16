@@ -1,13 +1,17 @@
 package bhoon.sugang_helper.support.feedback.repository;
 
+import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackSearch;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentAccess;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackAttachmentSummary;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackDetail;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackReplySummary;
 import bhoon.sugang_helper.support.feedback.dto.result.AdminFeedbackSummary;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackOrder;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -17,39 +21,50 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
 public class AdminFeedbackReadRepository {
 
+    private static final String AUTHOR_ID_COLUMN = "author_id";
+    private static final String CONTENT_COLUMN = "content";
+    private static final String CREATED_AT_COLUMN = "created_at";
+    private static final String HAS_REPLIES_COLUMN = "has_replies";
+    private static final String ID_COLUMN = "id";
+    private static final String UPDATED_AT_COLUMN = "updated_at";
+    private static final String FEEDBACK_ID_COLUMN = "feedback_id";
+    private static final String FILE_URL_COLUMN = "file_url";
+    private static final String ORIGINAL_NAME_COLUMN = "original_name";
+    private static final String STATUS_COLUMN = "status";
+    private static final String TITLE_COLUMN = "title";
+    private static final String TYPE_COLUMN = "type";
+
     private static final String DELETED_AT_COLUMN = "deleted_at";
 
     private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate namedJdbcTemplate;
 
-    public Page<AdminFeedbackSummary> findFeedbacks(AdminFeedbackDeletionFilter deletionFilter, Pageable pageable) {
-        String condition = deletionCondition(deletionFilter);
-        Long total = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM feedbacks f WHERE " + condition, Long.class);
+    public Page<AdminFeedbackSummary> findFeedbacks(
+            AdminFeedbackDeletionFilter deletionFilter, AdminFeedbackOrder order, AdminFeedbackSearch search,
+            Pageable pageable) {
+        String condition = deletionCondition(deletionFilter) + searchCondition(search);
+        var params = new MapSqlParameterSource("keyword", search.keyword());
+        Long total = namedJdbcTemplate.queryForObject("SELECT COUNT(*) FROM feedbacks f WHERE " + condition,
+                params, Long.class);
         String sql = """
                 SELECT f.id, f.user_id AS author_id, f.type, f.title, f.status, f.created_at, f.deleted_at,
                        EXISTS (SELECT 1 FROM feedback_replies r WHERE r.feedback_id = f.id) AS has_replies
                 FROM feedbacks f
                 WHERE %s
-                ORDER BY f.created_at DESC, f.id DESC
-                LIMIT ? OFFSET ?
-                """.formatted(condition);
-        List<AdminFeedbackSummary> content = jdbcTemplate.query(sql,
-                (resultSet, rowNum) -> new AdminFeedbackSummary(
-                        resultSet.getLong("id"),
-                        FeedbackType.valueOf(resultSet.getString("type")),
-                        resultSet.getString("title"),
-                        FeedbackStatus.valueOf(resultSet.getString("status")),
-                        resultSet.getObject("created_at", LocalDateTime.class),
-                        resultSet.getBoolean("has_replies"),
-                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class) != null,
-                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class),
-                        resultSet.getObject("author_id", Long.class)),
-                pageable.getPageSize(), offset(pageable));
+                ORDER BY %s
+                LIMIT :limit OFFSET :offset
+                """.formatted(condition, feedbackOrder(order));
+        List<AdminFeedbackSummary> content = namedJdbcTemplate.query(sql,
+                params.addValue("limit", pageable.getPageSize()).addValue("offset", offset(pageable)),
+                (resultSet, rowNum) -> mapSummary(resultSet));
         return new PageImpl<>(content, PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()), total);
     }
 
@@ -59,16 +74,7 @@ public class AdminFeedbackReadRepository {
                         FROM feedbacks f
                         WHERE f.id = ?
                         """,
-                (resultSet, rowNum) -> new AdminFeedbackDetail(
-                        resultSet.getLong("id"),
-                        FeedbackType.valueOf(resultSet.getString("type")),
-                        resultSet.getString("title"),
-                        resultSet.getString("content"),
-                        FeedbackStatus.valueOf(resultSet.getString("status")),
-                        resultSet.getObject("created_at", LocalDateTime.class),
-                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class) != null,
-                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class),
-                        resultSet.getObject("author_id", Long.class)),
+                (resultSet, rowNum) -> mapDetail(resultSet),
                 feedbackId);
         return details.stream().findFirst();
     }
@@ -80,13 +86,7 @@ public class AdminFeedbackReadRepository {
                         WHERE feedback_id = ?
                         ORDER BY created_at ASC, id ASC
                         """,
-                (resultSet, rowNum) -> new AdminFeedbackReplySummary(
-                        resultSet.getLong("id"),
-                        resultSet.getString("content"),
-                        resultSet.getObject("created_at", LocalDateTime.class),
-                        resultSet.getObject("updated_at", LocalDateTime.class),
-                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class) != null,
-                        resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class)),
+                (resultSet, rowNum) -> mapReplySummary(resultSet),
                 feedbackId);
     }
 
@@ -97,7 +97,7 @@ public class AdminFeedbackReadRepository {
                         WHERE feedback_id = ?
                         ORDER BY id ASC
                         """,
-                (resultSet, rowNum) -> new AdminFeedbackAttachmentSummary(resultSet.getLong("id")),
+                (resultSet, rowNum) -> new AdminFeedbackAttachmentSummary(resultSet.getLong(ID_COLUMN)),
                 feedbackId);
     }
 
@@ -109,14 +109,54 @@ public class AdminFeedbackReadRepository {
                         WHERE a.feedback_id = ?
                           AND a.id = ?
                         """,
-                (resultSet, rowNum) -> new AdminFeedbackAttachmentAccess(
-                        resultSet.getLong("id"),
-                        resultSet.getLong("feedback_id"),
-                        resultSet.getString("file_url"),
-                        resultSet.getString("original_name")),
+                (resultSet, rowNum) -> mapAttachmentAccess(resultSet),
                 feedbackId,
                 attachmentId);
         return attachments.stream().findFirst();
+    }
+
+    private AdminFeedbackSummary mapSummary(ResultSet resultSet) throws SQLException {
+        return new AdminFeedbackSummary(
+                resultSet.getLong(ID_COLUMN),
+                FeedbackType.valueOf(resultSet.getString(TYPE_COLUMN)),
+                resultSet.getString(TITLE_COLUMN),
+                FeedbackStatus.valueOf(resultSet.getString(STATUS_COLUMN)),
+                resultSet.getObject(CREATED_AT_COLUMN, LocalDateTime.class),
+                resultSet.getBoolean(HAS_REPLIES_COLUMN),
+                resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class) != null,
+                resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class),
+                resultSet.getObject(AUTHOR_ID_COLUMN, Long.class));
+    }
+
+    private AdminFeedbackDetail mapDetail(ResultSet resultSet) throws SQLException {
+        return new AdminFeedbackDetail(
+                resultSet.getLong(ID_COLUMN),
+                FeedbackType.valueOf(resultSet.getString(TYPE_COLUMN)),
+                resultSet.getString(TITLE_COLUMN),
+                resultSet.getString(CONTENT_COLUMN),
+                FeedbackStatus.valueOf(resultSet.getString(STATUS_COLUMN)),
+                resultSet.getObject(CREATED_AT_COLUMN, LocalDateTime.class),
+                resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class) != null,
+                resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class),
+                resultSet.getObject(AUTHOR_ID_COLUMN, Long.class));
+    }
+
+    private AdminFeedbackReplySummary mapReplySummary(ResultSet resultSet) throws SQLException {
+        return new AdminFeedbackReplySummary(
+                resultSet.getLong(ID_COLUMN),
+                resultSet.getString(CONTENT_COLUMN),
+                resultSet.getObject(CREATED_AT_COLUMN, LocalDateTime.class),
+                resultSet.getObject(UPDATED_AT_COLUMN, LocalDateTime.class),
+                resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class) != null,
+                resultSet.getObject(DELETED_AT_COLUMN, LocalDateTime.class));
+    }
+
+    private AdminFeedbackAttachmentAccess mapAttachmentAccess(ResultSet resultSet) throws SQLException {
+        return new AdminFeedbackAttachmentAccess(
+                resultSet.getLong(ID_COLUMN),
+                resultSet.getLong(FEEDBACK_ID_COLUMN),
+                resultSet.getString(FILE_URL_COLUMN),
+                resultSet.getString(ORIGINAL_NAME_COLUMN));
     }
 
     private String deletionCondition(AdminFeedbackDeletionFilter deletionFilter) {
@@ -124,6 +164,32 @@ public class AdminFeedbackReadRepository {
             case ALL -> "1 = 1";
             case ACTIVE -> "f.deleted_at IS NULL";
             case DELETED -> "f.deleted_at IS NOT NULL";
+        };
+    }
+
+    private String searchCondition(AdminFeedbackSearch search) {
+        if (search.keyword().isEmpty()) {
+            return "";
+        }
+        String title = "LOCATE(LOWER(:keyword), LOWER(f.title)) > 0";
+        String content = "LOCATE(LOWER(:keyword), LOWER(f.content)) > 0";
+        String replies = """
+                EXISTS (SELECT 1 FROM feedback_replies r
+                        WHERE r.feedback_id = f.id AND LOCATE(LOWER(:keyword), LOWER(r.content)) > 0)
+                """;
+        String match = switch (search.type()) {
+            case TITLE -> title;
+            case TITLE_CONTENT -> title + " OR " + content;
+            case TITLE_CONTENT_REPLY -> title + " OR " + content + " OR " + replies;
+        };
+        return " AND (" + match + ")";
+    }
+
+    private String feedbackOrder(AdminFeedbackOrder order) {
+        return switch (order) {
+            case PENDING_FIRST -> "CASE WHEN f.status = 'PENDING' THEN 0 ELSE 1 END, f.created_at DESC, f.id DESC";
+            case NEWEST -> "f.created_at DESC, f.id DESC";
+            case OLDEST -> "f.created_at ASC, f.id ASC";
         };
     }
 

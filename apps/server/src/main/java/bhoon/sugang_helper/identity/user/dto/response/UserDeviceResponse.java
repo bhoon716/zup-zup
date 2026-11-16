@@ -3,11 +3,12 @@ package bhoon.sugang_helper.identity.user.dto.response;
 import bhoon.sugang_helper.identity.user.dto.result.UserDeviceResult;
 import bhoon.sugang_helper.identity.user.entity.UserDevice;
 import java.time.LocalDateTime;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class UserDeviceResponse {
 
     private final Long id;
@@ -19,24 +20,18 @@ public class UserDeviceResponse {
     private final LocalDateTime registeredAt;
 
     public static UserDeviceResponse from(UserDevice device) {
-        String token = device.getToken();
-        String masked = token.length() > 10 ? token.substring(0, 5) + "..." + token.substring(token.length() - 5)
-                : token;
-
-        return fromValues(device.getId(), device.getAlias(), masked, device.getCreatedAt());
+        String maskedToken = maskToken(device.getToken());
+        return new UserDeviceResponse(device.getId(), device.getAlias(), maskedToken, device.getCreatedAt());
     }
 
     public static UserDeviceResponse from(UserDeviceResult result) {
-        return fromValues(result.id(), result.alias(), result.maskedToken(), result.registeredAt());
+        return new UserDeviceResponse(result.id(), result.alias(), result.maskedToken(), result.registeredAt());
     }
 
-    private static UserDeviceResponse fromValues(Long id, String alias, String maskedToken,
-                                                 LocalDateTime registeredAt) {
-        return UserDeviceResponse.builder()
-                .id(id)
-                .alias(alias)
-                .maskedToken(maskedToken)
-                .registeredAt(registeredAt)
-                .build();
+    private static String maskToken(String token) {
+        if (token.length() <= 10) {
+            return token;
+        }
+        return token.substring(0, 5) + "..." + token.substring(token.length() - 5);
     }
 }

@@ -16,12 +16,19 @@ bash infra/scripts/backup-server-export.sh
 - 성공한 묶음은 `${RELEASE_ROOT}/backups/export/full_backup_<UTC>_<random>/`에 디렉터리 단위로 공개된다. DB `.sql.gz`, 첨부 `.tar.gz`, `backup.manifest`와 각 파일의 `.sha256`을 함께 보관한다. 감사 아카이브는 별도 `backups/audit/`에 남는다.
 - manifest의 `schema=full-backup-v1`, `database=sugang_helper`, `dump_file`, `uploads`, `uploads_file`은 묶음 구성만 설명한다. 원본 DB의 같은 snapshot에 대한 정확한 행 수를 별도로 보증하지 않는다.
 - `--single-transaction`은 MySQL transactional table의 일관된 dump를 위한 옵션이다. 그 뒤 생성하는 첨부 tar와 DB 사이의 동일 시점 원자성, 동시에 실행한 DDL의 안전성을 보증하지 않는다. 운영 복구 시 첨부 연결을 별도로 확인해야 한다.
-- 수동 `backup-to-macbook.sh` 전송 정책은 유지한다. 이 변경이 외부 자동 전송이나 운영 설치를 수행하는 것은 아니다. 새 exporter에는 기존 백업을 삭제하는 pruning이 없다. 따라서 일일 timer로 활성화하면 완성 묶음이 누적되고, ADR의 서버 최신 세 개 정책이 자동 적용되지 않는다. 활성화 전에 수동 offhost 사본 확보와 보관·회전 정책을 확정해야 한다. 이번 변경은 기존 기록·백업을 삭제하지 않는다. 저장 공간 preflight/신선도 경보가 있어도 장기 여유 공간을 보장하지 않는다.
+- 운영 서버에서는 기존 주간 백업에 아래 자동 복사 구성을 적용한다. 수동으로 생성한 묶음도 같은 형식을 쓴다.
+
+## 맥북 자동 복사와 도착 알림
+
+- 기존 `jbnu-sugang-helper-db-backup.timer`의 월요일 04:00(한국 시간)에 전체 묶음을 생성한다. [서비스 설정](../../infra/systemd/weekly-backup-full-export.conf)은 생성에 성공하면 체크섬을 검증한 전체 묶음 중 최신 세 개를 서버에 보관한다.
+- 맥북의 `com.zupzup.offhost-backup` LaunchAgent는 로그인 시, 월요일 04:30 및 실행 중 매시간 기존 `zupzup` SSH 설정으로 최신 묶음을 확인한다. 검증한 압축본과 SHA-256을 `~/Backups/jbnu-sugang-helper/full/`에 저장한다. 로그는 `~/Backups/jbnu-sugang-helper/logs/automatic-copy.log`에 남는다.
+- [복사 스크립트](../../infra/scripts/offhost-backup.py)는 맥북에 저장된 사본을 검증한 후 서버에 원본 스냅샷 시각을 기록한다. 운영의 `PROMETHEUS_HOST_JOB_RULES_FILE`이 읽는 [경보 규칙](../../infra/prometheus/mac-backup-alerts.yml)은 화요일 04:00까지 해당 주 백업이 확인되지 않거나 도착 지표가 사라진 상태가 5분간 이어지면 기존 Slack으로 알린다.
+- 자동 복사 압축본에서 복원할 때는 접근이 제한된 디렉터리에서 먼저 `shasum -a 256 -c <압축본>.tar.gz.sha256`을 실행한다. `tar -xzf <압축본>.tar.gz`로 전체 묶음을 푼 뒤 아래의 DB 파일 경로를 넘긴다.
 
 ## Docker 실행 전 준비
 
 1. 선택한 백업을 다룰 권한, 로컬 디스크의 접근 제한·여유 공간, 백업 출처와 시각을 확인한다. SQL·첨부 원문을 공유 채널에 출력하지 않는다.
-2. 저장소와 백업의 릴리스 버전을 맞춘다. 현재 전체 DB 검증은 V32의 37개 테이블 목록과 checkout의 마지막 Flyway 버전을 기준으로 한다. 오래된 백업을 통과시키려고 자동 migration하지 않는다.
+2. 저장소와 백업의 릴리스 버전을 맞춘다. 스크립트는 해당 체크아웃에 정의된 테이블 목록과 마지막 Flyway 버전을 확인한다. 오래된 백업을 통과시키려고 자동 migration하지 않는다.
 3. Python 3.8+, Bash, gzip, tar, shasum, Docker와 **이미 로컬에 준비된** 공식 MySQL 8.4 이미지가 필요하다. 스크립트는 `--pull=never`라서 이미지를 자동 다운로드하지 않는다.
 4. 운영자가 사전에 검증한 공식 이미지 digest를 사용하는 것을 권한다. 로컬 이미지 정보를 확인하는 명령은 다음과 같다. 등록소 조회나 pull은 이 검증 스크립트의 일부가 아니다.
 
@@ -56,7 +63,7 @@ bash infra/scripts/verify-mac-restore.sh \
 - 먼저 Docker의 실제 선택 endpoint가 local `unix://` socket인지 확인한다. `DOCKER_CONTEXT` 우선순위와 `DOCKER_HOST`를 반영하고 원격 SSH/TCP context는 거부한다. 다른 context로 자동 전환하지 않는다. 이어 독립 MySQL 컨테이너를 `--network none`으로 만든다. 호스트 포트, host bind mount, 운영 volume, 앱/worker 연결은 없다. MySQL event scheduler와 local infile도 기본 비활성화한다. 실제 운영 계정 비밀번호를 사용하지 않는다.
 - 컨테이너 생성 후 얻은 고유 ID만 start/exec/삭제 대상으로 삼는다. 생성 실패 때 같은 이름의 기존 컨테이너를 지우지 않는다.
 - TCP `SELECT 1`로 영구 MySQL 프로세스 준비를 확인한다. 이미지 초기화 중 socket-only 임시 MySQL이 떠 있다는 이유로 import를 시작하지 않는다. `RESTORE_WAIT_ATTEMPTS` 기본 120회, 허용 1~600회이며 MySQL 연결 timeout은 회당 2초, 실패 후 대기는 1초다. Docker daemon 자체 응답 지연까지 포함한 총 wall-clock timeout은 아니다.
-- 전체 DB는 37개 base table 목록, 실패 Flyway 이력 없음, checkout의 마지막 migration 버전 일치, 모든 테이블 `count(*)` 실행 성공과 숫자 결과를 확인한다. `users`나 `courses`가 적법하게 0행인 백업도 허용한다. 누락 테이블이나 query 실패를 0으로 바꾸지 않는다.
+- 전체 DB 검증은 기본 테이블 목록과 마지막 Flyway 버전이 체크아웃과 일치하고, 실패한 Flyway 이력이 없는지 확인한다. 모든 테이블에서 `count(*)`를 실행해 숫자 결과를 확인한다. `users`나 `courses`가 적법하게 0행인 백업도 허용한다. 누락 테이블이나 query 실패를 0으로 바꾸지 않는다.
 - 감사 DB는 archive table 이름, 컬럼 이름·타입·nullable 여부, id primary key와 manifest의 정확한 행 수를 확인한다. 0행도 정확히 비교한다.
 - 원문 SQL/error/사용자 행은 출력하지 않고, 의미 있는 단계와 테이블별 개수만 독립 JSON 필드로 기록한다. 성공 이벤트는 해당 임시 컨테이너와 익명 volume 제거가 완료된 뒤에만 나온다. 정리에 실패하면 nonzero exit와 대상 ID가 남는다.
 

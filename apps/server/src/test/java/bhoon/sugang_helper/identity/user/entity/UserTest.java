@@ -30,23 +30,6 @@ class UserTest {
     }
 
     @Test
-    @DisplayName("User 정보 수정 테스트")
-    void updateUser() {
-        // when
-        User user = User.builder()
-                .name("test")
-                .email("test@example.com")
-                .role(Role.USER)
-                .build();
-        String newName = "updated";
-
-        user.update(newName);
-
-        // then
-        assertThat(user.getName()).isEqualTo(newName);
-    }
-
-    @Test
     @DisplayName("Role Key 조회 테스트")
     void getRoleKey() {
         // when

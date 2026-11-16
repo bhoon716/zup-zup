@@ -31,13 +31,13 @@ test("온보딩 시작은 새로고침·뒤로가기·앞으로가기에서 중�
     return route.fulfill({ json: response([]) });
   });
   await page.goto("/onboarding?discord=error&token=private");
-  await expect(page.getByRole("button", { name: "완료", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "설정 완료", exact: true })).toBeVisible();
   await expect.poll(() => events.map(event => event[1])).toEqual(["onboarding_started"]);
   await page.reload();
-  await expect(page.getByRole("button", { name: "완료", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "설정 완료", exact: true })).toBeVisible();
   await page.goto("/manifest.json");
   await page.goBack();
-  await expect(page.getByRole("button", { name: "완료", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "설정 완료", exact: true })).toBeVisible();
   await page.goForward();
   expect(events.map(event => event[1])).toEqual(["onboarding_started"]);
   expect(events[0][2]).toEqual({
@@ -69,7 +69,7 @@ test("저장 대기·중복 제출·503 실패 후 재시도 성공을 구분하
   await page.goto("/onboarding?token=private");
   const complete = page.locator('form button[type="submit"]');
   await expect.poll(() => events.map(event => event[1])).toEqual(["onboarding_started"]);
-  await page.getByPlaceholder("기기 이름 (예: 내 노트북, 스마트폰)").fill("개인 기기 이름");
+  await page.getByRole("textbox", { name: "기기 별칭" }).fill("개인 기기 이름");
   await page.getByRole("switch", { name: "웹 푸시 (현재 기기)" }).click();
   await expect(page.getByText(/이 브라우저에서는 웹 푸시/)).toBeVisible();
   await complete.click();
@@ -122,10 +122,11 @@ test("웹 푸시 권한 거부 후 이메일로 완료하면 저장 실패 이�
   });
   await page.goto("/onboarding");
   const push = page.getByRole("switch", { name: "웹 푸시 (현재 기기)" });
+  await page.getByRole("textbox", { name: "기기 별칭" }).fill("개인 기기 이름");
   await push.click();
   await expect(page.getByText(/웹 푸시 권한이 허용되지/)).toBeVisible();
   await expect(push).not.toBeChecked();
-  await page.getByRole("button", { name: "완료", exact: true }).click();
+  await page.getByRole("button", { name: "설정 완료", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect.poll(() => events.map(event => event[1])).toEqual(["onboarding_started", "onboarding_completed"]);
 });

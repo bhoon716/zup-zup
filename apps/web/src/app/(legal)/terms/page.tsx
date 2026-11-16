@@ -17,7 +17,7 @@ export default function TermsPage() {
         <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-border/40 p-8 md:p-12 shadow-sm space-y-8">
           <header className="space-y-2 border-b border-border/40 pb-6">
             <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest mb-2">
-               <ShieldAlert className="w-4 h-4" /> Legal
+               <ShieldAlert className="w-4 h-4" /> 약관 안내
             </div>
             <h1 className="text-3xl font-black tracking-tight">서비스 이용약관 및 면책 조항</h1>
           </header>
@@ -54,7 +54,7 @@ export default function TermsPage() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold">4. 데이터 출처</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              본 서비스에서 제공하는 모든 강의 정보 및 여석 데이터의 원 출처는 <strong>전북대학교 오아시스(Oasis)</strong>이며, 모든 저작권 및 권한은 학교 본부에 있습니다.
+              본 서비스에서 제공하는 모든 강의 정보 및 빈자리 데이터의 원 출처는 <strong>전북대학교 오아시스(Oasis)</strong>이며, 모든 저작권 및 권한은 학교 본부에 있습니다.
             </p>
           </section>
 

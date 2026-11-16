@@ -3,6 +3,7 @@ package bhoon.sugang_helper.seatalert.notification.scheduler;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
+import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationDeliveryStateService;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Component;
 public class SeatNotificationOutboxWorker {
 
     private final SeatNotificationOutboxProcessor processor;
+    private final SeatNotificationDeliveryStateService deliveryStateService;
     private final int batchSize;
     private final AtomicBoolean running = new AtomicBoolean();
     private final Map<NotificationChannel, AtomicInteger> inFlightByChannel = new EnumMap<>(NotificationChannel.class);
@@ -31,12 +33,14 @@ public class SeatNotificationOutboxWorker {
 
     public SeatNotificationOutboxWorker(
             SeatNotificationOutboxProcessor processor,
+            SeatNotificationDeliveryStateService deliveryStateService,
             MeterRegistry meterRegistry,
             @Value("${app.notification.outbox.batch-size:50}") int batchSize) {
         if (batchSize < 1) {
-            throw new IllegalArgumentException("notification batch size must be positive");
+            throw new IllegalArgumentException("알림 일괄 처리 크기는 0보다 커야 합니다.");
         }
         this.processor = processor;
+        this.deliveryStateService = deliveryStateService;
         this.batchSize = batchSize;
         for (NotificationChannel channel : NotificationChannel.values()) {
             AtomicInteger inFlight = new AtomicInteger();
@@ -64,7 +68,7 @@ public class SeatNotificationOutboxWorker {
             if (stopping || Thread.currentThread().isInterrupted()) {
                 return;
             }
-            List<SeatNotificationDeliveryClaim> claims = processor.claimReadyDeliveries(1);
+            List<SeatNotificationDeliveryClaim> claims = deliveryStateService.claimReadyDeliveries(1);
             if (claims.isEmpty()) {
                 return;
             }

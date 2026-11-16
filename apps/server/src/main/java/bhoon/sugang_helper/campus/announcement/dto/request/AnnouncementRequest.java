@@ -20,6 +20,8 @@ public class AnnouncementRequest {
 
     private Boolean published;
 
+    private boolean notify;
+
     public boolean isPinnedOrDefault() {
         return Boolean.TRUE.equals(pinned);
     }

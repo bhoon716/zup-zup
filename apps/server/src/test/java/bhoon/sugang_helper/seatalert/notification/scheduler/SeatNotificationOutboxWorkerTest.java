@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
+import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationDeliveryStateService;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -40,8 +41,15 @@ import org.slf4j.LoggerFactory;
 @ExtendWith(MockitoExtension.class)
 class SeatNotificationOutboxWorkerTest {
 
+    private static final String IN_FLIGHT_METRIC = "notification.outbox.in.flight";
+    private static final String CHANNEL_TAG = "channel";
+    private static final String SETTLEMENT_SECRET = "private-settlement-secret";
+
     @Mock
     private SeatNotificationOutboxProcessor processor;
+
+    @Mock
+    private SeatNotificationDeliveryStateService deliveryStateService;
 
     private SimpleMeterRegistry meterRegistry;
     private SeatNotificationOutboxWorker worker;
@@ -49,7 +57,7 @@ class SeatNotificationOutboxWorkerTest {
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        worker = new SeatNotificationOutboxWorker(processor, meterRegistry, 2);
+        worker = new SeatNotificationOutboxWorker(processor, deliveryStateService, meterRegistry, 2);
     }
 
     @AfterEach
@@ -64,25 +72,27 @@ class SeatNotificationOutboxWorkerTest {
         // given
         SeatNotificationDeliveryClaim first = claim(1L, NotificationChannel.EMAIL);
         SeatNotificationDeliveryClaim second = claim(2L, NotificationChannel.WEB);
-        when(processor.claimReadyDeliveries(1)).thenReturn(List.of(first), List.of(second));
+        when(deliveryStateService.claimReadyDeliveries(1)).thenReturn(List.of(first), List.of(second));
         Thread caller = Thread.currentThread();
 
-        // when & then
         doAnswer(invocation -> {
             assertThat(Thread.currentThread()).isSameAs(caller);
             return null;
         }).when(processor).processDelivery(any());
 
+        // when
         worker.processPendingNotifications();
 
-        var ordered = inOrder(processor);
+        // then
+        var ordered = inOrder(processor, deliveryStateService);
         ordered.verify(processor).materializePendingOutboxes();
-        ordered.verify(processor).claimReadyDeliveries(1);
+        ordered.verify(deliveryStateService).claimReadyDeliveries(1);
         ordered.verify(processor).processDelivery(first);
-        ordered.verify(processor).claimReadyDeliveries(1);
+        ordered.verify(deliveryStateService).claimReadyDeliveries(1);
         ordered.verify(processor).processDelivery(second);
-        verifyNoMoreInteractions(processor);
-        assertThat(meterRegistry.get("notification.outbox.in.flight").tag("channel", "EMAIL").gauge().value())
+        verify(deliveryStateService, times(2)).claimReadyDeliveries(1);
+        verifyNoMoreInteractions(processor, deliveryStateService);
+        assertThat(meterRegistry.get(IN_FLIGHT_METRIC).tag(CHANNEL_TAG, NotificationChannel.EMAIL.name()).gauge().value())
                 .isZero();
     }
 
@@ -92,22 +102,24 @@ class SeatNotificationOutboxWorkerTest {
         // given
         SeatNotificationDeliveryClaim first = claim(1L, NotificationChannel.EMAIL);
         SeatNotificationDeliveryClaim second = claim(2L, NotificationChannel.WEB);
-        when(processor.claimReadyDeliveries(1)).thenReturn(List.of(first), List.of(second));
-        doThrow(new IllegalStateException("cookie=private-settlement-secret")).when(processor).processDelivery(first);
+        when(deliveryStateService.claimReadyDeliveries(1)).thenReturn(List.of(first), List.of(second));
+        doThrow(new IllegalStateException("cookie=" + SETTLEMENT_SECRET)).when(processor).processDelivery(first);
         Logger logger = (Logger) LoggerFactory.getLogger(SeatNotificationOutboxWorker.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>();
         appender.start();
         logger.addAppender(appender);
 
-        // when & then
         try {
+            // when
             worker.processPendingNotifications();
+
+            // then
             assertThat(appender.list).anySatisfy(event -> {
                 assertThat(event.getFormattedMessage()).contains("발송 작업 처리 실패", "deliveryId=1",
                         "exceptionType=IllegalStateException");
                 assertThat(ThrowableProxyUtil.asString(event.getThrowableProxy()))
                         .contains("oneDeliveryFailureDoesNotSkipTheNextChannelOrLeaveTheGaugeBusy")
-                        .doesNotContain("private-settlement-secret");
+                        .doesNotContain(SETTLEMENT_SECRET);
             });
         } finally {
             logger.detachAppender(appender);
@@ -116,7 +128,7 @@ class SeatNotificationOutboxWorkerTest {
 
         verify(processor).processDelivery(first);
         verify(processor).processDelivery(second);
-        assertThat(meterRegistry.get("notification.outbox.in.flight").tag("channel", "EMAIL").gauge().value())
+        assertThat(meterRegistry.get(IN_FLIGHT_METRIC).tag(CHANNEL_TAG, NotificationChannel.EMAIL.name()).gauge().value())
                 .isZero();
     }
 
@@ -127,9 +139,8 @@ class SeatNotificationOutboxWorkerTest {
         CountDownLatch started = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         SeatNotificationDeliveryClaim first = claim(1L, NotificationChannel.EMAIL);
-        when(processor.claimReadyDeliveries(1)).thenReturn(List.of(first), List.of());
+        when(deliveryStateService.claimReadyDeliveries(1)).thenReturn(List.of(first), List.of());
 
-        // when & then
         doAnswer(invocation -> {
             started.countDown();
             assertThat(release.await(5, TimeUnit.SECONDS)).isTrue();
@@ -137,13 +148,15 @@ class SeatNotificationOutboxWorkerTest {
         }).when(processor).processDelivery(first);
         ExecutorService caller = Executors.newSingleThreadExecutor();
         try {
+            // when
             Future<?> runningPoll = caller.submit(worker::processPendingNotifications);
             assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
 
             worker.processPendingNotifications();
 
+            // then
             verify(processor).materializePendingOutboxes();
-            verify(processor).claimReadyDeliveries(1);
+            verify(deliveryStateService).claimReadyDeliveries(1);
             release.countDown();
             runningPoll.get(5, TimeUnit.SECONDS);
             verify(processor).processDelivery(first);
@@ -158,7 +171,7 @@ class SeatNotificationOutboxWorkerTest {
     void shutdownFinishesTheCurrentDeliveryWithoutClaimingAnotherOne() {
         // given
         SeatNotificationDeliveryClaim first = claim(1L, NotificationChannel.EMAIL);
-        when(processor.claimReadyDeliveries(1)).thenReturn(List.of(first));
+        when(deliveryStateService.claimReadyDeliveries(1)).thenReturn(List.of(first));
         doAnswer(invocation -> {
             worker.shutdown();
             return null;
@@ -170,21 +183,22 @@ class SeatNotificationOutboxWorkerTest {
 
         // then
         verify(processor).materializePendingOutboxes();
-        verify(processor).claimReadyDeliveries(1);
+        verify(deliveryStateService).claimReadyDeliveries(1);
         verify(processor).processDelivery(first);
-        verifyNoMoreInteractions(processor);
+        verifyNoMoreInteractions(processor, deliveryStateService);
     }
 
     @Test
     @DisplayName("종료된 작업자는 선점이나 발송 작업 생성을 하지 않는다")
     void stoppedWorkerDoesNotClaimOrMaterialize() {
-        // when
+        // given
         worker.shutdown();
 
+        // when
         worker.processPendingNotifications();
 
         // then
-        verifyNoInteractions(processor);
+        verifyNoInteractions(processor, deliveryStateService);
     }
 
     @Test
@@ -193,13 +207,17 @@ class SeatNotificationOutboxWorkerTest {
         // given
         doThrow(new IllegalStateException("database unavailable")).doNothing()
                 .when(processor).materializePendingOutboxes();
-        when(processor.claimReadyDeliveries(1)).thenReturn(List.of());
+        when(deliveryStateService.claimReadyDeliveries(1)).thenReturn(List.of());
 
         // when & then
         assertThatThrownBy(worker::processPendingNotifications).isInstanceOf(IllegalStateException.class);
+
+        // when
         worker.processPendingNotifications();
+
+        // then
         verify(processor, times(2)).materializePendingOutboxes();
-        verify(processor).claimReadyDeliveries(1);
+        verify(deliveryStateService).claimReadyDeliveries(1);
     }
 
     @Test
@@ -208,12 +226,12 @@ class SeatNotificationOutboxWorkerTest {
         // given
         Thread.currentThread().interrupt();
 
-        // when & then
         try {
-
+            // when
             worker.processPendingNotifications();
 
-            verify(processor, never()).claimReadyDeliveries(1);
+            // then
+            verify(deliveryStateService, never()).claimReadyDeliveries(1);
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {
             Thread.interrupted();

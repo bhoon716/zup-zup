@@ -19,7 +19,7 @@ public record ReviewResponse(
         LocalDateTime createdAt,
 
         LocalDateTime updatedAt) {
-    public static ReviewResponse of(CourseReview review, Long currentUserId) {
+    public static ReviewResponse from(CourseReview review, Long currentUserId) {
         return new ReviewResponse(
                 review.getId(),
                 review.getCourseKey(),

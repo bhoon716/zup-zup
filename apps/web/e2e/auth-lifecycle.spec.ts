@@ -11,6 +11,8 @@ const user = {
   onboardingCompleted: true,
 };
 
+const emptyInbox = { content: [], number: 0, totalPages: 0, totalElements: 0 };
+
 test.describe.configure({ retries: 0 });
 
 test.beforeEach(async ({ page, baseURL }) => {
@@ -31,6 +33,9 @@ test("authenticated logout sends CSRF and clears the displayed and persisted use
     if (path === "/api/v1/users/me") {
       return route.fulfill({ status: authenticated ? 200 : 401, json: authenticated ? user : { code: "A001" } });
     }
+    if (path === "/api/v1/notifications/inbox" && request.method() === "GET") {
+      return route.fulfill({ json: emptyInbox });
+    }
     if (path === "/api/auth/csrf") { csrfRequests += 1; return route.fulfill({ json: { token: "logout-csrf" } }); }
     if (path === "/api/auth/logout" && request.method() === "POST") {
       logoutRequests += 1;
@@ -43,12 +48,12 @@ test("authenticated logout sends CSRF and clears the displayed and persisted use
   });
   await page.goto("/login");
   const menu = page.getByRole("group", { name: "사용자 메뉴", exact: true });
-  await expect(menu.getByText(`${user.name} 님`, { exact: true })).toBeVisible();
+  await expect(menu.getByRole("link", { name: "설정", exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("auth-storage")!).state.user.id)).toBe(user.id);
   await menu.getByRole("button", { name: "로그아웃", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(menu.getByRole("link", { name: "로그인", exact: true })).toBeVisible();
-  await expect(menu.getByText(`${user.name} 님`, { exact: true })).toHaveCount(0);
+  await expect(menu.getByRole("link", { name: "설정", exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("auth-storage")!).state.user)).toBeNull();
   expect({ csrfRequests, logoutRequests, logoutCsrf }).toEqual({ csrfRequests: 1, logoutRequests: 1, logoutCsrf: "logout-csrf" });
   expect(unexpected).toEqual([]);
@@ -89,6 +94,10 @@ test("session expiry cancels a write waiting for an old CSRF response", async ({
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (path === "/api/v1/users/me") { await route.fulfill({ json: user }); return; }
+    if (path === "/api/v1/notifications/inbox" && request.method() === "GET") {
+      return route.fulfill({ json: emptyInbox });
+    }
+    if (path === "/api/v1/subscriptions") { await route.fulfill({ json: [] }); return; }
     if (path === "/api/v1/users/devices") { await route.fulfill({ json: [] }); return; }
     if (path === "/api/auth/csrf") {
       csrfRequests += 1;
@@ -106,7 +115,7 @@ test("session expiry cancels a write waiting for an old CSRF response", async ({
   try {
     await page.goto("/settings");
     const menu = page.getByRole("group", { name: "사용자 메뉴", exact: true });
-    await expect(menu.getByText(`${user.name} 님`, { exact: true })).toBeVisible();
+    await expect(menu.getByRole("link", { name: "설정", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "알림 테스트", exact: true }).click();
     await csrfRequested;
     expect(notificationRequests).toBe(0);

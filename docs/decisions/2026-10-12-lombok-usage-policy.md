@@ -4,7 +4,7 @@
 - 결정일: 2026-10-12
 - 범위: 백엔드 재설계에서 허용할 Lombok 기능
 - 대체 결정: 없음
-- 관련 자료: [백엔드 재설계 체크리스트](../backend-redesign-checklist.md), [Lombok getter·setter](https://projectlombok.org/features/GetterSetter), [생성자](https://projectlombok.org/features/constructor), [로거](https://projectlombok.org/features/log), [빌더](https://projectlombok.org/features/Builder)
+- 관련 자료: [Lombok getter·setter](https://projectlombok.org/features/GetterSetter), [생성자](https://projectlombok.org/features/constructor), [로거](https://projectlombok.org/features/log), [빌더](https://projectlombok.org/features/Builder)
 
 ## 문제와 선택지
 

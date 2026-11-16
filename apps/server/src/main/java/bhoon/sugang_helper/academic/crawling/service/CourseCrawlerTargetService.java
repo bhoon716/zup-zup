@@ -30,12 +30,6 @@ public class CourseCrawlerTargetService implements CrawlerTargets, TrackedSemest
     @Value("${jbnu.crawler.default-semester}")
     private String defaultSemester;
 
-    @Transactional(readOnly = true)
-    public AdminCrawlTargetResponse getCurrentTarget() {
-        CrawlerSetting setting = resolveCurrentSetting();
-        return toResponse(setting);
-    }
-
     public CrawlerAdminSnapshot findCurrentAdminSnapshot() {
         CrawlerSetting setting = resolveCurrentSetting();
         return new CrawlerAdminSnapshot(setting.getTargetYear(), setting.getTargetSemester());
@@ -44,9 +38,7 @@ public class CourseCrawlerTargetService implements CrawlerTargets, TrackedSemest
     @Transactional(readOnly = true)
     public SearchDefaultSemesterResponse getSearchDefaultSemester() {
         CrawlerSetting setting = resolveCurrentSetting();
-        return SearchDefaultSemesterResponse.builder()
-                .semester(setting.getTargetSemester())
-                .build();
+        return SearchDefaultSemesterResponse.of(setting.getTargetSemester());
     }
 
     @Transactional
@@ -54,7 +46,7 @@ public class CourseCrawlerTargetService implements CrawlerTargets, TrackedSemest
         CrawlTargetInfo target = normalizeTarget(year, semester);
         CrawlerSetting setting = getOrCreateSetting();
         setting.updateTarget(target.year(), target.semester().getCode());
-        return toResponse(setting);
+        return AdminCrawlTargetResponse.from(setting);
     }
 
     @Transactional(readOnly = true)
@@ -102,28 +94,18 @@ public class CourseCrawlerTargetService implements CrawlerTargets, TrackedSemest
 
     private CrawlerSetting resolveCurrentSetting() {
         return crawlerSettingRepository.findTopByOrderByIdAsc()
-                .orElseGet(() -> CrawlerSetting.builder()
-                        .targetYear(defaultYear)
-                        .targetSemester(defaultSemester)
-                        .build());
+                .orElseGet(this::defaultSetting);
     }
 
     private CrawlerSetting getOrCreateSetting() {
         return crawlerSettingRepository.findTopByOrderByIdAsc()
-                .orElseGet(() -> {
-                    CrawlerSetting defaultSetting = CrawlerSetting.builder()
-                            .targetYear(defaultYear)
-                            .targetSemester(defaultSemester)
-                            .build();
-                    return crawlerSettingRepository.save(defaultSetting);
-                });
+                .orElseGet(() -> crawlerSettingRepository.save(defaultSetting()));
     }
 
-    private AdminCrawlTargetResponse toResponse(CrawlerSetting setting) {
-        return AdminCrawlTargetResponse.builder()
-                .year(setting.getTargetYear())
-                .semester(setting.getTargetSemester())
+    private CrawlerSetting defaultSetting() {
+        return CrawlerSetting.builder()
+                .targetYear(defaultYear)
+                .targetSemester(defaultSemester)
                 .build();
     }
-
 }

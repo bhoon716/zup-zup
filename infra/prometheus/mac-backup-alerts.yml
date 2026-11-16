@@ -1,0 +1,18 @@
+groups:
+  - name: mac-backup
+    rules:
+      - alert: MacBackupNotReceived
+        # UTC 일요일 19:00(월요일 04:00 KST) 백업에 24시간의 도착 여유를 준다.
+        expr: |
+          (
+            max(sugang_mac_backup_snapshot_timestamp_seconds{job="host-jobs"})
+            < scalar(floor(vector((time() - 414000) / 604800))) * 604800 + 327600
+          )
+          or max(absent(sugang_mac_backup_snapshot_timestamp_seconds{job="host-jobs"}))
+        for: 5m
+        labels:
+          severity: warning
+          service: offhost-backup
+        annotations:
+          summary: 맥북에 최신 운영 백업이 도착하지 않았습니다
+          description: 월요일 백업의 맥북 저장과 체크섬 검증을 확인하지 못했습니다. 맥북의 백업 작업과 SSH 연결을 확인하세요.

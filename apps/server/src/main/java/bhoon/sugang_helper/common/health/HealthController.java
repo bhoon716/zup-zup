@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class HealthController {
 
+    private static final String EVENT_KEY = "event";
+
     private static final String READINESS_GROUP = "readiness";
 
     private final BuildProperties buildProperties;
@@ -28,18 +30,30 @@ public class HealthController {
         HealthComponent readiness = healthEndpoint.healthForPath(READINESS_GROUP);
         boolean isReady = readiness != null && Status.UP.equals(readiness.getStatus());
         String status = isReady ? Status.UP.getCode() : Status.DOWN.getCode();
-        HealthCheckResponse response = new HealthCheckResponse(
+        HealthCheckResponse response = HealthCheckResponse.of(
                 status,
                 buildProperties.getVersion(),
                 buildProperties.getTime(),
                 LocalDateTime.now());
         if (isReady) {
-            log.debug("상태 확인 정상.");
+            logReady();
         } else {
             String readinessStatus = readiness == null ? "UNKNOWN" : readiness.getStatus().getCode();
-            log.warn("상태 확인 실패. readinessStatus={}", readinessStatus);
+            logNotReady(readinessStatus);
         }
         HttpStatus httpStatus = isReady ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE;
         return ResponseEntity.status(httpStatus).body(response);
     }
+
+    private void logReady() {
+        log.atDebug().addKeyValue(EVENT_KEY, "health_ready")
+                .log("상태 확인 정상.");
+    }
+
+    private void logNotReady(String readinessStatus) {
+        log.atWarn().addKeyValue(EVENT_KEY, "health_not_ready")
+                .addKeyValue("readinessStatus", readinessStatus)
+                .log("상태 확인 실패.");
+    }
+
 }

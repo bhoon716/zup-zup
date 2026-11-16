@@ -15,7 +15,7 @@ describe("WebPushSection Component", () => {
       },
     ],
     loadingWebPush: false,
-    watch: vi.fn().mockReturnValue(true),
+    webPushEnabled: true,
     setValue: vi.fn(),
     handleRegisterDevice: vi.fn(),
     handleDeleteDevice: vi.fn(),
@@ -25,7 +25,7 @@ describe("WebPushSection Component", () => {
     render(<WebPushSection {...defaultProps} />);
 
     expect(screen.getByText("웹 푸시 알림")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("기기 별칭 (예: 내 노트북)")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "기기 별칭" })).toBeInTheDocument();
     expect(screen.getByText("현재 기기 등록")).toBeInTheDocument();
     expect(screen.getByText("내 크롬 브라우저")).toBeInTheDocument();
   });
@@ -45,18 +45,28 @@ describe("WebPushSection Component", () => {
     );
 
     expect(screen.queryByText("THIS", { exact: true })).not.toBeInTheDocument();
-    expect(screen.getByText("내 계정에 등록된 기기")).toBeInTheDocument();
-    expect(screen.getByText("같은 계정에 등록한 다른 기기도 함께 표시됩니다.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "등록된 기기" })).toBeInTheDocument();
     for (const alias of aliases) {
       expect(screen.getByText(alias, { exact: true })).toBeInTheDocument();
     }
   });
 
+  it("빈 별칭으로 등록하면 입력란을 안내하고 등록을 호출하지 않는다", () => {
+    const handleRegisterDevice = vi.fn();
+    render(<WebPushSection {...defaultProps} deviceAlias="   " handleRegisterDevice={handleRegisterDevice} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "현재 기기 등록" }));
+
+    expect(screen.getByRole("textbox", { name: "기기 별칭" })).toHaveAccessibleDescription("기기 별칭을 입력해 주세요.");
+    expect(screen.getByRole("textbox", { name: "기기 별칭" })).toHaveFocus();
+    expect(handleRegisterDevice).not.toHaveBeenCalled();
+  });
 });
 
 describe("SettingsActionBar Component", () => {
   const defaultProps = {
     isSubmitting: false,
+    isDirty: true,
     onCancel: vi.fn(),
   };
 
@@ -64,7 +74,7 @@ describe("SettingsActionBar Component", () => {
     render(<SettingsActionBar {...defaultProps} />);
 
     expect(screen.getByText("변경 취소")).toBeInTheDocument();
-    expect(screen.getByText("설정 저장하기")).toBeInTheDocument();
+    expect(screen.getByText("변경 저장")).toBeInTheDocument();
   });
 
   it("renders test notification button when handler is provided and handles clicks", () => {
@@ -76,10 +86,8 @@ describe("SettingsActionBar Component", () => {
       />
     );
 
-    const testBtn = screen.getByText("알림 테스트");
-    const separator = screen.getByText("|");
-    expect(testBtn).toBeInTheDocument();
-    expect(separator).toBeInTheDocument();
+    const testBtn = screen.getByRole("button", { name: "알림 테스트" });
+    expect(testBtn).toHaveAccessibleDescription("저장된 설정으로 테스트합니다.");
     fireEvent.click(testBtn);
     expect(handleSendTestNotification).toHaveBeenCalledTimes(1);
   });
@@ -94,6 +102,6 @@ describe("SettingsActionBar Component", () => {
       />
     );
 
-    expect(screen.getByText("테스트 쿨타임 15s")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "다시 테스트까지 15초" })).toBeDisabled();
   });
 });

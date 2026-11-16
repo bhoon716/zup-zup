@@ -131,7 +131,7 @@ API 경로·응답 형태·채널 정책·여석 발생 조건·기존 구독 �
 
 - `SeatNotificationDelivery`와 migration V16의 `(outbox_id, user_id, channel)` unique 제약이 같은 delivery 생성을 막는다. V19에는 idempotency_key 고유 제약도 있다.
 - `SeatNotificationDeliveryRepository.findReadyForUpdate`는 비관적 쓰기 락으로 due PENDING 또는 lease가 만료된 PROCESSING을 선택한다. `claim()`은 새 UUID claimToken과 lockedUntil을 기록한다.
-- `SeatNotificationDeliverySettlementService`는 같은 claimToken인지 다시 검사해 stale worker 정산을 거부한다. SENT·retry/backoff·DLQ 전이와 관리자 replay의 기존 락을 유지했다.
+- `SeatNotificationDeliveryStateService`는 같은 claimToken인지 다시 검사해 stale worker 정산을 거부한다. SENT·retry/backoff·DLQ 전이와 관리자 replay의 기존 락을 유지했다.
 - 재시도는 delivery에 저장된 같은 UUID idempotencyKey를 재사용한다. `NotificationDeliveryIdempotencyKey.providerKey`는 SHA-256 → URL-safe Base64 앞 22자로 변환한다. Discord nonce/enforce_nonce, WebPush topic/payload 및 service worker notification tag, email X-Idempotency-Key 전달이 유지된다. 이 값 전달만으로 모든 제공자의 exactly-once를 보장하지 않는다.
 - 실제 outbox 경로의 중복 방지는 위 DB/claim 장치다. `NotificationService.handleSeatOpenedEvent`와 `ALERT:<courseKey>` Redis 경로는 runtime 호출·이벤트 애너테이션이 없고 테스트만 호출하던 옛 경로여서 제거했다. 실제 outbox 중복 방지와 사용자 테스트의 `ALERT:USER_TEST:` 10초 쿨타임은 유지했다.
 - 외부 발송 성공 후 SENT 정산 커밋 전 장애가 나면 재시도가 다시 발송할 수 있다. 이 기존 한계는 순차 실행만으로 사라지지 않는다. 이미 materialize된 delivery에 구독 취소를 새로 소급 적용하는 정책 변경도 하지 않았다.
@@ -180,15 +180,6 @@ API 경로·응답 형태·채널 정책·여석 발생 조건·기존 구독 �
 | course guide·timetable grid | 같은 fixture의 초기 표시 assertion을 닫기/재노출 또는 실제 블록 표시 흐름으로 통합 |
 
 서버는 4개 중복 테스트 클래스를 통합해 8건을 제거하고 고유 검증 1건을 옮겼다. 이어 미사용 알림 경로 4건을 제거하고 현재 사용자 실패 계약 1건을 추가해 **525→515건**이다. 현재 outbox 경로의 네 채널 검증은 기존 테스트에 통합했다. 웹은 mock 전달·장식 2건 삭제와 중복 3건 통합으로 **283→278건**, 테스트 파일은 **80→79개**다. 수 자체를 줄이기 위해 다른 기능의 보호를 제거하지 않았다. SubscriptionServiceQueryCountTest는 실제 H2/Hibernate SQL 3회로 N+1을 검증하므로 유지했다. MdcTaskDecoratorTest는 같은 worker 재사용 때의 context 누수를 별도로 검증하므로 유지했다. service worker VM 검사와 파일·첨부·권한·알림 취소·재시도·동시성 검증도 유지했다.
-
-## 기존 원본 미커밋 변경의 선택 보존
-
-추가 권한을 받은 뒤 원본 상태와 7개 파일을 다시 확인했다. 수집 파서·두 회귀 테스트의 기능 수정은 이미 포함돼 있었으므로 다시 중복 적용하지 않았다. 초기 관측 뒤 원본 parser 설명 주석 1줄이 제거된 추가 변경도 확인하고 반영했으며, 원본에는 읽기만 수행했다.
-
-- AGENTS.md의 작업 흐름·조기 반환·검증/기록 지침은 현재 저장소 개발 기준이므로 보존했다.
-- course-collection-policy의 2026-10-23 추가 결정과 course-collection-seasonal-diagnostics의 재현·검증 근거는 포함한 수집 수정의 근거이므로 보존했다. 문서의 10월 17일·23일 운영 기록은 이전 작업 이력이며 이번 작업에서 운영 접속·배포·발송을 한 기록이 아니다.
-- backend-redesign-checklist의 10월 17일 운영 준비·조사 메모는 현재 코드 수정이 아니고 최신 진단 기록에 후속 결과가 있으므로 이번 단순화 브랜치에는 복사하지 않았다. 원본의 해당 변경은 그대로 남겨 두었다.
-- 중단된 backend-rewrite 브랜치의 코드와 민감한 설정·자격 증명은 가져오지 않았다. 원본에 reset/clean/stash를 실행하지 않았다.
 
 ## 단순화 통합 검증 (`29dfb568f`)
 
@@ -256,7 +247,6 @@ Java 21 `./gradlew --offline clean check bootJar`: **118개 클래스, 523건 �
 - `docs/current-architecture.html`은 코드 기준 `16234ac48`의 독립 파일이다. 전체 구조·수집/알림·사용자 요청·경계/검증 4개 탭, 트랜잭션·중복 방지·실패·재시도·시간 제한과 남은 한계를 실제 코드/테스트 링크로 연결한다. HTML 추가 뒤 production 코드는 바뀌지 않았다.
 - Chromium에서 file://로 열어 1440·390·320px 각각 4개 탭을 확인했다. 모든 화면에서 document.scrollWidth가 viewport와 같았고 Home/End/ArrowRight 탭 이동·접기/펼치기·실제 Java 파일 링크 이동을 통과했다. 소스 링크 73개 모두 실존, 외부 HTTP 요청·JS 오류·깨진 링크 0이었다. 데스크톱·모바일 스크린샷을 시각적으로 확인해 글자·카드 잘림이 없음을 확인했다.
 - 증거는 작업 디렉터리의 architecture-html-verification.json과 architecture-{overview,delivery,requests,boundaries}-{desktop,mobile}.png 8개다. HTML SHA-256은 0a09a340f7f8510ed18a1a59c47e3efe8da6bc2374d9e2d9a63c3abafbc5c77c다.
-- 원본 dev에는 기존 unstaged 6개와 untracked 진단 문서 1개가 그대로 남아 있다. 필요한 수집 코드·테스트·지침·정책/진단은 단순화 브랜치에 이미 커밋돼 있으며, 원본의 미커밋 표시는 원본을 보존했기 때문이다. 과거 backend-redesign-checklist 메모는 의도적으로 복사하지 않았다. HEAD·상태·7개 파일 SHA-256 보존도 재확인했다.
 - 원격 push·PR·병합·공개 게시·배포·실제 제공자/단말 발송·운영 DB/권한 변경은 수행하지 않았다. CIRCUIT_OPEN attempts 정책과 HTTP/scheduler 설정의 후속 변경은 승인된 범위가 아니므로 남은 위험을 기록하는 데서 마쳤다.
 
 
@@ -268,9 +258,7 @@ Java 21 `./gradlew --offline clean check bootJar`: **118개 클래스, 523건 �
 
 1440·390·320px의 5개 탭에서 페이지 가로 잘림 0, 네 도식의 모바일 키보드 가로 스크롤을 확인했다. SVG 경계 밖 텍스트·잘못된 marker·중복 ID·깨진 링크·외부 요청·JS 오류 0, 소스 링크 77개 실존이었다. 실제 PNG를 시각 검토하여 떠 있는 연결선, 선/박스에 가린 라벨, loop 안으로 읽히던 이력 저장 표현을 수정한 후 다시 export·검증했다. 증거는 작업 디렉터리의 architecture-diagrams-verification.json과 architecture-diagrams-*.png preview에 있다. 최종 HTML SHA-256은 75e8f550fa02ffe7f41c99b215fa891ab8fe3861bd09184de206dae09bc9d0f0이다.
 
-Library HTML은 같은 identity의 버전 1로 교체했고 PNG 네 개는 각각 새 파일 버전 0으로 저장했다. 공개 공유 권한은 만들지 않았다. 일괄 준비 기능은 런타임 도구 발견 단계에서 제공되지 않아 세션 생성/파일 전송이 시작되지 않았음을 확인한 뒤, 지원되는 개별 replace/create 경로로 순서대로 저장했다. HTML은 기존 버전 0 조건을 유지해 교체했고 반환된 identity/version 메타데이터를 각 원본 파일에 보존했다.
-
-도식 변경 커밋은 6f6aafa60이며 문서·이미지뿐이다. 앱 코드·설정·정책은 바꾸지 않아 서버 테스트를 반복 실행하지 않았다(직전 코드 검증 523건 통과). 최종 상태 확인 중 원본 dev는 HEAD aade57db가 같지만 이전 미커밋 7개가 사라져 clean으로 바뀐 것을 관측했다. 이 다이어그램 작업에서는 원본 파일 수정·reset·clean·stash를 실행하지 않았으며, 그 상태 변화 경위는 확인하지 못했다. 필요한 기존 수집 코드·테스트·지침·정책/진단은 단순화 브랜치에 이미 포함돼 있다. 현재 원본 상태를 임의로 복원하거나 바꾸지 않았다.
+도식 변경 커밋은 `6f6aafa60`이다.
 
 
 ## 후속 선택 구현: 리뷰 캐시 보존과 미사용 기기 훅 정리
@@ -337,7 +325,7 @@ CommonResponse와 프론트 공통 성공 타입을 제거하고 26개 컨트롤
 
 모든 페이지 API는 요청한 page와 기존 sort를 유지하며 항상 30건을 사용한다. 원래 Page/Slice 응답과 offset 상한을 보존하고 실제 고정 크기로 offset을 계산한다. size=1/100/음수/0/잘못된 문자열과 다음 페이지를 요청하는 계약 테스트를 보강했다. 웹의 size 인수와 cache key 요소를 없앴으며 Kakao 외부 검색·outbox batch·대시보드 내부 제한 조회는 변경하지 않았다. 기존 API mock 호출 중 중복 2건은 page/sort/filter/metadata를 함께 확인하는 새 계약 테스트로 통합했다.
 
-단일 구현 전달 인터페이스 21개를 제거하고 구체 서비스 19개를 직접 사용한다. 서비스 메서드·업무 본문·거래·검증은 유지했다. NotificationSender 네 구현과 외부 HTTP 경계 두 인터페이스, Spring Data 및 프레임워크 계약은 보존했다. 목록은 internal-interface-simplification.md에 있다.
+단일 구현 전달 인터페이스 21개를 제거하고 구체 서비스 19개를 직접 사용한다. 서비스 메서드·업무 본문·거래·검증은 유지했다. NotificationSender 네 구현과 외부 HTTP 경계 두 인터페이스, Spring Data 및 프레임워크 계약은 보존했다. 변경은 `b7280ef8f`에서 확인할 수 있다.
 
 서버 집중 49건이 통과했고 전체 검사 첫 시도는 기존 공지 테스트의 size2 기대값과 미사용 import1건으로 실패했다. 기존 정렬/고정 공지 assertion을 유지하며 기대값을 새 정책30으로 바꾸고 import를 정리한 뒤 전체 123 suite·572건이 실패/오류/skip 없이 통과했다. PMD·Checkstyle main/test 위반0, check bootJar 성공. 웹 전체79파일·295건, 타입·lint(경고0)·production build, Playwright5건이 retries=0으로 통과(7.9초). 새 브라우저 검증은 가짜 API의 일정 생성·선택·수정·삭제·복원이며 운영 API/제공자를 호출하지 않는다. 로그는 TASK/schedule-page-*에 있다.
 
@@ -346,7 +334,7 @@ CommonResponse와 프론트 공통 성공 타입을 제거하고 26개 컨트롤
 
 ## 주석 정리와 최종 MySQL 검증
 
-기능 변경과 별도로 소스273개 파일에서 설명/Javadoc/죽은 코드 주석1,423개를 제거했다. 과목 필드·외부 연동 매핑36개, 린터 지시8개, 빈 블록 lint 의미6개, shebang20개와 heredoc 내부1개를 보존했다. 문자열·URL·정규식·템플릿과 설정값은 언어별 토큰/AST/파싱 동등성으로 검증했다. 변경 계획 SHA273개 일치·재스캔 changed0/skip0·경계 자체검사16개·diff 검사 통과. 예외의 실제 위치와 이유는 comment-cleanup.md에 있다. 문서·생성물·vendor·lockfile·기존 migration은 제외했다.
+기능 변경과 별도로 소스273개 파일에서 설명/Javadoc/죽은 코드 주석1,423개를 제거했다. 과목 필드·외부 연동 매핑36개, 린터 지시8개, 빈 블록 lint 의미6개, shebang20개와 heredoc 내부1개를 보존했다. 문자열·URL·정규식·템플릿과 설정값은 언어별 토큰/AST/파싱 동등성으로 검증했다. 변경 계획 SHA273개 일치·재스캔 changed0/skip0·경계 자체검사16개·diff 검사 통과. 문서·생성물·vendor·lockfile·기존 migration은 제외했다.
 
 최종 clean check migrationTest bootJar의 일반572건·정적검사는 통과했으나 첫 MySQL 업그레이드 검증은 정상 래퍼 제거 때 실수로 바뀐 감사 JSON 검사 경로3곳에서 실패했다. 감사 업무 metadata.data는 유지돼야 하므로 원래 SQL 경로를 복원했고 기존 기대값(PENDING/COMPLETED/already_safe)을 약화하지 않았다. 과거 migration SQL은 바꾸지 않았다. 실제 MySQL fixture에 기존 일정·D-day 행을 추가해 V29 후 원본·기본선택false·deletedAt null·255자 확장도 확인했다. 재실행 check migrationTest bootJar가58초에 성공했고 일반572건+MySQL2건 실패/오류/skip0, PMD·Checkstyle main/test0이다. 테스트 보정은 bc785e618, 주석 정리는 0bb2bf766 별도 커밋이다.
 
@@ -357,7 +345,6 @@ CommonResponse와 프론트 공통 성공 타입을 제거하고 26개 컨트롤
 HTML은 코드 기준0bb2bf766으로 업데이트하고 현재 DTO/응답·페이지30·일정/API/삭제복원 및 실제 소스링크를 맞췄다. 기존 알림 흐름/두 시퀀스는 동작이 바뀌지 않아 원본을 보존했다. 추가 삭제·설정 정리는 simplification-review.md의 읽기 전용 후보로 남겼다.
 
 
-최종 시각 확인은 1440/390/320px의 5탭 모두 overflow0, 소스링크88개 정상, JS 오류·외부 요청0, SVG 글자 경계·marker 오류0, 키보드 탭·모바일 pan 정상이다. HTML과 current-components.png만 갱신됐고 기존 알림 흐름·두 시퀀스 PNG는 동일하다. Library 기존 파일 교체는 자동 승인 검토에서 payload/Library destination에 대한 명시적 사용자 승인 확인 부족으로 실행 전에 거부됐다. 전송은 시작하지 않았고 다른 경로로 우회하지 않았다. 로컬 산출물은 완성돼 있으며 Library 저장은 승인 대기다.
 
 
 ## 인증·인가·JWT 후속 단순화 완료

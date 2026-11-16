@@ -47,7 +47,7 @@ class JbnuCourseHttpResponseTest {
         // when & then
         assertThatThrownBy(() -> client.readResponse(response))
                 .isInstanceOf(IOException.class)
-                .hasMessageContaining("maximum size");
+                .hasMessageContaining("최대 크기");
     }
 
     @Test
@@ -76,7 +76,7 @@ class JbnuCourseHttpResponseTest {
         // then
         assertThatThrownBy(() -> client.readResponse(response))
                 .isInstanceOf(IOException.class)
-                .hasMessageContaining("maximum size");
+                .hasMessageContaining("최대 크기");
     }
 
     @Test

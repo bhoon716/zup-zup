@@ -4,7 +4,7 @@
 - 결정일: 2026-10-07
 - 범위: 문의·건의·버그 제보와 답변의 공개 범위
 - 대체 결정: 없음
-- 관련 자료: [FeedbackController](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/presentation/FeedbackController.java), [AdminFeedbackController](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/presentation/AdminFeedbackController.java), [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/application/FeedbackService.java), [탈퇴 시 문의·답변·첨부 보존 정책](2026-10-04-authentication-policy.md)
+- 관련 자료: [FeedbackController](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/controller/FeedbackController.java), [AdminFeedbackController](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/controller/AdminFeedbackController.java), [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/service/FeedbackService.java), [탈퇴 시 문의·답변·첨부 보존 정책](2026-10-04-authentication-policy.md)
 
 ## 문제와 목표
 
@@ -64,7 +64,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-07
 - 범위: 문의 등록 중 본문·첨부 저장 실패의 사용자 결과
-- 관련 자료: [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/application/FeedbackService.java), [LocalFileUploadService](../../apps/server/src/main/java/bhoon/sugang_helper/common/util/LocalFileUploadService.java)
+- 관련 자료: [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/service/FeedbackService.java), [LocalFileUploadService](../../apps/server/src/main/java/bhoon/sugang_helper/common/util/LocalFileUploadService.java)
 
 ### 비교와 결정
 
@@ -91,7 +91,7 @@
 - 결정일: 2026-10-07
 - 범위: 문의 이미지 업로드 경로와 파일·DB 저장 순서
 - 대체 범위: 앞서 미정으로 남긴 파일 저장과 문의 DB 트랜잭션의 순서
-- 관련 자료: [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/application/FeedbackService.java), [LocalFileUploadService](../../apps/server/src/main/java/bhoon/sugang_helper/common/util/LocalFileUploadService.java)
+- 관련 자료: [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/service/FeedbackService.java), [LocalFileUploadService](../../apps/server/src/main/java/bhoon/sugang_helper/common/util/LocalFileUploadService.java)
 
 ### 비교와 선택
 
@@ -120,7 +120,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-07
 - 범위: 실패한 문의 등록에서 생성된 미연결 파일의 정리·복구
-- 관련 자료: [LocalFileUploadService](../../apps/server/src/main/java/bhoon/sugang_helper/common/util/LocalFileUploadService.java), [FeedbackAttachmentCleanupScheduler](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/application/FeedbackAttachmentCleanupScheduler.java)
+- 관련 자료: [LocalFileUploadService](../../apps/server/src/main/java/bhoon/sugang_helper/common/util/LocalFileUploadService.java), [FeedbackAttachmentCleanupScheduler](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/scheduler/FeedbackAttachmentCleanupScheduler.java)
 
 ### 비교와 결정
 
@@ -382,7 +382,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-07
 - 범위: 답변 등록에 따른 문의 상태 변경 여부
-- 관련 자료: [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/application/FeedbackService.java)
+- 관련 자료: [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/service/FeedbackService.java)
 
 ### 비교와 결정
 
@@ -406,7 +406,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-07
 - 범위: 문의·건의의 처리 상태 종류
-- 관련 자료: [FeedbackStatus](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/domain/FeedbackStatus.java)
+- 관련 자료: [FeedbackStatus](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/enums/FeedbackStatus.java)
 
 ### 비교와 결정
 
@@ -430,7 +430,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-07
 - 범위: 로그인한 사용자의 문의·건의 등록 빈도 제한 기준
-- 관련 자료: [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/application/FeedbackService.java)
+- 관련 자료: [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/service/FeedbackService.java)
 
 ### 비교와 결정
 
@@ -493,7 +493,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-08
 - 범위: 문의·건의 등록 한 건의 이미지 첨부 개수와 원본 총용량
-- 관련 자료: [LocalFileUploadService](../../apps/server/src/main/java/bhoon/sugang_helper/common/util/LocalFileUploadService.java), [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/application/FeedbackService.java)
+- 관련 자료: [LocalFileUploadService](../../apps/server/src/main/java/bhoon/sugang_helper/common/util/LocalFileUploadService.java), [FeedbackService](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/service/FeedbackService.java)
 
 ### 비교와 결정
 
@@ -1025,7 +1025,7 @@
 - 결정일: 2026-10-08
 - 범위: 운영자가 등록하는 문의 답변의 이미지 첨부
 - 확정 범위: 앞서 미정으로 남긴 운영자 답변의 첨부 허용 여부
-- 관련 자료: [FeedbackReplyCreateRequest](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/application/FeedbackReplyCreateRequest.java)
+- 관련 자료: [FeedbackReplyCreateRequest](../../apps/server/src/main/java/bhoon/sugang_helper/support/feedback/dto/request/FeedbackReplyCreateRequest.java)
 
 ### 비교와 결정
 

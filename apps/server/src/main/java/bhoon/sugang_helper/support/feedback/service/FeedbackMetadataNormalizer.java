@@ -14,10 +14,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class FeedbackMetadataNormalizer {
 
+    private static final String LANGUAGE_FIELD = "language";
+    private static final String OS_FIELD = "os";
+
     private static final int MAX_METADATA_BYTES = 512;
     private static final int MAX_OS_LENGTH = 128;
     private static final int MAX_LANGUAGE_LENGTH = 35;
-    private static final Set<String> ALLOWED_FIELDS = Set.of("os", "language");
+    private static final Set<String> ALLOWED_FIELDS = Set.of(OS_FIELD, LANGUAGE_FIELD);
 
     private final ObjectMapper objectMapper;
 
@@ -38,29 +41,34 @@ public class FeedbackMetadataNormalizer {
             throw invalidMetadata();
         }
 
-        ObjectNode object = (ObjectNode) parsed;
-        object.fieldNames().forEachRemaining(field -> {
-            if (!ALLOWED_FIELDS.contains(field)) {
-                throw invalidMetadata();
-            }
-        });
-
-        String os = readOptionalText(object, "os", MAX_OS_LENGTH);
-        String language = readOptionalText(object, "language", MAX_LANGUAGE_LENGTH);
-
-        ObjectNode normalized = objectMapper.createObjectNode();
-        if (os != null) {
-            normalized.put("os", os);
-        }
-        if (language != null) {
-            normalized.put("language", language);
-        }
-
-        String serialized = normalized.toString();
+        String serialized = normalizeFields((ObjectNode) parsed).toString();
         if (exceedsMaximumBytes(serialized)) {
             throw invalidMetadata();
         }
         return serialized;
+    }
+
+    private ObjectNode normalizeFields(ObjectNode object) {
+        object.fieldNames().forEachRemaining(this::validateAllowedField);
+
+        String os = readOptionalText(object, OS_FIELD, MAX_OS_LENGTH);
+        String language = readOptionalText(object, LANGUAGE_FIELD, MAX_LANGUAGE_LENGTH);
+
+        ObjectNode normalized = objectMapper.createObjectNode();
+        if (os != null) {
+            normalized.put(OS_FIELD, os);
+        }
+        if (language != null) {
+            normalized.put(LANGUAGE_FIELD, language);
+        }
+
+        return normalized;
+    }
+
+    private void validateAllowedField(String field) {
+        if (!ALLOWED_FIELDS.contains(field)) {
+            throw invalidMetadata();
+        }
     }
 
     private JsonNode parse(String metadata) {

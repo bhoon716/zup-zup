@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import AdminFeedbackPage from "./page";
@@ -45,11 +46,13 @@ describe("AdminFeedbackPage attachment preview", () => {
   const revokeObjectUrl = vi.fn();
   const originalCreateObjectUrl = URL.createObjectURL;
   const originalRevokeObjectUrl = URL.revokeObjectURL;
+  const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    HTMLElement.prototype.scrollIntoView = vi.fn();
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
       value: createObjectUrl,
@@ -82,7 +85,8 @@ describe("AdminFeedbackPage attachment preview", () => {
           deletedAt: null,
           authorLabel: "사용자",
         }],
-        totalElements: 1,
+        totalElements: 2,
+        totalPages: 3,
       },
       isLoading: false,
     });
@@ -111,6 +115,7 @@ describe("AdminFeedbackPage attachment preview", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
       value: originalCreateObjectUrl,
@@ -225,5 +230,48 @@ describe("AdminFeedbackPage attachment preview", () => {
 
     expect(screen.getByPlaceholderText("답변을 입력하세요..."))
       .toHaveClass("text-base", "md:text-[13px]");
+  });
+
+  it("페이지 번호로 이동한 뒤 검색하면 첫 페이지로 돌아가고 선택을 해제한다", async () => {
+    const user = userEvent.setup();
+    render(<AdminFeedbackPage />);
+
+    const pager = within(screen.getByRole("navigation", { name: "문의 목록 페이지" }));
+    const firstPage = pager.getByRole("button", { name: "1 페이지" });
+    const thirdPage = pager.getByRole("button", { name: "3 페이지" });
+    expect(firstPage).toHaveAttribute("aria-current", "page");
+    expect(pager.getByRole("button", { name: "2 페이지" })).toBeEnabled();
+
+    await user.click(thirdPage);
+    expect(thirdPage).toHaveAttribute("aria-current", "page");
+    expect(pager.getByRole("button", { name: "다음 페이지" })).toBeDisabled();
+    expect(screen.getByRole("heading", { name: /문의 목록/ })).toHaveFocus();
+    await user.click(screen.getByText("이미지 첨부 문의"));
+    const keyword = screen.getByRole("searchbox", { name: "문의 검색어" });
+    await user.type(keyword, "  학점  ");
+    expect(mockUseFeedbacksForAdmin).toHaveBeenLastCalledWith(2, "ACTIVE", "PENDING_FIRST", undefined);
+
+    await user.keyboard("{Enter}");
+    expect(mockUseFeedbacksForAdmin).toHaveBeenLastCalledWith(0, "ACTIVE", "PENDING_FIRST", {
+      keyword: "학점",
+      searchType: "TITLE_CONTENT",
+    });
+    expect(screen.queryByRole("heading", { name: "이미지 첨부 문의" })).not.toBeInTheDocument();
+    expect(firstPage).toHaveAttribute("aria-current", "page");
+
+    const scope = screen.getByRole("combobox", { name: "검색 범위" });
+    scope.focus();
+    await user.keyboard("{ArrowDown}");
+    await screen.findByRole("option", { name: "제목 + 본문 + 답변" });
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(mockUseFeedbacksForAdmin).toHaveBeenLastCalledWith(0, "ACTIVE", "PENDING_FIRST", {
+      keyword: "학점",
+      searchType: "TITLE_CONTENT_REPLY",
+    });
+
+    await user.click(screen.getByRole("button", { name: "초기화" }));
+    expect(keyword).toHaveValue("");
+    expect(keyword).toHaveFocus();
+    expect(mockUseFeedbacksForAdmin).toHaveBeenLastCalledWith(0, "ACTIVE", "PENDING_FIRST", undefined);
   });
 });

@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Trash2, MoreVertical, Crown } from 'lucide-react';
-import { 
-  TimetableListResponse
-} from '@/shared/types/api';
+import type { TimetableListResponse } from '@/shared/types/api';
 import { Button } from '@/shared/ui/button';
 import {
   DropdownMenu,
@@ -59,37 +57,43 @@ export function TimetableSelect({
   });
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+    <div className="-m-0.5 flex items-center gap-2 overflow-x-auto p-0.5 scrollbar-none">
       {sortedTimetables.map((t) => (
         <div 
           key={t.id} 
           className={cn(
-            "flex items-center gap-0 rounded-xl transition-all border shrink-0 overflow-hidden",
+            "flex shrink-0 items-center overflow-hidden rounded-md border transition-colors",
             t.id === currentId 
-              ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/10" 
-              : "bg-background text-foreground border-border hover:border-primary/30 hover:bg-accent/5"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border bg-background text-foreground hover:border-primary/30"
           )}
         >
           <button
+            type="button"
+            aria-pressed={t.id === currentId}
             onClick={() => onSelect(t.id)}
-            className="flex items-center gap-2 pl-3.5 pr-1.5 py-1.5 min-w-[80px] max-w-[180px] text-sm font-bold focus:outline-none transition-opacity active:opacity-80"
+            className="flex h-8 min-w-16 max-w-32 items-center gap-1.5 px-2.5 text-sm font-medium focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-current sm:max-w-44"
           >
             {t.primary && (
-              <Crown className="w-4 h-4 text-yellow-400 fill-yellow-400 shrink-0 drop-shadow-[0_0_3px_rgba(250,204,21,0.4)]" />
+              <Crown className="size-4 shrink-0 text-current" />
             )}
             <span className="truncate">{t.name}</span>
           </button>
           
-          <div className="h-4 w-[1px] bg-current opacity-10" />
+          <div className="h-4 w-px bg-current opacity-15" />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={cn(
-                "p-2 pr-2.5 transition-colors focus:outline-none active:opacity-70",
-                t.id === currentId 
-                  ? "text-primary-foreground/60 hover:text-primary-foreground hover:bg-white/10" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
-              )}>
+              <button
+                type="button"
+                aria-label={`${t.name} 설정`}
+                className={cn(
+                  "grid size-8 place-items-center transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-current",
+                  t.id === currentId
+                    ? "hover:bg-primary-foreground/10"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
+              >
                 <MoreVertical className="w-3.5 h-3.5" />
               </button>
             </DropdownMenuTrigger>
@@ -120,9 +124,9 @@ export function TimetableSelect({
         size="sm"
         onClick={() => setIsDialogOpen(true)}
         disabled={timetables.length >= 10 || isLoading}
-        className="rounded-xl border-dashed shrink-0 h-[38px] px-4 font-bold hover:bg-accent/50 transition-colors"
+        className="h-[34px] border-dashed"
       >
-        <Plus className="w-4 h-4 mr-2" />
+        <Plus className="size-4" />
         새 시간표
       </Button>
 

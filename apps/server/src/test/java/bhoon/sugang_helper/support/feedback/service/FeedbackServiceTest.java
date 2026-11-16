@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import bhoon.sugang_helper.audit.service.AdminAuditService;
 import bhoon.sugang_helper.common.api.error.CustomException;
@@ -18,10 +19,14 @@ import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.storage.LoadedFile;
 import bhoon.sugang_helper.common.redis.RedisService;
 import bhoon.sugang_helper.common.util.LocalFileUploadService;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
 import bhoon.sugang_helper.identity.api.users.UserAccountStatus;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserDisplayNameQueryService;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
+import bhoon.sugang_helper.seatalert.api.NotificationPublications;
+import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackSearch;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyCreateRequest;
 import bhoon.sugang_helper.support.feedback.dto.request.FeedbackReplyUpdateRequest;
@@ -39,6 +44,8 @@ import bhoon.sugang_helper.support.feedback.entity.Feedback;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackAttachment;
 import bhoon.sugang_helper.support.feedback.entity.FeedbackReply;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackOrder;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackSearchType;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackStatus;
 import bhoon.sugang_helper.support.feedback.enums.FeedbackType;
 import bhoon.sugang_helper.support.feedback.repository.AdminFeedbackReadRepository;
@@ -72,6 +79,9 @@ import org.springframework.web.multipart.MultipartFile;
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class FeedbackServiceTest {
 
+    private static final String CLIENT_IP = "203.0.113.1";
+    private static final String ERROR_CODE_FIELD = "errorCode";
+
     @Mock
     private FeedbackRepository feedbackRepository;
 
@@ -99,11 +109,20 @@ class FeedbackServiceTest {
     @Mock
     private RedisService redisService;
 
+    @Mock
+    private NotificationPublications notificationPublications;
+
+    @Mock
+    private NotificationRecipients notificationRecipients;
+
     @Spy
     private FeedbackMetadataNormalizer feedbackMetadataNormalizer = new FeedbackMetadataNormalizer(new ObjectMapper());
 
     @InjectMocks
     private FeedbackService feedbackService;
+
+    @InjectMocks
+    private AdminFeedbackService adminFeedbackService;
 
     @BeforeEach
     void setUpRateLimits() {
@@ -119,6 +138,7 @@ class FeedbackServiceTest {
         // given
         Long userId = 1L;
         UserIdentity user = new UserIdentity(userId, false);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(user);
         FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
         MultipartFile mockFile = mock(MultipartFile.class);
         List<MultipartFile> files = List.of(mockFile);
@@ -129,7 +149,7 @@ class FeedbackServiceTest {
         given(mockFile.getOriginalFilename()).willReturn("test.png");
 
         // when
-        feedbackService.createFeedback(userId, request, files);
+        feedbackService.createFeedbackForCurrentUser(request, files, null);
 
         // then
         verify(feedbackRepository).save(any(Feedback.class));
@@ -145,6 +165,7 @@ class FeedbackServiceTest {
         // given
         Long userId = 1L;
         UserIdentity user = new UserIdentity(userId, false);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(user);
         FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
         MultipartFile jpeg = mock(MultipartFile.class);
         given(userIdentityQuery.findById(userId)).willReturn(Optional.of(user));
@@ -153,7 +174,7 @@ class FeedbackServiceTest {
         given(jpeg.getOriginalFilename()).willReturn("canvas.jpg");
 
         // when
-        feedbackService.createFeedback(userId, request, List.of(jpeg));
+        feedbackService.createFeedbackForCurrentUser(request, List.of(jpeg), null);
 
         // then
         ArgumentCaptor<FeedbackAttachment> attachmentCaptor =
@@ -167,15 +188,16 @@ class FeedbackServiceTest {
     void createFeedback_rejectsMalformedMetadataBeforeSaving() {
         // given
         Long userId = 1L;
+        given(userIdentityQuery.requireCurrentUser()).willReturn(new UserIdentity(userId, false));
         FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{");
 
         // when
-        Throwable thrown = catchThrowable(() -> feedbackService.createFeedback(userId, request, List.of()));
+        Throwable thrown = catchThrowable(() -> feedbackService.createFeedbackForCurrentUser(request, List.of(), null));
 
         // then
         assertThat(thrown)
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.INVALID_INPUT);
         verify(userIdentityQuery, never()).findById(userId);
         verify(redisService, never()).increment(any(), any());
         verify(feedbackRepository, never()).save(any());
@@ -187,6 +209,7 @@ class FeedbackServiceTest {
         // given
         Long userId = 1L;
         UserIdentity user = new UserIdentity(userId, false);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(user);
         FeedbackCreateRequest request = new FeedbackCreateRequest(
                 FeedbackType.BUG, "제목", "내용", "{\"language\":\"ko-KR\",\"os\":\"MacIntel\"}");
         given(userIdentityQuery.findById(userId)).willReturn(Optional.of(user));
@@ -194,7 +217,7 @@ class FeedbackServiceTest {
         given(feedbackRepository.save(any(Feedback.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        feedbackService.createFeedback(userId, request, List.of());
+        feedbackService.createFeedbackForCurrentUser(request, List.of(), null);
 
         // then
         ArgumentCaptor<Feedback> feedbackCaptor = ArgumentCaptor.forClass(Feedback.class);
@@ -209,14 +232,15 @@ class FeedbackServiceTest {
         // given
         Long userId = 1L;
         UserIdentity user = new UserIdentity(userId, false);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(user);
         FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
         given(userIdentityQuery.findById(userId)).willReturn(Optional.of(user));
         given(redisService.increment(any(), any())).willReturn(3L);
 
         // when & then
-        assertThatThrownBy(() -> feedbackService.createFeedback(userId, request, List.of(), "203.0.113.1"))
+        assertThatThrownBy(() -> feedbackService.createFeedbackForCurrentUser(request, List.of(), CLIENT_IP))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.TOO_MANY_REQUESTS);
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.TOO_MANY_REQUESTS);
     }
 
     @Test
@@ -225,17 +249,18 @@ class FeedbackServiceTest {
         // given
         Long userId = 1L;
         UserIdentity user = new UserIdentity(userId, false);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(user);
         FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
         given(userIdentityQuery.findById(userId)).willReturn(Optional.of(user));
         given(feedbackRepository.save(any(Feedback.class))).willAnswer(invocation -> invocation.getArgument(0));
         given(redisService.increment(any(), any())).willReturn(1L);
 
         // when
-        feedbackService.createFeedback(userId, request, List.of(), "203.0.113.1");
+        feedbackService.createFeedbackForCurrentUser(request, List.of(), CLIENT_IP);
 
         // then
         verify(redisService).increment("FEEDBACK:RATE:USER:1", Duration.ofMinutes(1));
-        verify(redisService).increment("FEEDBACK:RATE:IP:203.0.113.1", Duration.ofMinutes(1));
+        verify(redisService).increment("FEEDBACK:RATE:IP:" + CLIENT_IP, Duration.ofMinutes(1));
         verify(redisService).increment("FEEDBACK:RATE:DAILY:1", Duration.ofDays(1));
     }
 
@@ -245,15 +270,17 @@ class FeedbackServiceTest {
         // given
         Long userId = 1L;
         UserIdentity user = new UserIdentity(userId, false);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(user);
         MultipartFile oversizedFile = mock(MultipartFile.class);
         FeedbackCreateRequest request = new FeedbackCreateRequest(FeedbackType.BUG, "제목", "내용", "{}");
         given(userIdentityQuery.findById(userId)).willReturn(Optional.of(user));
         given(oversizedFile.getSize()).willReturn(10_485_761L);
 
         // when & then
-        assertThatThrownBy(() -> feedbackService.createFeedback(userId, request, List.of(oversizedFile), "203.0.113.1"))
+        assertThatThrownBy(() -> feedbackService.createFeedbackForCurrentUser(
+                request, List.of(oversizedFile), CLIENT_IP))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.MAX_FILE_UPLOAD_SIZE_EXCEEDED);
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.MAX_FILE_UPLOAD_SIZE_EXCEEDED);
         verify(fileUploadService, never()).uploadImages(anyList());
     }
 
@@ -262,6 +289,7 @@ class FeedbackServiceTest {
     void getMyFeedbackDetailUnauthorized() {
         // given
         Long userId = 1L;
+        given(userIdentityQuery.requireCurrentUser()).willReturn(new UserIdentity(userId, false));
         Long otherUserId = 2L;
         Long feedbackId = 10L;
         Feedback feedback = Feedback.builder().userId(otherUserId).build();
@@ -269,9 +297,9 @@ class FeedbackServiceTest {
         given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
 
         // when & then
-        assertThatThrownBy(() -> feedbackService.getMyFeedbackDetail(userId, feedbackId))
+        assertThatThrownBy(() -> feedbackService.getMyFeedbackDetailForCurrentUser(feedbackId))
                 .isInstanceOf(CustomException.class)
-                .hasMessageContaining(ErrorCode.FEEDBACK_UNAUTHORIZED.getMessage());
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.FEEDBACK_UNAUTHORIZED);
     }
 
     @Test
@@ -281,6 +309,7 @@ class FeedbackServiceTest {
         Long feedbackId = 10L;
         Long attachmentId = 20L;
         UserIdentity requester = new UserIdentity(1L, false);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(requester);
         Feedback feedback = Feedback.builder().userId(2L).build();
         FeedbackAttachment attachment = FeedbackAttachment.builder()
                 .feedback(feedback)
@@ -290,13 +319,12 @@ class FeedbackServiceTest {
 
         ReflectionTestUtils.setField(feedback, "id", feedbackId);
         ReflectionTestUtils.setField(attachment, "id", attachmentId);
-        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
         given(feedbackAttachmentRepository.findByIdAndFeedbackId(attachmentId, feedbackId)).willReturn(Optional.of(attachment));
 
         // when & then
-        assertThatThrownBy(() -> feedbackService.getAttachment(requester, feedbackId, attachmentId))
+        assertThatThrownBy(() -> feedbackService.getAttachmentForCurrentUser(feedbackId, attachmentId))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FEEDBACK_UNAUTHORIZED);
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.FEEDBACK_UNAUTHORIZED);
         verify(fileUploadService, never()).loadFile(any());
         verify(adminAuditRecorder, never()).recordAttachmentAccess(any(), any(), any());
     }
@@ -308,15 +336,13 @@ class FeedbackServiceTest {
         Long feedbackId = 10L;
         Long attachmentId = 20L;
         UserIdentity owner = new UserIdentity(1L, false);
-        Feedback requestedFeedback = Feedback.builder().userId(owner.id()).build();
-        ReflectionTestUtils.setField(requestedFeedback, "id", feedbackId);
-        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(requestedFeedback));
+        given(userIdentityQuery.requireCurrentUser()).willReturn(owner);
         given(feedbackAttachmentRepository.findByIdAndFeedbackId(attachmentId, feedbackId)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> feedbackService.getAttachment(owner, feedbackId, attachmentId))
+        assertThatThrownBy(() -> feedbackService.getAttachmentForCurrentUser(feedbackId, attachmentId))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FEEDBACK_NOT_FOUND);
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.FEEDBACK_NOT_FOUND);
 
         verify(fileUploadService, never()).loadFile(any());
         verify(adminAuditRecorder, never()).recordAttachmentAccess(any(), any(), any());
@@ -329,11 +355,12 @@ class FeedbackServiceTest {
         Long feedbackId = 10L;
         Long attachmentId = 20L;
         UserIdentity admin = new UserIdentity(1L, true);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(admin);
 
         // when & then
-        assertThatThrownBy(() -> feedbackService.getAttachment(admin, feedbackId, attachmentId))
+        assertThatThrownBy(() -> feedbackService.getAttachmentForCurrentUser(feedbackId, attachmentId))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FEEDBACK_UNAUTHORIZED);
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.FEEDBACK_UNAUTHORIZED);
         verify(fileUploadService, never()).loadFile(any());
         verify(adminAuditRecorder, never()).recordAttachmentAccess(any(), any(), any());
     }
@@ -345,6 +372,7 @@ class FeedbackServiceTest {
         Long feedbackId = 10L;
         Long attachmentId = 20L;
         UserIdentity admin = new UserIdentity(1L, true);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(admin);
         Resource resource = mock(Resource.class);
         AdminFeedbackAttachmentAccess attachment =
                 new AdminFeedbackAttachmentAccess(
@@ -355,11 +383,11 @@ class FeedbackServiceTest {
                 .willReturn(new LoadedFile(resource, MediaType.IMAGE_PNG));
 
         // when & then
-        assertThatThrownBy(() -> feedbackService.getAttachmentForAdmin(admin, feedbackId, attachmentId, false))
+        assertThatThrownBy(() -> adminFeedbackService.getAttachmentForCurrentAdmin(feedbackId, attachmentId, false))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.INVALID_INPUT);
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.INVALID_INPUT);
         verify(adminFeedbackReadRepository, never()).findAttachmentForAdmin(feedbackId, attachmentId);
-        FeedbackAttachmentDownload download = feedbackService.getAttachmentForAdmin(admin, feedbackId, attachmentId, true);
+        FeedbackAttachmentDownload download = adminFeedbackService.getAttachmentForCurrentAdmin(feedbackId, attachmentId, true);
 
         assertThat(download.resource()).isSameAs(resource);
         assertThat(download.originalName()).isEqualTo("private.png");
@@ -375,13 +403,14 @@ class FeedbackServiceTest {
         Long feedbackId = 10L;
         Long attachmentId = 20L;
         UserIdentity admin = new UserIdentity(1L, true);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(admin);
         given(adminFeedbackReadRepository.findAttachmentForAdmin(feedbackId, attachmentId))
                 .willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> feedbackService.getAttachmentForAdmin(admin, feedbackId, attachmentId, true))
+        assertThatThrownBy(() -> adminFeedbackService.getAttachmentForCurrentAdmin(feedbackId, attachmentId, true))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FEEDBACK_NOT_FOUND);
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.FEEDBACK_NOT_FOUND);
 
         verify(fileUploadService, never()).loadFile(any());
         verify(adminAuditRecorder, never()).recordAttachmentAccess(any(), any(), any());
@@ -394,6 +423,7 @@ class FeedbackServiceTest {
         Long feedbackId = 10L;
         Long attachmentId = 20L;
         UserIdentity admin = new UserIdentity(1L, true);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(admin);
         given(adminFeedbackReadRepository.findAttachmentForAdmin(feedbackId, attachmentId)).willReturn(Optional.of(
                 new AdminFeedbackAttachmentAccess(
                         attachmentId, feedbackId, "/uploads/missing.png", "missing.png")));
@@ -401,7 +431,7 @@ class FeedbackServiceTest {
                 .willThrow(new IllegalStateException("file unavailable"));
 
         // when & then
-        assertThatThrownBy(() -> feedbackService.getAttachmentForAdmin(admin, feedbackId, attachmentId, true))
+        assertThatThrownBy(() -> adminFeedbackService.getAttachmentForCurrentAdmin(feedbackId, attachmentId, true))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("file unavailable");
 
@@ -409,19 +439,21 @@ class FeedbackServiceTest {
     }
 
     @Test
-    @DisplayName("피드백을 삭제해도 관리자 보존용 첨부파일은 제거하지 않는다.")
+    @DisplayName("문의 삭제 시 답변 알림은 숨기고 관리자 보존용 첨부파일은 유지한다.")
     void deleteFeedback_preservesAttachmentsForAdminAudit() {
         // given
         Long userId = 1L;
+        given(userIdentityQuery.requireCurrentUser()).willReturn(new UserIdentity(userId, false));
         Long feedbackId = 10L;
         Feedback feedback = Feedback.builder().userId(userId).build();
-        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
+        given(feedbackRepository.findByIdForUpdate(feedbackId)).willReturn(Optional.of(feedback));
 
         // when
-        feedbackService.deleteFeedback(userId, feedbackId);
+        feedbackService.deleteCurrentUsersFeedback(feedbackId);
 
         // then
         assertThat(feedback.getDeletedAt()).isNotNull();
+        verify(notificationPublications).hideFeedbackReplies(feedbackId);
         verify(feedbackAttachmentRepository, never()).findAllByFeedbackId(feedbackId);
         verify(fileUploadService, never()).deleteFilesAfterTransactionCommit(anyList());
     }
@@ -433,14 +465,15 @@ class FeedbackServiceTest {
         Long adminId = 1L;
         Long feedbackId = 10L;
         UserIdentity admin = new UserIdentity(adminId, true);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(admin);
         Feedback feedback = Feedback.builder().title("제목").build();
         FeedbackStatusUpdateRequest request = new FeedbackStatusUpdateRequest(FeedbackStatus.COMPLETED);
 
         given(userIdentityQuery.findById(adminId)).willReturn(Optional.of(admin));
-        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
+        given(feedbackRepository.findByIdForUpdate(feedbackId)).willReturn(Optional.of(feedback));
 
         // when
-        feedbackService.updateFeedbackStatus(adminId, feedbackId, request);
+        adminFeedbackService.updateFeedbackStatusForCurrentAdmin(feedbackId, request);
 
         // then
         assertThat(feedback.getStatus()).isEqualTo(FeedbackStatus.COMPLETED);
@@ -448,14 +481,31 @@ class FeedbackServiceTest {
     }
 
     @Test
-    @DisplayName("관리자 답변 생성·수정·삭제는 공통 감사 서비스에 안전한 요약을 기록한다.")
+    @DisplayName("일반 사용자는 문의 상태를 변경하거나 관리자 감사 기록을 남길 수 없다")
+    void updateFeedbackStatus_rejectsNonAdminBeforeChangingState() {
+        // given
+        given(userIdentityQuery.requireCurrentUser()).willReturn(new UserIdentity(1L, false));
+        FeedbackStatusUpdateRequest request = new FeedbackStatusUpdateRequest(FeedbackStatus.COMPLETED);
+
+        // when & then
+        assertThatThrownBy(() -> adminFeedbackService.updateFeedbackStatusForCurrentAdmin(10L, request))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.FEEDBACK_UNAUTHORIZED);
+        verify(feedbackRepository, never()).findByIdForUpdate(any());
+        verify(adminAuditRecorder, never()).recordStatusChange(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("관리자 답변을 등록하면 문의 작성자에게 알리고 삭제하면 해당 알림을 숨긴다.")
     void manageFeedbackReply_recordsSharedAuditEvents() {
         // given
         Long adminId = 1L;
         Long feedbackId = 10L;
         Long replyId = 20L;
         UserIdentity admin = new UserIdentity(adminId, true);
-        Feedback feedback = Feedback.builder().title("제목").build();
+        given(userIdentityQuery.requireCurrentUser()).willReturn(admin);
+        Long ownerId = 2L;
+        Feedback feedback = Feedback.builder().userId(ownerId).title("제목").build();
         FeedbackReply reply = FeedbackReply.builder().feedback(feedback).adminId(adminId)
                 .content("기존 \"답변\"\n😀").build();
         FeedbackReplyCreateRequest createRequest = new FeedbackReplyCreateRequest("새 답변");
@@ -463,16 +513,21 @@ class FeedbackServiceTest {
         ReflectionTestUtils.setField(feedback, "id", feedbackId);
         ReflectionTestUtils.setField(reply, "id", replyId);
         given(userIdentityQuery.findById(adminId)).willReturn(Optional.of(admin));
-        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.of(feedback));
+        given(feedbackRepository.findByIdForUpdate(feedbackId)).willReturn(Optional.of(feedback));
         given(feedbackReplyRepository.save(any(FeedbackReply.class))).willReturn(reply);
-        given(feedbackReplyRepository.findById(replyId)).willReturn(Optional.of(reply));
+        given(feedbackReplyRepository.findFeedbackIdById(replyId)).willReturn(Optional.of(feedbackId));
+        given(feedbackReplyRepository.findByIdForUpdate(replyId)).willReturn(Optional.of(reply));
+        given(feedbackRepository.findOwnerIdById(feedbackId)).willReturn(Optional.of(ownerId));
+        given(notificationRecipients.findActiveByIdsForShare(List.of(ownerId))).willReturn(List.of(recipient(ownerId)));
 
         // when
-        feedbackService.createFeedbackReply(adminId, feedbackId, createRequest);
-        feedbackService.updateFeedbackReply(adminId, replyId, updateRequest);
-        feedbackService.deleteFeedbackReply(adminId, replyId);
+        adminFeedbackService.createFeedbackReplyForCurrentAdmin(feedbackId, createRequest);
+        adminFeedbackService.updateFeedbackReplyForCurrentAdmin(replyId, updateRequest);
+        adminFeedbackService.deleteFeedbackReplyForCurrentAdmin(replyId);
 
         // then
+        verify(notificationPublications).publishFeedbackReply(ownerId, feedbackId, replyId);
+        verify(notificationPublications).hideFeedbackReply(replyId);
         verify(adminAuditRecorder).recordReplyCreated(adminId, replyId, feedbackId, "새 답변");
         verify(adminAuditRecorder).recordReplyUpdated(adminId, replyId, feedbackId, "기존 \"답변\"\n😀", "수정 답변");
         verify(adminAuditRecorder).recordReplyDeleted(adminId, replyId, feedbackId, "수정 답변");
@@ -488,28 +543,50 @@ class FeedbackServiceTest {
         Long feedbackId = 10L;
         Long replyId = 20L;
         UserIdentity admin = new UserIdentity(adminId, true);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(admin);
         Feedback feedback = Feedback.builder().title("삭제 문의").build();
         FeedbackReply reply = FeedbackReply.builder().feedback(feedback).adminId(adminId).content("보존 답변").build();
         ReflectionTestUtils.setField(feedback, "id", feedbackId);
         ReflectionTestUtils.setField(reply, "id", replyId);
         given(userIdentityQuery.findById(adminId)).willReturn(Optional.of(admin));
-        given(feedbackReplyRepository.findById(replyId)).willReturn(Optional.of(reply));
-        given(feedbackRepository.findById(feedbackId)).willReturn(Optional.empty());
+        given(feedbackReplyRepository.findFeedbackIdById(replyId)).willReturn(Optional.of(feedbackId));
+        given(feedbackRepository.findByIdForUpdate(feedbackId)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> feedbackService.updateFeedbackReply(
-                adminId, replyId, new FeedbackReplyUpdateRequest("우회 수정")))
+        assertThatThrownBy(() -> adminFeedbackService.updateFeedbackReplyForCurrentAdmin(
+                replyId, new FeedbackReplyUpdateRequest("우회 수정")))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FEEDBACK_NOT_FOUND);
-        assertThatThrownBy(() -> feedbackService.deleteFeedbackReply(adminId, replyId))
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.FEEDBACK_NOT_FOUND);
+        assertThatThrownBy(() -> adminFeedbackService.deleteFeedbackReplyForCurrentAdmin(replyId))
                 .isInstanceOf(CustomException.class)
-                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.FEEDBACK_NOT_FOUND);
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.FEEDBACK_NOT_FOUND);
 
         assertThat(reply.getContent()).isEqualTo("보존 답변");
         assertThat(reply.getDeletedAt()).isNull();
-        verify(feedbackRepository, times(2)).findById(feedbackId);
+        verify(feedbackRepository, times(2)).findByIdForUpdate(feedbackId);
         verify(adminAuditRecorder, never()).recordReplyUpdated(any(), any(), any(), any(), any());
         verify(adminAuditRecorder, never()).recordReplyDeleted(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("답변을 등록하기 전에 문의가 삭제되면 답변과 알림이 생성되지 않는다")
+    void createReplyRejectsFeedbackDeletedBeforeLock() {
+        // given
+        Long feedbackId = 10L;
+        Long ownerId = 2L;
+        UserIdentity admin = new UserIdentity(1L, true);
+        given(userIdentityQuery.requireCurrentUser()).willReturn(admin);
+        given(userIdentityQuery.findById(admin.id())).willReturn(Optional.of(admin));
+        given(feedbackRepository.findOwnerIdById(feedbackId)).willReturn(Optional.of(ownerId));
+        given(notificationRecipients.findActiveByIdsForShare(List.of(ownerId))).willReturn(List.of(recipient(ownerId)));
+        given(feedbackRepository.findByIdForUpdate(feedbackId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> adminFeedbackService.createFeedbackReplyForCurrentAdmin(
+                feedbackId, new FeedbackReplyCreateRequest("답변")))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue(ERROR_CODE_FIELD, ErrorCode.FEEDBACK_NOT_FOUND);
+        verifyNoInteractions(notificationPublications);
     }
 
     @Test
@@ -540,8 +617,9 @@ class FeedbackServiceTest {
                 73L);
         given(userIdentityQuery.findAccountStatuses(List.of(73L)))
                 .willReturn(List.of(new UserAccountStatus(73L, true)));
+        var search = new AdminFeedbackSearch(null, AdminFeedbackSearchType.TITLE_CONTENT);
         given(adminFeedbackReadRepository.findFeedbacks(
-                AdminFeedbackDeletionFilter.ALL,
+                AdminFeedbackDeletionFilter.ALL, AdminFeedbackOrder.NEWEST, search,
                 PageRequest.of(0, 20)))
                 .willReturn(new PageImpl<>(List.of(summary), PageRequest.of(0, 20), 1));
         given(adminFeedbackReadRepository.findFeedbackDetail(feedbackId)).willReturn(Optional.of(detail));
@@ -552,9 +630,9 @@ class FeedbackServiceTest {
                 new AdminFeedbackAttachmentSummary(40L)));
 
         // when
-        Page<AdminFeedbackResponse> list = feedbackService.getFeedbacksForAdmin(
-                PageRequest.of(0, 20), AdminFeedbackDeletionFilter.ALL);
-        AdminFeedbackDetailResponse response = feedbackService.getFeedbackDetailForAdmin(feedbackId);
+        Page<AdminFeedbackResponse> list = adminFeedbackService.getFeedbacksForAdmin(
+                PageRequest.of(0, 20), AdminFeedbackDeletionFilter.ALL, AdminFeedbackOrder.NEWEST, search);
+        AdminFeedbackDetailResponse response = adminFeedbackService.getFeedbackDetailForAdmin(feedbackId);
 
         // then
         assertThat(list.getContent()).singleElement().satisfies(item -> {
@@ -593,7 +671,7 @@ class FeedbackServiceTest {
         given(adminFeedbackReadRepository.findReplies(feedbackId)).willReturn(List.of());
 
         // when
-        AdminFeedbackDetailResponse response = feedbackService.getFeedbackDetailForAdmin(feedbackId);
+        AdminFeedbackDetailResponse response = adminFeedbackService.getFeedbackDetailForAdmin(feedbackId);
 
         // then
         assertThat(response.content()).isEqualTo("본문");
@@ -624,9 +702,13 @@ class FeedbackServiceTest {
         given(adminFeedbackReadRepository.findReplies(feedbackId)).willReturn(List.of());
 
         // when
-        AdminFeedbackDetailResponse response = feedbackService.getFeedbackDetailForAdmin(feedbackId);
+        AdminFeedbackDetailResponse response = adminFeedbackService.getFeedbackDetailForAdmin(feedbackId);
 
         // then
         assertThat(response.authorLabel()).isEqualTo("탈퇴 사용자");
+    }
+
+    private NotificationRecipient recipient(Long ownerId) {
+        return new NotificationRecipient(ownerId, false, null, null, false, false, false, null);
     }
 }

@@ -4,37 +4,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mockStatic;
 
 import bhoon.sugang_helper.academic.course.dto.criteria.CourseSearchCriteria;
 import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.dto.response.CourseDetailResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseResponse;
-import bhoon.sugang_helper.academic.course.dto.response.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.academic.course.dto.result.CourseSearchContext;
 import bhoon.sugang_helper.academic.course.entity.Course;
-import bhoon.sugang_helper.academic.course.entity.CourseSeatHistory;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
 import bhoon.sugang_helper.academic.course.repository.CourseSearchReadRepository;
-import bhoon.sugang_helper.academic.course.repository.CourseSeatHistoryRepository;
 import bhoon.sugang_helper.academic.crawling.service.CrawlerCourseSearchContextProvider;
 import bhoon.sugang_helper.academic.review.service.CourseReviewQueryService;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
 import bhoon.sugang_helper.identity.user.service.UserIdentityQueryService;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -50,16 +42,12 @@ class CourseServiceTest {
     private static final String PROFESSOR = "김교수";
     private static final String ACADEMIC_YEAR = "2026";
     private static final String SEMESTER = "U211600010";
-    private static final String USER_EMAIL = "user@test.com";
 
     @Mock
     private CourseRepository courseRepository;
 
     @Mock
     private CourseSearchReadRepository courseSearchReadRepository;
-
-    @Mock
-    private CourseSeatHistoryRepository courseSeatHistoryRepository;
 
     @Mock
     private UserIdentityQueryService userIdentityQuery;
@@ -71,20 +59,11 @@ class CourseServiceTest {
     private CrawlerCourseSearchContextProvider searchContextProvider;
 
     private CourseService courseService;
-    private MockedStatic<SecurityUtil> securityUtilMockedStatic;
 
     @BeforeEach
     void setUp() {
-        securityUtilMockedStatic = mockStatic(SecurityUtil.class);
-        courseService = new CourseService(courseRepository, courseSearchReadRepository, courseSeatHistoryRepository,
+        courseService = new CourseService(courseRepository, courseSearchReadRepository,
                 userIdentityQuery, courseReviewQuery, searchContextProvider);
-    }
-
-    @AfterEach
-    void tearDown() {
-        if (securityUtilMockedStatic != null) {
-            securityUtilMockedStatic.close();
-        }
     }
 
     private Course createCourse() {
@@ -133,7 +112,7 @@ class CourseServiceTest {
     void getCourse_success() {
         // given
         Course course = createCourse();
-        given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(course));
+        given(courseRepository.findWithSchedulesByCourseKey(COURSE_KEY)).willReturn(Optional.of(course));
         mockSearchContext();
 
         // when
@@ -148,33 +127,12 @@ class CourseServiceTest {
     void getCourse_notFound_throwsException() {
         // given
         String invalidCourseKey = "NOT_FOUND";
-        given(courseRepository.findByCourseKey(invalidCourseKey)).willReturn(Optional.empty());
+        given(courseRepository.findWithSchedulesByCourseKey(invalidCourseKey)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> courseService.getCourse(invalidCourseKey))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.NOT_FOUND);
-    }
-
-    @Test
-    @DisplayName("강좌 시트 이력 조회 성공")
-    void getCourseHistory_success() {
-        // given
-        CourseSeatHistory history = CourseSeatHistory.builder()
-                .courseKey(COURSE_KEY)
-                .capacity(50)
-                .current(10)
-                .build();
-        given(courseSeatHistoryRepository.findByCourseKeyOrderByCreatedAtDescIdDesc(
-                ArgumentMatchers.eq(COURSE_KEY), any(Pageable.class)))
-                .willReturn(new SliceImpl<>(List.of(history)));
-
-        // when
-        Slice<CourseSeatHistoryResponse> responses = courseService.getCourseHistory(COURSE_KEY, PageRequest.of(0, 30));
-
-        // then
-        assertThat(responses).hasSize(1);
-        assertThat(responses.getContent().get(0).getCapacity()).isEqualTo(50);
     }
 
     @Test
@@ -184,9 +142,8 @@ class CourseServiceTest {
         Long userId = 1L;
         UserIdentity user = new UserIdentity(userId, false);
         Course course = createCourse();
-        securityUtilMockedStatic.when(SecurityUtil::getCurrentUserEmailOrNull).thenReturn(USER_EMAIL);
-        given(courseRepository.findByCourseKey(COURSE_KEY)).willReturn(Optional.of(course));
-        given(userIdentityQuery.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(courseRepository.findWithSchedulesByCourseKey(COURSE_KEY)).willReturn(Optional.of(course));
+        given(userIdentityQuery.findCurrentUser()).willReturn(Optional.of(user));
         given(courseReviewQuery.hasReviewByUser(COURSE_KEY, SUBJECT_CODE, PROFESSOR, userId)).willReturn(true);
         mockSearchContext();
 

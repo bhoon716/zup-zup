@@ -13,7 +13,6 @@ import bhoon.sugang_helper.identity.user.dto.command.RegisterDeviceCommand;
 import bhoon.sugang_helper.identity.user.dto.result.UserDeviceResult;
 import bhoon.sugang_helper.identity.user.entity.User;
 import bhoon.sugang_helper.identity.user.service.UserDeviceService;
-import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -106,19 +105,6 @@ class UserDeviceControllerTest {
         mockMvc.perform(delete("/api/v1/users/devices")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\":\"token/with?unsafe=value\"}"))
-                .andExpect(status().isOk());
-
-        verify(userDeviceService).unregisterDevice(token);
-    }
-
-    @Test
-    @DisplayName("기존 토큰 경로는 배포된 클라이언트의 인코딩된 특수문자를 복원한다")
-    void legacyTokenPathDecodesEncodedSpecialCharactersForDeployedClients() throws Exception {
-        // given
-        String token = "token/with?unsafe=value";
-
-        // when & then
-        mockMvc.perform(delete(URI.create("/api/v1/users/devices/token/token%2Fwith%3Funsafe%3Dvalue")))
                 .andExpect(status().isOk());
 
         verify(userDeviceService).unregisterDevice(token);

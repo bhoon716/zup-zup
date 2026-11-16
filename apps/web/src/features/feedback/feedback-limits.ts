@@ -1,0 +1,1 @@
+export const MAX_FEEDBACK_ATTACHMENTS = 3;

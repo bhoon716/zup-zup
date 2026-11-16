@@ -48,9 +48,9 @@
 
 현행 구현에서 다시 검토할 지점은 다음과 같다.
 
-- [발송 처리](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/application/SeatNotificationOutboxProcessor.java)는 기본 최대 5회 실패 후 자동 재시도를 중단하고 DLQ로 전환한다.
-- [실패 기록 정리](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/application/NotificationDeliveryRetentionScheduler.java)는 기본 30일 후 DLQ 작업을 삭제한다. 미전달 작업의 재개·보존 정책과 함께 재검토해야 한다.
-- [NotificationService](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/application/NotificationService.java)는 채널 비활성화·대상 없음에서 정상 반환한다. [Discord 발송기](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/infra/DiscordNotificationSender.java)는 토큰 미설정에서도 정상 반환한다. 호출자가 정상 반환을 성공으로 기록하므로 실제 외부 요청 성공과 구분할 필요가 있다.
+- [발송 처리](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/service/SeatNotificationOutboxProcessor.java)는 기본 최대 5회 실패 후 자동 재시도를 중단하고 DLQ로 전환한다.
+- [실패 기록 정리](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/scheduler/NotificationDeliveryRetentionScheduler.java)는 기본 30일 후 DLQ 작업을 삭제한다. 미전달 작업의 재개·보존 정책과 함께 재검토해야 한다.
+- [NotificationService](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/service/NotificationService.java)는 채널 비활성화·대상 없음에서 정상 반환한다. [Discord 발송기](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/client/DiscordNotificationSender.java)는 토큰 미설정에서도 정상 반환한다. 호출자가 정상 반환을 성공으로 기록하므로 실제 외부 요청 성공과 구분할 필요가 있다.
 
 구현 시 성공 응답 전 완료 방지, 응답 유실·서버 중단 후 재시도, 발송 생략과 성공 구분을 단위 테스트 후보로 둔다. 최종 E2E 범위와 실행 여부는 구현 논의에서 정한다. 이번에는 테스트를 추가하거나 실행하지 않았다.
 

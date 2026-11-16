@@ -7,6 +7,7 @@ import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.api.templates.EmailTemplates;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Map;
@@ -17,11 +18,21 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailVerificationService {
+
+    private static final String EMAIL_COOLDOWN_KEY_SUFFIX = "EMAIL:";
+    private static final String USER_COOLDOWN_KEY_SUFFIX = "USER:";
+    private static final String EMAIL_FINGERPRINT_KEY = "emailFingerprint";
+    private static final String EXCEPTION_TYPE_KEY = "exceptionType";
+    private static final String VERIFIED_VALUE = "true";
+    private static final String USER_ID_KEY = "userId";
+
+    private static final String EVENT_KEY = "event";
 
     private static final String CODE_PREFIX = "EMAIL_CODE:";
     private static final String VERIFIED_PREFIX = "EMAIL_VERIFIED:";
@@ -31,6 +42,8 @@ public class EmailVerificationService {
     private static final long VERIFIED_EXPIRATION_MINUTES = 60;
     private static final Duration SEND_COOLDOWN = Duration.ofMinutes(1);
     private static final int MAX_VERIFY_ATTEMPTS = 5;
+    private static final int MIN_VERIFICATION_CODE = 100_000;
+    private static final int VERIFICATION_CODE_UPPER_BOUND = 1_000_000;
     private static final String EMAIL_SUBJECT = "[수강신청 도우미] 이메일 인증 코드";
     private final JavaMailSender javaMailSender;
     private final RedisAccess redisService;
@@ -67,8 +80,7 @@ public class EmailVerificationService {
         }
 
         sendEmail(email, mimeMessage);
-        log.info("[EmailVerification] 인증 코드 발송 완료. userId={}, emailFingerprint={}", userId,
-                SensitiveDataRedactor.fingerprint(email));
+        logEmailVerificationCodeSent(userId, SensitiveDataRedactor.fingerprint(email));
     }
 
     public boolean verifyCode(Long userId, String email, String code) {
@@ -82,10 +94,9 @@ public class EmailVerificationService {
         if (savedCode.equals(code)) {
             redisService.deleteValues(key);
             redisService.deleteValues(getAttemptKey(userId, email));
-            redisService.setValues(getVerifiedKey(userId, email), "true",
+            redisService.setValues(getVerifiedKey(userId, email), VERIFIED_VALUE,
                     Duration.ofMinutes(VERIFIED_EXPIRATION_MINUTES));
-            log.info("[EmailVerification] 이메일 인증 완료. userId={}, emailFingerprint={}", userId,
-                    SensitiveDataRedactor.fingerprint(email));
+            logEmailVerificationCompleted(userId, SensitiveDataRedactor.fingerprint(email));
             return true;
         }
 
@@ -99,32 +110,32 @@ public class EmailVerificationService {
 
     public boolean isVerified(Long userId, String email) {
         String value = redisService.getValues(getVerifiedKey(userId, email));
-        return "true".equals(value);
+        return VERIFIED_VALUE.equals(value);
     }
 
     public void clearVerificationState(Long userId, String... emails) {
-        redisService.deleteValues(SEND_COOLDOWN_PREFIX + "USER:" + userId);
+        redisService.deleteValues(SEND_COOLDOWN_PREFIX + USER_COOLDOWN_KEY_SUFFIX + userId);
         if (emails == null) {
             return;
         }
 
         for (String email : emails) {
-            if (email == null || email.isBlank()) {
+            if (!StringUtils.hasText(email)) {
                 continue;
             }
             redisService.deleteValues(getCodeKey(userId, email));
             redisService.deleteValues(getVerifiedKey(userId, email));
             redisService.deleteValues(getAttemptKey(userId, email));
-            redisService.deleteValues(SEND_COOLDOWN_PREFIX + "EMAIL:" + email);
+            redisService.deleteValues(SEND_COOLDOWN_PREFIX + EMAIL_COOLDOWN_KEY_SUFFIX + email);
         }
     }
 
     private MimeMessage createEmailMessage(String to, String title, String content) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, StandardCharsets.UTF_8.name());
 
-            helper.setFrom(new InternetAddress(from, fromName, "UTF-8"));
+            helper.setFrom(new InternetAddress(from, fromName, StandardCharsets.UTF_8.name()));
             helper.setTo(to);
             helper.setSubject(title);
             helper.setText(content, true);
@@ -143,15 +154,13 @@ public class EmailVerificationService {
     }
 
     private CustomException emailSendException(String to, Exception exception) {
-        log.error("[EmailVerification] 인증 이메일 발송 실패. recipientFingerprint={}, failureCode={}, exceptionType={}",
-                SensitiveDataRedactor.fingerprint(to), ErrorCode.EMAIL_SEND_ERROR.getCode(),
-                SensitiveDataRedactor.exceptionType(exception));
-        return new CustomException(ErrorCode.EMAIL_SEND_ERROR, "Failed to send verification email");
+        logEmailVerificationSendFailed(SensitiveDataRedactor.fingerprint(to), ErrorCode.EMAIL_SEND_ERROR.getCode(), SensitiveDataRedactor.exceptionType(exception));
+        return new CustomException(ErrorCode.EMAIL_SEND_ERROR, "인증 이메일을 발송하지 못했습니다.");
     }
 
     private String generateCode() {
         SecureRandom random = new SecureRandom();
-        int code = 100000 + random.nextInt(900000);
+        int code = MIN_VERIFICATION_CODE + random.nextInt(VERIFICATION_CODE_UPPER_BOUND - MIN_VERIFICATION_CODE);
         return String.valueOf(code);
     }
 
@@ -165,9 +174,9 @@ public class EmailVerificationService {
 
     private SendCooldownLease acquireSendCooldown(Long userId, String email, String clientIp) {
         String token = UUID.randomUUID().toString();
-        String userKey = SEND_COOLDOWN_PREFIX + "USER:" + userId;
-        String emailKey = SEND_COOLDOWN_PREFIX + "EMAIL:" + email;
-        String ipKey = clientIp == null || clientIp.isBlank()
+        String userKey = SEND_COOLDOWN_PREFIX + USER_COOLDOWN_KEY_SUFFIX + userId;
+        String emailKey = SEND_COOLDOWN_PREFIX + EMAIL_COOLDOWN_KEY_SUFFIX + email;
+        String ipKey = !StringUtils.hasText(clientIp)
                 ? null : SEND_COOLDOWN_PREFIX + "IP:" + clientIp;
         boolean userAcquired = false;
         boolean emailAcquired = false;
@@ -211,14 +220,43 @@ public class EmailVerificationService {
             try {
                 redisService.compareAndDeleteValues(key, token);
             } catch (RuntimeException exception) {
-                log.warn("[EmailVerification] 발송 실패 후 대기 제한 복구 실패. exceptionType={}",
-                        SensitiveDataRedactor.exceptionType(exception));
+                logEmailVerificationCooldownRestoreFailed(SensitiveDataRedactor.exceptionType(exception));
             }
         }
     }
 
     private String getAttemptKey(Long userId, String email) {
         return ATTEMPT_PREFIX + userId + ":" + email;
+    }
+
+    private void logEmailVerificationCodeSent(Long userId, String emailFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "email_verification_code_sent")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue(EMAIL_FINGERPRINT_KEY, emailFingerprint)
+                .log("[EmailVerification] 인증 코드 발송 완료.");
+    }
+
+    private void logEmailVerificationCompleted(Long userId, String emailFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "email_verification_completed")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue(EMAIL_FINGERPRINT_KEY, emailFingerprint)
+                .log("[EmailVerification] 이메일 인증 완료.");
+    }
+
+    private void logEmailVerificationSendFailed(String recipientFingerprint,
+                                                String failureCode,
+                                                String exceptionType) {
+        log.atError().addKeyValue(EVENT_KEY, "email_verification_send_failed")
+                .addKeyValue("recipientFingerprint", recipientFingerprint)
+                .addKeyValue("failureCode", failureCode)
+                .addKeyValue(EXCEPTION_TYPE_KEY, exceptionType)
+                .log("[EmailVerification] 인증 이메일 발송 실패.");
+    }
+
+    private void logEmailVerificationCooldownRestoreFailed(String exceptionType) {
+        log.atWarn().addKeyValue(EVENT_KEY, "email_verification_cooldown_restore_failed")
+                .addKeyValue(EXCEPTION_TYPE_KEY, exceptionType)
+                .log("[EmailVerification] 발송 실패 후 대기 제한 복구 실패.");
     }
 
     private record SendCooldownLease(String token, String userKey, String emailKey, String ipKey) {

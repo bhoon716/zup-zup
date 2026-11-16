@@ -133,9 +133,9 @@ DISCORD_REDIRECT_URI=https://www.zup-zup.com/api/v1/users/discord/callback
         if migrations and scenario != 'no-existing-app':
             assert events.index('inspect-app') < events.index('migrate'), (scenario, events)
         if scenario == 'alerting-invalid':
-            assert 'ALERTING_ENABLED must be true or false' in result.stderr, result.stderr
+            assert 'ALERTING_ENABLED는 true 또는 false여야 합니다.' in result.stderr, result.stderr
         elif not migrations:
-            assert 'migration was not started' in result.stderr, (scenario, result.stderr)
+            assert '마이그레이션을 시작하지 않았습니다.' in result.stderr, (scenario, result.stderr)
         if scenario == 'alerting-enabled':
             compose_calls = [call['args'] for call in calls if call['args'][:1] == ['compose']]
             assert compose_calls and all(any(arg.endswith('/docker-compose.alerting.yml') for arg in args)

@@ -1,0 +1,47 @@
+--- upstream/skills/poteto-mode/scripts/worktree-audit.sh
++++ codex/skills/poteto-mode/scripts/worktree-audit.sh
+@@ -2 +2 @@
+-# Read-only worktree prune audit. Classifies every git worktree by size, merge
++# Worktree prune audit. Classifies every git worktree by size, merge
+@@ -31 +31 @@
+-main_wt=$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')
++main_wt=$(git worktree list --porcelain | awk '/^worktree /{print substr($0, 10); exit}')
+@@ -53 +53 @@
+-	stat_fmt=(-c '%Y %n'); fmt_day() { date -d "@$1" '+%Y-%m-%d'; }
++	fmt_day() { date -d "@$1" '+%Y-%m-%d'; }
+@@ -55 +55 @@
+-	stat_fmt=(-f '%m %N'); fmt_day() { date -r "$1" '+%Y-%m-%d'; }
++	fmt_day() { date -r "$1" '+%Y-%m-%d'; }
+@@ -72,3 +72,8 @@
+-# Transcripts dir: ~/.cursor/projects/<slugified-repo-path>/agent-transcripts.
+-slug=$(printf '%s' "$main_wt" | sed 's#^/##; s#/#-#g')
+-transcripts="$HOME/.cursor/projects/$slug/agent-transcripts"
++script_dir=$(cd -P "$(dirname "$0")" && pwd -P)
++if activity=$(python3 "$script_dir/../../../transcripts/resolve.py" --workspace "$repo" --include-archived activity); then
++	activity_available=yes
++else
++	echo "경고. Codex 최근 활동을 확인할 수 없어 worktree를 검토 대상으로 유지합니다." >&2
++	activity_available=no
++	activity='{}'
++fi
+@@ -80 +85 @@
+-git worktree list --porcelain | awk '/^worktree /{print $2}' | while read -r wt; do
++git worktree list --porcelain | awk '/^worktree /{print substr($0, 10)}' | while IFS= read -r wt; do
+@@ -111,9 +116,4 @@
+-	# Most recent chat whose transcript operated in this worktree. Match path
+-	# followed by "/" or a quote so glint-482 does not match glint-482-r37.
+-	last="-"; last_ts=0
+-	if [ -d "$transcripts" ]; then
+-		f=$(rg -l -e "${wt}/" -e "${wt}\"" "$transcripts" 2>/dev/null \
+-			| xargs stat "${stat_fmt[@]}" 2>/dev/null | sort -rn | head -1)
+-		if [ -n "$f" ]; then last_ts=$(echo "$f" | awk '{print $1}')
+-			last=$(fmt_day "$last_ts" 2>/dev/null); fi
+-	fi
++	last="-"
++	canonical_wt=$(cd -P "$wt" 2>/dev/null && pwd -P) || canonical_wt="$wt"
++	last_ts=$(jq -r --arg wt "$canonical_wt" '.[$wt] // 0' <<<"$activity")
++	[ "${last_ts:-0}" -gt 0 ] 2>/dev/null && last=$(fmt_day "$last_ts" 2>/dev/null)
+@@ -124 +124,2 @@
+-			if [ "$recent" = yes ]; then bucket=verify-recent-chat
++			if [ "$activity_available" = no ]; then bucket=review
++			elif [ "$recent" = yes ]; then bucket=verify-recent-chat

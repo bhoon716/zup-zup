@@ -19,6 +19,11 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -26,6 +31,7 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.util.StringUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -34,6 +40,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
+    private static final String COURSE_SEARCH_PATH = "/api/v1/courses/search";
+    private static final String ADMIN_ROLE = "ADMIN";
+    private static final String GOOGLE_REGISTRATION_ID = "google";
+    private static final String GOOGLE_PROMPT_PARAMETER = "prompt";
+    private static final String GOOGLE_ACCOUNT_SELECTION_PROMPT = "select_account";
 
     private static final String[] PERMIT_ALL_ENDPOINTS = new String[]{
             "/api/health",
@@ -67,7 +79,7 @@ public class SecurityConfig {
 
     private static final String[] PERMIT_POST_ENDPOINTS = new String[]{
             "/api/auth/logout",
-            "/api/v1/courses/search"
+            COURSE_SEARCH_PATH
     };
     private final SessionAuthenticationFilter sessionAuthenticationFilter;
     private final AccessDeniedHandler customAccessDeniedHandler;
@@ -89,11 +101,12 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository securityContextRepository,
-                                          CsrfTokenRepository csrfTokenRepository) throws Exception {
+                                          CsrfTokenRepository csrfTokenRepository,
+                                          ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository)
-                        .ignoringRequestMatchers(PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/v1/courses/search")))
+                        .ignoringRequestMatchers(PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, COURSE_SEARCH_PATH)))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable)
@@ -102,10 +115,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(PERMIT_ALL_ENDPOINTS).permitAll();
                     auth.requestMatchers(INTERNAL_MANAGEMENT_ENDPOINTS).permitAll();
-                    auth.requestMatchers(DEVELOPER_TOOL_ENDPOINTS).hasRole("ADMIN");
+                    auth.requestMatchers(DEVELOPER_TOOL_ENDPOINTS).hasRole(ADMIN_ROLE);
                     auth.requestMatchers(HttpMethod.GET, PERMIT_GET_ENDPOINTS).permitAll();
                     auth.requestMatchers(HttpMethod.POST, PERMIT_POST_ENDPOINTS).permitAll();
-                    auth.requestMatchers("/api/v1/admin/**").hasRole("ADMIN");
+                    auth.requestMatchers("/api/v1/admin/**").hasRole(ADMIN_ROLE);
                     auth.anyRequest().authenticated();
                 })
                 .exceptionHandling(exception -> exception
@@ -114,6 +127,8 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(FrameOptionsConfig::sameOrigin))
                 .addFilterBefore(sessionAuthenticationFilter, CsrfFilter.class)
                 .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(endpoint -> endpoint.authorizationRequestResolver(
+                                authorizationRequestResolver(clientRegistrationRepository)))
                         .securityContextRepository(securityContextRepository)
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService))
@@ -121,6 +136,19 @@ public class SecurityConfig {
                         .failureHandler(oAuth2FailureHandler));
 
         return http.build();
+    }
+
+    private OAuth2AuthorizationRequestResolver authorizationRequestResolver(
+            ClientRegistrationRepository clientRegistrationRepository) {
+        DefaultOAuth2AuthorizationRequestResolver resolver = new DefaultOAuth2AuthorizationRequestResolver(
+                clientRegistrationRepository, OAuth2AuthorizationRequestRedirectFilter.DEFAULT_AUTHORIZATION_REQUEST_BASE_URI);
+        resolver.setAuthorizationRequestCustomizer(builder -> builder.attributes(attributes -> {
+            if (GOOGLE_REGISTRATION_ID.equals(attributes.get(OAuth2ParameterNames.REGISTRATION_ID))) {
+                builder.additionalParameters(parameters -> parameters.put(
+                        GOOGLE_PROMPT_PARAMETER, GOOGLE_ACCOUNT_SELECTION_PROMPT));
+            }
+        }));
+        return resolver;
     }
 
     @Bean
@@ -144,7 +172,7 @@ public class SecurityConfig {
 
     private static List<String> validateAllowedOrigins(String[] configuredOrigins, boolean requireHttps) {
         if (configuredOrigins == null || configuredOrigins.length == 0) {
-            throw new IllegalArgumentException("CORS allowed origins must not be empty");
+            throw new IllegalArgumentException("CORS 허용 출처를 하나 이상 지정해야 합니다.");
         }
 
         return Arrays.stream(configuredOrigins)
@@ -154,24 +182,24 @@ public class SecurityConfig {
     }
 
     private static String validateAllowedOrigin(String configuredOrigin, boolean requireHttps) {
-        if (configuredOrigin == null || configuredOrigin.isBlank()) {
-            throw new IllegalArgumentException("CORS allowed origin must not be blank");
+        if (!StringUtils.hasText(configuredOrigin)) {
+            throw new IllegalArgumentException("CORS 허용 출처에는 공백만 입력할 수 없습니다.");
         }
 
         String origin = configuredOrigin.trim();
         if (origin.contains("*")) {
-            throw new IllegalArgumentException("CORS allowed origin must not contain a wildcard");
+            throw new IllegalArgumentException("CORS 허용 출처에 와일드카드를 사용할 수 없습니다.");
         }
 
         URI uri = parseOrigin(origin);
         if (uri.getHost() == null || hasOriginPathOrExtraComponents(uri)) {
-            throw new IllegalArgumentException("CORS allowed origin must contain only scheme, host, and optional port");
+            throw new IllegalArgumentException("CORS 허용 출처에는 스킴, 호스트, 선택적 포트만 지정할 수 있습니다.");
         }
         if (!isHttpOrigin(uri)) {
-            throw new IllegalArgumentException("CORS allowed origin must use HTTP or HTTPS");
+            throw new IllegalArgumentException("CORS 허용 출처는 HTTP 또는 HTTPS를 사용해야 합니다.");
         }
         if (requireHttps && !"https".equalsIgnoreCase(uri.getScheme())) {
-            throw new IllegalArgumentException("Production CORS allowed origins must use HTTPS");
+            throw new IllegalArgumentException("운영 환경의 CORS 허용 출처는 HTTPS를 사용해야 합니다.");
         }
 
         return origin;
@@ -181,7 +209,7 @@ public class SecurityConfig {
         try {
             return new URI(origin);
         } catch (URISyntaxException exception) {
-            throw new IllegalArgumentException("CORS allowed origin must be a valid URI", exception);
+            throw new IllegalArgumentException("CORS 허용 출처는 유효한 URI여야 합니다.", exception);
         }
     }
 

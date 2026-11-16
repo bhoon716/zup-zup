@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
 import { Filter, RotateCcw, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
@@ -90,26 +91,27 @@ export const CourseSearchBar = memo(function CourseSearchBar({
   return (
     <div className={cn("flex min-h-0 flex-col", !hideHeader && "h-full")}>
       {!hideHeader && (
-        <div className="space-y-3 pb-4">
+        <div className="space-y-2 pb-3">
           <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="강의명 또는 학수번호"
+            <div className="relative min-w-0 flex-1">
+              <Input
+                type="search"
+                aria-label="강의명"
+                placeholder="강의명"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onFocus={() => { isFocusedRef.current = true; }}
                 onBlur={() => { isFocusedRef.current = false; }}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                className="h-12 w-full rounded-2xl border-none bg-muted/50 pl-10 pr-4 text-sm font-bold placeholder:text-muted-foreground/60 focus:bg-white focus:ring-2 focus:ring-primary/20"
+                className="h-10 rounded-lg bg-card pl-9"
               />
-              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             </div>
             <Button
               type="button"
               onClick={handleSearch}
               disabled={isLoading}
-              className="h-12 rounded-2xl bg-primary px-5 font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+              className="h-10 rounded-lg"
             >
               {isLoading ? (
                 <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -124,7 +126,7 @@ export const CourseSearchBar = memo(function CourseSearchBar({
             variant="outline"
             onClick={handleReset}
             disabled={isLoading}
-            className="h-10 w-full gap-2 rounded-xl border-border/40 bg-white/50 text-xs font-medium text-muted-foreground hover:bg-white/80 hover:text-foreground"
+            className="w-full rounded-lg bg-card text-muted-foreground"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             검색 조건 초기화
@@ -132,12 +134,12 @@ export const CourseSearchBar = memo(function CourseSearchBar({
         </div>
       )}
 
-      <div className={cn("space-y-3 pr-1 scrollbar-hide", !hideHeader ? "flex-1 overflow-y-auto" : "h-auto overflow-visible")}>
+      <div className={cn("space-y-2", !hideHeader ? "flex-1 overflow-y-auto" : "h-auto overflow-visible")}>
         {               }
         <FilterSection
           idBase="course-search-smart"
           title="스마트 필터"
-          icon={<Sparkles className="h-4 w-4 text-violet-500" />}
+          icon={<Sparkles className="size-4 text-primary" />}
           open={smartOpen}
           onOpenChange={setSmartOpen}
         >
@@ -163,7 +165,7 @@ export const CourseSearchBar = memo(function CourseSearchBar({
           <CourseBasicFilters
             condition={condition}
             setCondition={setCondition}
-            idBasePrefix="course-search-basic"
+            idBasePrefix={hideHeader ? "course-search-mobile-basic" : "course-search-basic"}
           />
         </FilterSection>
 
@@ -182,28 +184,28 @@ export const CourseSearchBar = memo(function CourseSearchBar({
         </FilterSection>
 
         {hideHeader && (
-          <div className="grid grid-cols-3 gap-2 pt-4 pb-2">
+          <div className="grid grid-cols-3 gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={handleReset}
               disabled={isLoading}
-              className="col-span-1 h-12 rounded-2xl border-border/40 font-bold text-muted-foreground"
+              className="col-span-1 h-10 gap-1 rounded-lg px-2 text-muted-foreground"
             >
-              <RotateCcw className="mr-2 h-4 w-4" />
+              <RotateCcw aria-hidden="true" />
               초기화
             </Button>
             <Button
               type="button"
               onClick={handleSearch}
               disabled={isLoading}
-              className="col-span-2 h-12 rounded-2xl bg-primary font-bold text-white shadow-lg shadow-primary/20"
+              className="col-span-2 h-10 rounded-lg"
             >
               {isLoading ? (
                 <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
               ) : (
                 <>
-                  <Search className="mr-2 h-4 w-4" />
+                  <Search aria-hidden="true" />
                   필터 적용
                 </>
               )}

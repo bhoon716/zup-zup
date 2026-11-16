@@ -1,8 +1,13 @@
 import api from "@/shared/api/client";
-import type { AdminDashboardSnapshotResponse, AdminCrawlTargetRequest, AdminCrawlTargetResponse, AdminNotificationDeliveryResponse, AnnouncementRequest, AnnouncementDetailResponse, NotificationDeliveryReplayRequest, PageResponse } from '@/shared/types/api';
+import type { AdminDashboardSnapshotResponse, AdminTrafficPointResponse, AdminTrafficRange, AdminCrawlTargetRequest, AdminCrawlTargetResponse, AdminNotificationDeliveryResponse, AnnouncementRequest, AnnouncementDetailResponse, NotificationDeliveryReplayRequest, PageResponse } from '@/shared/types/api';
 
 export const getDashboardSnapshot = async (): Promise<AdminDashboardSnapshotResponse> => {
   const { data } = await api.get('/api/v1/admin/dashboard');
+  return data;
+};
+
+export const getNotificationTraffic = async (range: AdminTrafficRange): Promise<AdminTrafficPointResponse[]> => {
+  const { data } = await api.get<AdminTrafficPointResponse[]>('/api/v1/admin/notifications/traffic', { params: { range } });
   return data;
 };
 
@@ -15,11 +20,6 @@ export const crawlCoursesByTarget = async (
   request: AdminCrawlTargetRequest
 ): Promise<string> => {
   const { data } = await api.post('/api/v1/admin/courses/crawl/target', request);
-  return data;
-};
-
-export const getCrawlTarget = async (): Promise<AdminCrawlTargetResponse> => {
-  const { data } = await api.get('/api/v1/admin/courses/crawl-target');
   return data;
 };
 
@@ -89,5 +89,10 @@ export const updateAdminAnnouncement = async (
 
 export const deleteAdminAnnouncement = async (id: number): Promise<void> => {
   const { data } = await api.delete(`/api/v1/admin/announcements/${id}`);
+  return data;
+};
+
+export const restoreAdminAnnouncement = async (id: number): Promise<AnnouncementDetailResponse> => {
+  const { data } = await api.patch(`/api/v1/admin/announcements/${id}/restore`);
   return data;
 };

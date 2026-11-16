@@ -42,7 +42,7 @@ describe("AdminNotificationDeliveriesPage", () => {
     vi.clearAllMocks();
     vi.spyOn(window, "confirm").mockReturnValue(true);
     mockUseAdminDlqNotificationDeliveries.mockReturnValue({
-      data: { content: [delivery], totalElements: 1 },
+      data: { content: [delivery], totalElements: 1, totalPages: 1, number: 0, size: 10 },
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
@@ -67,7 +67,7 @@ describe("AdminNotificationDeliveriesPage", () => {
     expect(screen.getByText("CS-101")).toBeInTheDocument();
     expect(screen.getAllByText(/이메일 발송 중 오류가 발생했습니다\./)).toHaveLength(2);
     expect(screen.getByText("idempotency key 유지")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "선택 delivery 재처리" }));
+    fireEvent.click(screen.getByRole("button", { name: "선택한 발송 작업 재처리" }));
 
     await waitFor(() => {
       expect(mockReplay).toHaveBeenCalledWith({ id: 41, request: {} });
@@ -81,27 +81,43 @@ describe("AdminNotificationDeliveriesPage", () => {
       courseKey: "CS-102",
       courseName: "운영체제",
     };
+    const firstPageDeliveries = [delivery, ...Array.from({ length: 9 }, (_, index) => ({
+      ...delivery,
+      id: index + 1,
+      courseName: `강좌 ${index + 1}`,
+    }))];
+    let hasSecondPage = true;
     mockUseAdminDlqNotificationDeliveries.mockImplementation((page: number = 0) => ({
       data: {
-        content: page === 0 ? [delivery] : [secondPageDelivery],
-        totalElements: 31,
-        totalPages: 2,
+        content: page === 0 ? firstPageDeliveries : hasSecondPage ? [secondPageDelivery] : [],
+        totalElements: hasSecondPage ? 11 : 10,
+        totalPages: hasSecondPage ? 2 : 1,
         number: page,
-        size: 30,
+        size: 10,
       },
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
     }));
 
-    render(<AdminNotificationDeliveriesPage />);
+    const { rerender } = render(<AdminNotificationDeliveriesPage />);
 
     expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(10);
+    expect(screen.getByRole("button", { name: "이전 페이지" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /알고리즘/ }));
     fireEvent.click(screen.getByRole("button", { name: "다음 페이지" }));
 
-    await waitFor(() => {
-      expect(mockUseAdminDlqNotificationDeliveries).toHaveBeenLastCalledWith(1);
-    });
-    expect(screen.getByText("운영체제")).toBeInTheDocument();
+    expect(await screen.findByText("운영체제")).toBeInTheDocument();
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { pressed: false })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "다음 페이지" })).toBeDisabled();
+    expect(screen.getByText("확인할 DLQ delivery를 선택해주세요.")).toBeInTheDocument();
+
+    hasSecondPage = false;
+    rerender(<AdminNotificationDeliveriesPage />);
+
+    expect(await screen.findByText("알고리즘")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "다음 페이지" })).toBeNull();
   });
 });

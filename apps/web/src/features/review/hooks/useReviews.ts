@@ -6,7 +6,6 @@ import type {
   Course,
   EmojiReviewResponse,
   ReviewCreateRequest,
-  ReviewReactionRequest,
   ReviewResponse,
   ReviewUpdateRequest,
 } from "@/shared/types/api";
@@ -94,7 +93,7 @@ const updateCourseDetailCaches = (queryClient: ReturnType<typeof useQueryClient>
   });
 };
 
-export const useReviews = (reviewScopeKey: string, courseKey: string) => {
+export const useReviews = (reviewScopeKey: string, courseKey: string, enabled = true) => {
   return useQuery<ReviewResponse | null>({
     queryKey: ["review", reviewScopeKey],
     queryFn: async () => {
@@ -102,7 +101,7 @@ export const useReviews = (reviewScopeKey: string, courseKey: string) => {
       const review = response.content[0];
       return review?.isMine ? review : null;
     },
-    enabled: !!reviewScopeKey && !!courseKey,
+    enabled: enabled && !!reviewScopeKey && !!courseKey,
   });
 };
 
@@ -145,18 +144,6 @@ export const useUpdateReview = (reviewScopeKey: string, courseKey: string) => {
         queryClient.setQueriesData({ queryKey: ["courses"] }, (current) => updateCourseLists(current, updatedCourse));
         updateCourseDetailCaches(queryClient, updatedCourse);
       }
-    },
-  });
-};
-
-export const useToggleReviewReaction = (reviewScopeKey: string) => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ reviewId, request }: { reviewId: number; request: ReviewReactionRequest }) =>
-      reviewApi.toggleReviewReaction(reviewId, request),
-
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["review", reviewScopeKey] });
     },
   });
 };

@@ -1,0 +1,7 @@
+[agents.poteto-agent]
+description = "Runs a scoped pstack playbook delegation and returns evidence to the coordinator."
+config_file = "agents/poteto-agent.toml"
+
+[agents.comment-sicko]
+description = "Audits scoped comments and flags code that needs to be made self-explanatory."
+config_file = "agents/comment-sicko.toml"

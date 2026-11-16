@@ -4,6 +4,7 @@ import bhoon.sugang_helper.academic.course.enums.TargetGrade;
 import java.util.Arrays;
 import java.util.List;
 import lombok.Builder;
+import org.springframework.util.StringUtils;
 
 @Builder
 public record CourseSearchCriteria(
@@ -36,6 +37,12 @@ public record CourseSearchCriteria(
         String sortOrder,
         Long userId
 ) {
+
+    public static final String POPULAR_SORT = "popular";
+    public static final String COURSE_DIRECTION_LIMIT_MESSAGE =
+            "수업 운영 방식 검색어가 허용 개수 또는 길이를 초과했습니다.";
+    private static final String COURSE_DIRECTION_SPLIT_PATTERN = "[,\\n;]+";
+
     public static final int MAX_STATUS_FILTERS = 20;
     public static final int MAX_STATUS_LENGTH = 50;
     public static final int MAX_COURSE_DIRECTION_LENGTH = 500;
@@ -48,10 +55,10 @@ public record CourseSearchCriteria(
     }
 
     public static List<String> normalizeCourseDirectionTerms(String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
+        if (!StringUtils.hasText(rawValue)) {
             return List.of();
         }
-        return normalizeDirectionTerms(Arrays.asList(rawValue.split("[,\\n;]+")));
+        return normalizeDirectionTerms(Arrays.asList(rawValue.split(COURSE_DIRECTION_SPLIT_PATTERN)));
     }
 
     private static List<String> normalizeStatuses(List<String> values) {
@@ -64,7 +71,7 @@ public record CourseSearchCriteria(
                 .toList();
         if (normalized.size() > MAX_STATUS_FILTERS
                 || normalized.stream().anyMatch(value -> value.length() > MAX_STATUS_LENGTH)) {
-            throw new IllegalArgumentException("statuses exceed the search predicate limit");
+            throw new IllegalArgumentException("강의 상태 필터가 허용 개수 또는 길이를 초과했습니다.");
         }
         return normalized;
     }
@@ -80,14 +87,14 @@ public record CourseSearchCriteria(
                 .toList();
         if (normalized.size() > MAX_COURSE_DIRECTION_TERMS
                 || normalized.stream().anyMatch(value -> value.length() > MAX_COURSE_DIRECTION_TERM_LENGTH)) {
-            throw new IllegalArgumentException("courseDirection terms exceed the search predicate limit");
+            throw new IllegalArgumentException(COURSE_DIRECTION_LIMIT_MESSAGE);
         }
         return normalized;
     }
 
     private static String trimRequired(String value) {
         if (value == null) {
-            throw new IllegalArgumentException("search predicate values must not be null");
+            throw new IllegalArgumentException("검색 조건 값은 null일 수 없습니다.");
         }
         return value.trim();
     }

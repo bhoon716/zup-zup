@@ -89,16 +89,10 @@ cd apps/server
 - `./gradlew performanceTest`
 - `./gradlew bootJar`
 
-## Related Docs
-
-- [Project release notes](../../docs/feature-updates.md)
-- [Troubleshooting log](../../docs/troubleshooting.md)
-
 ## Operational Notes
 
 - 운영 기준은 루트 README와 함께 보는 것이 좋습니다.
 - 운영 로그는 JSON stdout을 Alloy가 Loki로 수집하며 30일 검색합니다. `/tmp/application.log`는 재생성 시 사라지는 임시 진단 사본입니다.
 - 중요한 관리자 감사 기록은 별도 DB 정책과 [체크섬 아카이브/복구 절차](../../docs/operations/important-record-retention.md)를 따릅니다.
-- 이 문서는 데이터 흐름과 안정성 관점에서 읽는 것이 가장 유용합니다.
 
 인증은 [Redis 세션 단독 전환](../../docs/redis-session-migration.md)을 따른다. 자체 JWT·refresh API는 제거했고, 변경 요청에는 CSRF 토큰이 필요하다.

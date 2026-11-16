@@ -18,6 +18,7 @@ import bhoon.sugang_helper.identity.auth.controller.AuthController;
 import bhoon.sugang_helper.identity.auth.service.AuthService;
 import bhoon.sugang_helper.planning.timetable.controller.TimetableController;
 import bhoon.sugang_helper.planning.timetable.dto.response.TimetableResponse;
+import bhoon.sugang_helper.planning.timetable.entity.Timetable;
 import bhoon.sugang_helper.planning.timetable.service.TimetableService;
 import bhoon.sugang_helper.support.feedback.controller.FeedbackController;
 import bhoon.sugang_helper.support.feedback.service.FeedbackService;
@@ -36,6 +37,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.method.annotation.CsrfTokenArgumentResolver;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -64,20 +66,14 @@ class DirectResponseContractTest {
     @DisplayName("배열 응답은 성공 래퍼 없이 반환한다")
     void returnsArrayWithoutSuccessEnvelope() throws Exception {
         // given
-        given(timetables.getMyTimetables()).willReturn(List.of(TimetableResponse.builder().id(7L).name("기본").build()));
+        Timetable timetable = new Timetable(1L, "기본", false);
+        ReflectionTestUtils.setField(timetable, "id", 7L);
+        given(timetables.getMyTimetables()).willReturn(List.of(TimetableResponse.from(timetable)));
 
         // when & then
         mvc.perform(get("/api/v1/timetables"))
                 .andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$[0].id").value(7)).andExpect(jsonPath("$.data").doesNotExist());
-    }
-
-    @Test
-    @DisplayName("대표 시간표가 없으면 200 상태와 빈 본문을 유지한다")
-    void missingPrimaryTimetableKeeps200AndEmptyBody() throws Exception {
-        // when & then
-        mvc.perform(get("/api/v1/timetables/primary"))
-                .andExpect(status().isOk()).andExpect(content().string(""));
     }
 
     @Test

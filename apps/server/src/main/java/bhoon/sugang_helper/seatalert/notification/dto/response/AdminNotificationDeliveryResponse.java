@@ -5,6 +5,7 @@ import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
 import java.time.LocalDateTime;
+import org.springframework.util.StringUtils;
 
 public record AdminNotificationDeliveryResponse(
         Long id,
@@ -33,7 +34,7 @@ public record AdminNotificationDeliveryResponse(
                 delivery.getLastError(),
                 resolveLastErrorReason(delivery.getLastError()),
                 delivery.getDeadLetteredAt(),
-                delivery.getIdempotencyKey() != null && !delivery.getIdempotencyKey().isBlank());
+                StringUtils.hasText(delivery.getIdempotencyKey()));
     }
 
     private static String resolveLastErrorReason(String lastError) {

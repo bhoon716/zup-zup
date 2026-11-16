@@ -27,8 +27,7 @@ test("계정 전체 기기 목록은 순서가 바뀌어도 첫 기기를 현재
   for (const order of [devices, [...devices].reverse()]) {
     listed = order;
     await page.reload();
-    await expect(page.getByRole("heading", { name: "내 계정에 등록된 기기" })).toBeVisible();
-    await expect(page.getByText("같은 계정에 등록한 다른 기기도 함께 표시됩니다.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "등록된 기기" })).toBeVisible();
     await expect(page.getByText("내 맥북", { exact: true })).toBeVisible();
     await expect(page.getByText("내 아이폰", { exact: true })).toBeVisible();
     await expect(page.getByText("THIS", { exact: true })).toHaveCount(0);
@@ -36,10 +35,10 @@ test("계정 전체 기기 목록은 순서가 바뀌어도 첫 기기를 현재
 });
 
 for (const [name, userAgent, expectedAlias] of [
-  ["맥북", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15", "Safari on Mac"],
-  ["아이폰", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1", "Safari on iOS Device"],
+  ["맥북", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15", "내 맥북"],
+  ["아이폰", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1", "내 아이폰"],
 ]) {
-  test(`${name} UA의 기본 기기 이름과 구독 주소를 각각 등록한다`, async ({ page }) => {
+  test(`${name} 브라우저에서 입력한 기기 별칭과 구독 주소를 등록한다`, async ({ page }) => {
     const registered: Record<string, unknown>[] = [];
     await page.addInitScript(({ userAgent, name }) => {
       Object.defineProperty(navigator, "userAgent", { configurable: true, get: () => userAgent });
@@ -67,6 +66,7 @@ for (const [name, userAgent, expectedAlias] of [
       return route.fulfill({ json: [] });
     });
     await page.goto("/onboarding");
+    await page.getByRole("textbox", { name: "기기 별칭" }).fill(expectedAlias);
     await page.getByRole("switch", { name: "웹 푸시 (현재 기기)" }).click();
     await expect.poll(() => registered.length).toBe(1);
     expect(registered[0]).toEqual({

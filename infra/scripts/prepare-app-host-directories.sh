@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [ "$(id -u)" -ne 0 ]; then
-  echo "run this script as root to prepare app bind mounts" >&2
+  echo "앱 바인드 마운트 경로를 준비하려면 root 권한으로 실행하세요." >&2
   exit 1
 fi
 

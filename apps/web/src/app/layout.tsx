@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Providers from "@/app/providers";
+import { PageEntrance } from "@/app/page-entrance";
 import { ThirdPartyAnalytics } from "@/shared/analytics/third-party-analytics";
 import { generateWebsiteJsonLd } from "@/shared/seo/json-ld";
 import {
@@ -17,12 +18,24 @@ import {
 } from "@/shared/seo/branding";
 
 const notoSansKr = localFont({
+  src: [
+    { path: "./fonts/NotoSansKR.woff2", weight: "400" },
+    { path: "./fonts/NotoSansKR.woff2", weight: "700" },
+    { path: "./fonts/NotoSansKR.woff2", weight: "900" },
+  ],
+  style: "normal",
+  display: "swap",
+  preload: false,
+  variable: "--font-noto-sans-kr",
+});
+
+const scheduleFont = localFont({
   src: "./fonts/NotoSansKR.woff2",
   weight: "100 900",
   style: "normal",
   display: "swap",
   preload: false,
-  variable: "--font-noto-sans-kr",
+  variable: "--font-schedule-noto-sans-kr",
 });
 
 const geistMono = localFont({
@@ -41,8 +54,8 @@ const googleSiteVerification =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "전북대 수강신청 빈자리 알림 | 전북대학교 줍줍",
-  description: "전북대 수강신청 중 원하는 강의에 빈자리가 생기면 알려주는 전북대학교 수강신청 알림 서비스 '줍줍'입니다. 실시간 여석 알림과 스마트 시간표를 무료로 이용하세요.",
-  keywords: ["전북대", "전북대학교", "수강신청", "빈자리 알림", "여석 알림", "줍줍", "시간표", "오아시스", "JBNU"],
+  description: "전북대 수강신청 중 원하는 강의에 빈자리가 생기면 알려주는 전북대학교 수강신청 알림 서비스 '줍줍'입니다. 실시간 빈자리 알림과 스마트 시간표를 무료로 이용하세요.",
+  keywords: ["전북대", "전북대학교", "수강신청", "빈자리 알림", "줍줍", "시간표", "오아시스", "JBNU"],
   manifest: "/manifest.json",
   alternates: {
     canonical: SITE_URL,
@@ -72,7 +85,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "전북대 수강신청 빈자리 알림 | 전북대학교 줍줍",
-    description: "새로고침은 이제 그만! 전북대 수강신청 여석이 생기면 문자/푸시로 즉시 알려드리는 '줍줍' 서비스입니다.",
+    description: "새로고침은 이제 그만! 전북대 수강신청 중 강의에 빈자리가 생기면 문자/푸시로 즉시 알려드리는 '줍줍' 서비스입니다.",
     url: SITE_URL,
     siteName: "줍줍",
     locale: "ko_KR",
@@ -82,7 +95,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "전북대 수강신청 빈자리 알림 | 전북대학교 줍줍",
-    description: "새로고침은 이제 그만! 전북대 수강신청 여석이 생기면 문자/푸시로 즉시 알려드리는 '줍줍' 서비스입니다.",
+    description: "새로고침은 이제 그만! 전북대 수강신청 중 강의에 빈자리가 생기면 문자/푸시로 즉시 알려드리는 '줍줍' 서비스입니다.",
     images: [BRAND_ICON_512_PATH],
   },
   robots: {
@@ -106,7 +119,7 @@ export default function RootLayout({
   const jsonLd = generateWebsiteJsonLd();
 
   return (
-    <html lang="ko" className={`${notoSansKr.variable} ${geistMono.variable}`}>
+    <html lang="ko" className={`${notoSansKr.variable} ${scheduleFont.variable} ${geistMono.variable}`}>
       <head>
         <script
           type="application/ld+json"
@@ -116,7 +129,7 @@ export default function RootLayout({
       <body className="antialiased" data-clarity-mask="true">
         <Providers>
           <Header />
-          {children}
+          <PageEntrance>{children}</PageEntrance>
         </Providers>
         <Analytics />
         <SpeedInsights />

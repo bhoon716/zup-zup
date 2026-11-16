@@ -36,12 +36,16 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class LocalFileUploadService implements FileStorage {
 
+    private static final String EVENT_KEY = "event";
+    private static final String PATH_KEY = "path";
+
     private static final String UPLOAD_URL_PREFIX = "/uploads/";
+    private static final int MAX_IMAGE_ATTACHMENTS = 3;
     private static final Set<String> ALLOWED_IMAGE_MIME_TYPES = Set.of(
-            "image/jpeg", "image/png");
+            MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_PNG_VALUE);
     private static final Map<String, MediaType> SAFE_PREVIEW_MEDIA_TYPES = Map.of(
-            "image/jpeg", MediaType.IMAGE_JPEG,
-            "image/png", MediaType.IMAGE_PNG);
+            MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_JPEG,
+            MediaType.IMAGE_PNG_VALUE, MediaType.IMAGE_PNG);
     private final Tika tika = new Tika();
     private final ImageUploadSanitizer imageUploadSanitizer;
 
@@ -60,22 +64,12 @@ public class LocalFileUploadService implements FileStorage {
             return new ArrayList<>();
         }
 
-        if (files.size() > 3) {
+        if (files.size() > MAX_IMAGE_ATTACHMENTS) {
             throw new CustomException(ErrorCode.MAX_FILE_UPLOAD_LIMIT_EXCEEDED);
         }
 
         List<String> fileUrls = new ArrayList<>();
-        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-
-        try {
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-        } catch (IOException e) {
-            log.error("업로드 디렉터리 생성 실패. path= {}", uploadPath, SensitiveDataRedactor.safeStackTrace(e));
-            throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
-        }
-
+        Path uploadPath = prepareUploadDirectory();
         try {
             for (MultipartFile file : files) {
                 if (file.isEmpty()) {
@@ -95,6 +89,19 @@ public class LocalFileUploadService implements FileStorage {
         return fileUrls;
     }
 
+    private Path prepareUploadDirectory() {
+        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+        try {
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+        } catch (IOException e) {
+            logUploadDirectoryCreateFailed(uploadPath, e);
+            throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
+        }
+        return uploadPath;
+    }
+
     private String saveSanitizedImage(SanitizedImage image, Path uploadPath) {
         String savedName = UUID.randomUUID() + "." + image.extension();
         Path filePath = uploadPath.resolve(savedName);
@@ -104,7 +111,7 @@ public class LocalFileUploadService implements FileStorage {
             return UPLOAD_URL_PREFIX + savedName;
         } catch (IOException e) {
             deleteFile(filePath);
-            log.error("파일 저장 실패. path= {}", filePath, SensitiveDataRedactor.safeStackTrace(e));
+            logUploadFileSaveFailed(filePath, e);
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
         }
     }
@@ -126,7 +133,7 @@ public class LocalFileUploadService implements FileStorage {
             }
             return mimeType;
         } catch (IOException e) {
-            log.error("이미지 파일 검증 실패.", SensitiveDataRedactor.safeStackTrace(e));
+            logUploadImageValidationFailed(e);
             throw new CustomException(ErrorCode.FILE_UPLOAD_ERROR);
         }
     }
@@ -194,7 +201,7 @@ public class LocalFileUploadService implements FileStorage {
                     .filter(this::isOlderThanMinimumAge)
                     .forEach(this::deleteFile);
         } catch (IOException e) {
-            log.warn("미사용 업로드 파일 검색 실패. path= {}", uploadPath, SensitiveDataRedactor.safeStackTrace(e));
+            logUploadOrphanSearchFailed(uploadPath, e);
         }
     }
 
@@ -225,7 +232,7 @@ public class LocalFileUploadService implements FileStorage {
         try {
             return Files.getLastModifiedTime(file).toInstant().isBefore(Instant.now().minus(orphanMinimumAge));
         } catch (IOException e) {
-            log.warn("업로드 파일 속성 읽기 실패. path= {}", file, SensitiveDataRedactor.safeStackTrace(e));
+            logUploadFileAttributesFailed(file, e);
             return false;
         }
     }
@@ -234,7 +241,49 @@ public class LocalFileUploadService implements FileStorage {
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            log.warn("업로드 파일 삭제 실패. path= {}", filePath, SensitiveDataRedactor.safeStackTrace(e));
+            logUploadFileDeleteFailed(filePath, e);
         }
     }
+
+    private void logUploadDirectoryCreateFailed(Path path, Exception failure) {
+        log.atError().addKeyValue(EVENT_KEY, "upload_directory_create_failed")
+                .addKeyValue(PATH_KEY, path.toString())
+                .setCause(SensitiveDataRedactor.safeStackTrace(failure))
+                .log("업로드 디렉터리 생성 실패.");
+    }
+
+    private void logUploadFileSaveFailed(Path path, Exception failure) {
+        log.atError().addKeyValue(EVENT_KEY, "upload_file_save_failed")
+                .addKeyValue(PATH_KEY, path.toString())
+                .setCause(SensitiveDataRedactor.safeStackTrace(failure))
+                .log("파일 저장 실패.");
+    }
+
+    private void logUploadImageValidationFailed(Exception failure) {
+        log.atError().addKeyValue(EVENT_KEY, "upload_image_validation_failed")
+                .setCause(SensitiveDataRedactor.safeStackTrace(failure))
+                .log("이미지 파일 검증 실패.");
+    }
+
+    private void logUploadOrphanSearchFailed(Path path, Exception failure) {
+        log.atWarn().addKeyValue(EVENT_KEY, "upload_orphan_search_failed")
+                .addKeyValue(PATH_KEY, path.toString())
+                .setCause(SensitiveDataRedactor.safeStackTrace(failure))
+                .log("미사용 업로드 파일 검색 실패.");
+    }
+
+    private void logUploadFileAttributesFailed(Path path, Exception failure) {
+        log.atWarn().addKeyValue(EVENT_KEY, "upload_file_attributes_failed")
+                .addKeyValue(PATH_KEY, path.toString())
+                .setCause(SensitiveDataRedactor.safeStackTrace(failure))
+                .log("업로드 파일 속성 읽기 실패.");
+    }
+
+    private void logUploadFileDeleteFailed(Path path, Exception failure) {
+        log.atWarn().addKeyValue(EVENT_KEY, "upload_file_delete_failed")
+                .addKeyValue(PATH_KEY, path.toString())
+                .setCause(SensitiveDataRedactor.safeStackTrace(failure))
+                .log("업로드 파일 삭제 실패.");
+    }
+
 }

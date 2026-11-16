@@ -2,7 +2,7 @@ package bhoon.sugang_helper.academic.crawling.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.crawling.service.JbnuCourseParser;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.nio.charset.StandardCharsets;
@@ -11,6 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.util.StringUtils;
 
 @Tag("manual")
 class JbnuCourseApiClientTest {
@@ -37,7 +38,7 @@ class JbnuCourseApiClientTest {
         String result = client.fetchCourseData("2026", "U211600020");
 
         // then
-        List<ParsedCourseDto> courses = new JbnuCourseParser().parseCourses(result, "2026", "U211600020");
+        List<ParsedCourse> courses = new JbnuCourseParser().parseCourses(result, "2026", "U211600020");
 
         assertThat(result).contains("dsEstSbjList");
         assertThat(courses).isNotEmpty();
@@ -47,7 +48,7 @@ class JbnuCourseApiClientTest {
 
     private String firstNonBlank(String... values) {
         for (String value : values) {
-            if (value != null && !value.isBlank()) {
+            if (StringUtils.hasText(value)) {
                 return value;
             }
         }

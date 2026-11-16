@@ -82,7 +82,7 @@ class UserOAuthAccountServiceTest {
         // when & then
         assertThatThrownBy(() -> service.findOrCreate(ISSUER, "attacker-subject", EMAIL, "다른 사용자"))
                 .isInstanceOf(OAuthAccountProvisioningException.class)
-                .hasMessageContaining("already bound");
+                .hasMessageContaining("이미 연동된 OAuth 계정입니다.");
         verify(userRepository, never()).save(any());
     }
 

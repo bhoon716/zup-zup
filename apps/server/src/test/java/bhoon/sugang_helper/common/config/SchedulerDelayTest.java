@@ -4,16 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
 import bhoon.sugang_helper.academic.crawling.scheduler.CourseScheduler;
+import bhoon.sugang_helper.academic.crawling.scheduler.CrawlerFreshnessMonitor;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlCompletionService;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlFetcher;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerService;
 import bhoon.sugang_helper.academic.crawling.service.CourseCrawlerTargetService;
 import bhoon.sugang_helper.academic.crawling.service.CrawlerRunStateService;
 import bhoon.sugang_helper.seatalert.notification.scheduler.SeatNotificationOutboxWorker;
+import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationDeliveryStateService;
 import bhoon.sugang_helper.seatalert.notification.service.SeatNotificationOutboxProcessor;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
@@ -56,7 +58,7 @@ class SchedulerDelayTest {
         AtomicLong fetchStartedAt = new AtomicLong();
         AtomicLong outboxStartedAt = new AtomicLong();
         AtomicLong freshnessStartedAt = new AtomicLong();
-        List<ParsedCourseDto> courses = List.of(mock(ParsedCourseDto.class));
+        List<ParsedCourse> courses = List.of(mock(ParsedCourse.class));
         when(targetService.getCurrentTargetValue()).thenReturn(new CrawlTargetInfo(YEAR, SemesterType.FIRST_SEMESTER));
         when(fetcher.fetch(YEAR, SEMESTER)).thenAnswer(invocation -> {
             fetchStartedAt.set(System.nanoTime());
@@ -66,7 +68,8 @@ class SchedulerDelayTest {
             }
             return courses;
         });
-        when(processor.claimReadyDeliveries(1)).thenReturn(List.of());
+        SeatNotificationDeliveryStateService deliveryStateService = mock(SeatNotificationDeliveryStateService.class);
+        when(deliveryStateService.claimReadyDeliveries(1)).thenReturn(List.of());
         when(runState.findLastSuccessAt()).thenReturn(Optional.of(LocalDateTime.now()));
 
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
@@ -74,9 +77,10 @@ class SchedulerDelayTest {
         // when & then
         try {
             CourseCrawlerService crawler = new CourseCrawlerService(fetcher, completion, targetService, runState, registry);
-            ReflectionTestUtils.setField(crawler, "staleThresholdMinutes", 15L);
+            CrawlerFreshnessMonitor freshnessMonitor = new CrawlerFreshnessMonitor(runState, registry);
+            ReflectionTestUtils.setField(freshnessMonitor, "staleThresholdMinutes", 15L);
             CourseScheduler courseScheduler = new CourseScheduler(crawler);
-            SeatNotificationOutboxWorker worker = new SeatNotificationOutboxWorker(processor, registry, 1);
+            SeatNotificationOutboxWorker worker = new SeatNotificationOutboxWorker(processor, deliveryStateService, registry, 1);
             ThreadPoolTaskScheduler scheduler = new SchedulingConfig()
                     .taskScheduler(new ThreadPoolTaskSchedulerBuilder());
             scheduler.initialize();
@@ -95,7 +99,7 @@ class SchedulerDelayTest {
                 ScheduledFuture<?> freshness = scheduler.scheduleWithFixedDelay(observe(() -> {
                     freshnessStartedAt.compareAndSet(0, System.nanoTime());
                     dependentStarted.countDown();
-                    crawler.checkDataFreshness();
+                    freshnessMonitor.checkDataFreshness();
                     freshnessCompletedTwice.countDown();
                 }), due, Duration.ofMillis(60));
 

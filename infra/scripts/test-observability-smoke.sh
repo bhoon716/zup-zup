@@ -60,7 +60,7 @@ cleanup() {
 trap cleanup EXIT
 
 fail() {
-  echo "observability smoke failed: $*" >&2
+  echo "모니터링 점검에 실패했습니다: $*" >&2
   exit 1
 }
 
@@ -68,11 +68,11 @@ is_positive_integer() {
   [[ "$1" =~ ^[1-9][0-9]*$ ]]
 }
 
-command -v docker >/dev/null || fail "docker is required"
-command -v curl >/dev/null || fail "host curl is required for the Grafana endpoint"
-command -v python3 >/dev/null || fail "python3 is required to validate query JSON"
-is_positive_integer "${timeout_seconds}" || fail "OBSERVABILITY_SMOKE_TIMEOUT_SECONDS must be a positive integer"
-is_positive_integer "${http_timeout_seconds}" || fail "OBSERVABILITY_SMOKE_HTTP_TIMEOUT_SECONDS must be a positive integer"
+command -v docker >/dev/null || fail "Docker가 필요합니다."
+command -v curl >/dev/null || fail "Grafana 주소를 확인하려면 호스트에 curl이 필요합니다."
+command -v python3 >/dev/null || fail "쿼리 결과 JSON을 검증하려면 python3가 필요합니다."
+is_positive_integer "${timeout_seconds}" || fail "OBSERVABILITY_SMOKE_TIMEOUT_SECONDS는 양의 정수여야 합니다."
+is_positive_integer "${http_timeout_seconds}" || fail "OBSERVABILITY_SMOKE_HTTP_TIMEOUT_SECONDS는 양의 정수여야 합니다."
 
 deadline=$((SECONDS + timeout_seconds))
 marker_lifetime_seconds=$((timeout_seconds + http_timeout_seconds + 10))
@@ -91,18 +91,18 @@ grafana_curl_config="${temporary_dir}/grafana-curl.conf"
 write_grafana_curl_config() {
   if [ -n "${grafana_token_file}" ]; then
     [[ "${grafana_url}" =~ ^http://127\.0\.0\.1:[0-9]{1,5}$ ]] \
-      || fail "Grafana token authentication requires a loopback Grafana URL"
+      || fail "Grafana 토큰 인증에는 루프백 Grafana 주소가 필요합니다."
     [ -f "${grafana_token_file}" ] && [ -r "${grafana_token_file}" ] \
-      || fail "GRAFANA_SMOKE_TOKEN_FILE must be a readable regular file"
+      || fail "GRAFANA_SMOKE_TOKEN_FILE은 읽을 수 있는 일반 파일이어야 합니다."
     local token
-    token="$(<"${grafana_token_file}")" || fail "Grafana smoke token could not be read"
-    [[ "${token}" =~ ^glsa_[A-Za-z0-9_+=/-]{12,490}$ ]] || fail "Grafana smoke token is invalid"
+    token="$(<"${grafana_token_file}")" || fail "Grafana 점검 토큰을 읽지 못했습니다."
+    [[ "${token}" =~ ^glsa_[A-Za-z0-9_+=/-]{12,490}$ ]] || fail "Grafana 점검 토큰이 올바르지 않습니다."
     printf 'header = "Authorization: Bearer %s"\n' "${token}"
     return
   fi
 
-  [ -n "${grafana_user}" ] || fail "GRAFANA_ADMIN_USER is required for datasource API checks"
-  [ -n "${grafana_password}" ] || fail "GRAFANA_ADMIN_PASSWORD is required for datasource API checks"
+  [ -n "${grafana_user}" ] || fail "데이터소스 API 점검에는 GRAFANA_ADMIN_USER가 필요합니다."
+  [ -n "${grafana_password}" ] || fail "데이터소스 API 점검에는 GRAFANA_ADMIN_PASSWORD가 필요합니다."
   printf 'user = "%s:%s"\n' "$(escape_curl_config_value "${grafana_user}")" \
     "$(escape_curl_config_value "${grafana_password}")"
 }
@@ -110,17 +110,17 @@ write_grafana_curl_config() {
 (umask 077; write_grafana_curl_config >"${grafana_curl_config}")
 
 if ! [[ "${runtime_network}" =~ ^[A-Za-z0-9_.-]+$ ]]; then
-  fail "RUNTIME_NETWORK_NAME contains unsupported characters"
+  fail "RUNTIME_NETWORK_NAME에 지원하지 않는 문자가 포함됐습니다."
 fi
 if ! run_with_smoke_deadline docker network inspect "${runtime_network}" >/dev/null 2>&1; then
-  fail "runtime network is missing: ${runtime_network}"
+  fail "실행 네트워크가 없습니다: ${runtime_network}"
 fi
 if ! run_with_smoke_deadline docker image inspect "${probe_image}" >/dev/null 2>&1; then
-  fail "pinned observability probe image is not available locally"
+  fail "버전이 고정된 모니터링 점검 이미지가 로컬에 없습니다."
 fi
 
 if ! run_with_smoke_deadline docker inspect "${grafana_container}" >/dev/null 2>&1; then
-  fail "Grafana container is missing: ${grafana_container}"
+  fail "Grafana 컨테이너가 없습니다: ${grafana_container}"
 fi
 
 probe_http() {
@@ -153,7 +153,7 @@ wait_for() {
       sleep 0.1
     fi
   done
-  fail "${description} did not succeed within ${timeout_seconds}s"
+  fail "${description} 점검을 ${timeout_seconds}초 안에 완료하지 못했습니다."
 }
 
 check_loki_ready() {
@@ -322,14 +322,14 @@ check_grafana_loki_marker() {
     && parse_loki_marker "${response_file}" "${marker_text}"
 }
 
-wait_for "Loki HTTP readiness" check_loki_ready
-wait_for "Alloy HTTP readiness" check_alloy_ready
-wait_for "Prometheus HTTP readiness" check_prometheus_ready
-wait_for "application readiness from the runtime network" check_app_ready
-wait_for "Grafana HTTP health" check_grafana_ready
-wait_for "Prometheus app target up" check_prometheus_app_target
-wait_for "Grafana Prometheus datasource health" check_grafana_datasources
-wait_for "Grafana Prometheus query proxy" check_grafana_prometheus_query
+wait_for "Loki HTTP 준비 상태" check_loki_ready
+wait_for "Alloy HTTP 준비 상태" check_alloy_ready
+wait_for "Prometheus HTTP 준비 상태" check_prometheus_ready
+wait_for "실행 네트워크에서 앱 준비 상태" check_app_ready
+wait_for "Grafana HTTP 상태" check_grafana_ready
+wait_for "Prometheus 앱 수집 대상 활성 상태" check_prometheus_app_target
+wait_for "Grafana의 Prometheus 데이터소스 상태" check_grafana_datasources
+wait_for "Grafana의 Prometheus 쿼리 프록시" check_grafana_prometheus_query
 
 marker_id="$(python3 -c 'import uuid; print(uuid.uuid4().hex)')"
 marker_text="observability-smoke-${marker_id}"
@@ -347,9 +347,9 @@ run_with_smoke_deadline docker run -d \
   "${probe_image}" \
   -c "printf '%s\\n' '${marker_text}'; sleep ${marker_lifetime_seconds}" \
   >/dev/null \
-  || fail "could not start the Docker JSON marker container"
+  || fail "Docker JSON 점검 로그 컨테이너를 시작하지 못했습니다."
 
-wait_for "Docker JSON to Alloy to Loki marker round-trip" check_loki_marker
-wait_for "Grafana Loki datasource marker query" check_grafana_loki_marker
+wait_for "Docker JSON 로그의 Alloy·Loki 수집 경로" check_loki_marker
+wait_for "Grafana의 Loki 점검 로그 조회" check_grafana_loki_marker
 
-echo "observability data-plane smoke passed (marker=${marker_text})"
+echo "모니터링 데이터 경로 점검을 통과했습니다. (marker=${marker_text})"

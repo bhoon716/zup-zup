@@ -1,0 +1,152 @@
+package bhoon.sugang_helper.seatalert.notification.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doAnswer;
+
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipients;
+import bhoon.sugang_helper.seatalert.api.NotificationChannel;
+import bhoon.sugang_helper.seatalert.notification.dto.result.SeatNotificationDeliveryClaim;
+import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
+import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationOutbox;
+import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
+import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationOutboxStatus;
+import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
+import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOutboxRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+@DataJpaTest
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+@Import({SeatNotificationDeliveryStateService.class, SimpleMeterRegistry.class})
+@MockitoBean(types = {NotificationRecipients.class, NotificationChannelPolicy.class, InboxWebPushNotices.class})
+class SeatNotificationDeliveryStateServiceTest {
+
+    @Autowired
+    private SeatNotificationDeliveryStateService deliveryStateService;
+
+    @Autowired
+    private SeatNotificationOutboxRepository outboxRepository;
+
+    @MockitoSpyBean
+    private SeatNotificationDeliveryRepository deliveryRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    @Test
+    @DisplayName("오래된 작업자는 다시 선점된 발송을 성공으로 정산할 수 없다")
+    void staleWorkerCannotMarkAReclaimedDeliveryAsSent() {
+        // given
+        SeatNotificationOutbox outbox = outboxRepository.saveAndFlush(SeatNotificationOutbox.builder()
+                .courseKey("course-key")
+                .courseName("Course")
+                .previousSeats(0)
+                .currentSeats(1)
+                .build());
+        SeatNotificationDelivery delivery = deliveryRepository.saveAndFlush(SeatNotificationDelivery.builder()
+                .outbox(outbox)
+                .userId(1L)
+                .channel(NotificationChannel.EMAIL)
+                .build());
+        LocalDateTime now = LocalDateTime.of(2026, 7, 13, 14, 0);
+        String firstClaimToken = delivery.claim(now.minusMinutes(1));
+        delivery = deliveryRepository.saveAndFlush(delivery);
+        String secondClaimToken = delivery.claim(now.plusMinutes(1));
+        delivery = deliveryRepository.saveAndFlush(delivery);
+
+        // when
+        boolean settled = deliveryStateService.settleAttempt(new SeatNotificationDeliveryClaim(
+                delivery.getId(), firstClaimToken), 1L, SeatDeliveryAttempt.skipped(false), null, 1).settled();
+
+        // then
+        assertThat(settled).isFalse();
+        assertThat(deliveryRepository.findById(delivery.getId())).get()
+                .satisfies(current -> {
+                    assertThat(current.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.PROCESSING);
+                    assertThat(current.getClaimToken()).isEqualTo(secondClaimToken);
+                });
+    }
+
+    @Test
+    @DisplayName("마지막 발송들이 동시에 끝나도 Outbox를 완료로 정산한다")
+    void concurrentLastDeliveriesReconcileOutboxToCompleted() throws Exception {
+        // given
+        SeatNotificationOutbox outbox = outboxRepository.saveAndFlush(SeatNotificationOutbox.builder()
+                .courseKey("course-key")
+                .courseName("Course")
+                .previousSeats(0)
+                .currentSeats(1)
+                .build());
+        outbox.markProcessing();
+        outbox = outboxRepository.saveAndFlush(outbox);
+
+        SeatNotificationDelivery firstDelivery = claimedDelivery(outbox, 1L);
+        SeatNotificationDelivery secondDelivery = claimedDelivery(outbox, 2L);
+        deliveryRepository.saveAllAndFlush(List.of(firstDelivery, secondDelivery));
+
+        CountDownLatch countInvocations = new CountDownLatch(2);
+        doAnswer(invocation -> {
+            Long outboxId = invocation.getArgument(0);
+            List<SeatNotificationDeliveryStatus> result = entityManager.createQuery("""
+                    select distinct d.status from SeatNotificationDelivery d where d.outbox.id = :outboxId
+                    """, SeatNotificationDeliveryStatus.class)
+                    .setParameter("outboxId", outboxId)
+                    .getResultList();
+            countInvocations.countDown();
+            countInvocations.await(250, TimeUnit.MILLISECONDS);
+            return result;
+        }).when(deliveryRepository).findStatusesByOutboxId(anyLong());
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        // when & then
+        try {
+            Future<Boolean> first = executor.submit(() -> settle(firstDelivery));
+            Future<Boolean> second = executor.submit(() -> settle(secondDelivery));
+
+            assertThat(first.get(10, TimeUnit.SECONDS)).isTrue();
+            assertThat(second.get(10, TimeUnit.SECONDS)).isTrue();
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(outboxRepository.findById(outbox.getId())).get()
+                .extracting(SeatNotificationOutbox::getStatus)
+                .isEqualTo(SeatNotificationOutboxStatus.COMPLETED);
+    }
+
+    private boolean settle(SeatNotificationDelivery delivery) {
+        SeatNotificationDeliveryClaim claim = new SeatNotificationDeliveryClaim(
+                delivery.getId(), delivery.getClaimToken());
+        return deliveryStateService.settleAttempt(claim, delivery.getUserId(),
+                SeatDeliveryAttempt.skipped(false), null, 1).settled();
+    }
+
+    private SeatNotificationDelivery claimedDelivery(SeatNotificationOutbox outbox, Long userId) {
+        SeatNotificationDelivery delivery = SeatNotificationDelivery.builder()
+                .outbox(outbox)
+                .userId(userId)
+                .channel(NotificationChannel.EMAIL)
+                .build();
+        delivery.claim(LocalDateTime.now().plusMinutes(1));
+        return delivery;
+    }
+}

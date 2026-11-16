@@ -21,7 +21,6 @@ import type {
   WishlistResponse,
 } from "@/shared/types/api";
 
-const TODAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 const COURSE_CLASSIFICATIONS = new Set<CourseClassification>([
   "계열공통",
   "교양",
@@ -57,7 +56,7 @@ export const useTimetablePage = () => {
 
   const { data: timetablesData, isLoading: isListLoading } = useTimetables();
   const timetables = useMemo(() => timetablesData ?? [], [timetablesData]);
-  const { data: wishlistData, isLoading: isWishlistLoading } = useWishlist();
+  const { data: wishlistData, isLoading: isWishlistLoading } = useWishlist(sidebarTab === "wishlist");
   const wishlist = wishlistData ?? [];
 
   const activeTimetableId = useMemo(() => {
@@ -74,7 +73,6 @@ export const useTimetablePage = () => {
   }, [selectedTimetableId, timetables]);
 
   const { data: timetableDetail, isLoading: isDetailLoading } = useTimetableDetail(activeTimetableId);
-  const todayLabel = TODAY_LABELS[new Date().getDay()];
 
   const createMutation = useMutation({
     mutationFn: (name: string) => timetableApi.createTimetable({ name, primary: timetables.length === 0 }),
@@ -166,40 +164,6 @@ export const useTimetablePage = () => {
     return timetableDetail.courses.reduce((sum, course) => sum + (Number(course.credits) || 0), 0);
   }, [timetableDetail]);
 
-  const todaySchedules = useMemo(() => {
-    if (!timetableDetail) {
-      return [];
-    }
-
-    const courseItems = timetableDetail.courses.flatMap((course) =>
-      (course.schedules ?? [])
-        .filter((schedule) => formatDayOfWeek(String(schedule.dayOfWeek)) === todayLabel)
-        .map((schedule, idx) => ({
-          key: `${course.courseKey}-${idx}`,
-          title: course.name,
-          subtitle: [course.professor, course.classroom].filter(Boolean).join(" • "),
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          type: "course" as const,
-        }))
-    );
-
-    const customItems = (timetableDetail.customSchedules ?? []).flatMap((custom) =>
-      (custom.schedules ?? [])
-        .filter((schedule) => formatDayOfWeek(schedule.dayOfWeek) === todayLabel)
-        .map((schedule) => ({
-          key: `custom-${custom.id}-${schedule.id}`,
-          title: custom.title,
-          subtitle: "직접 추가 일정",
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          type: "custom" as const,
-        }))
-    );
-
-    return [...courseItems, ...customItems].sort((left, right) => left.startTime.localeCompare(right.startTime));
-  }, [timetableDetail, todayLabel]);
-
   const timetableCourses = useMemo(() => {
     if (!timetableDetail) {
       return [];
@@ -254,19 +218,10 @@ export const useTimetablePage = () => {
     });
   };
 
-  const handleRemoveCourse = (courseKey: string, courseName: string) => {
-    if (!activeTimetableId) {
-      return;
-    }
+  const handleRemoveCourse = (courseKey: string) => {
+    if (activeTimetableId === null || removeCourseMutation.isPending) return;
 
-    if (!confirm(`${courseName} 강의를 시간표에서 삭제하시겠습니까?`)) {
-      return;
-    }
-
-    removeCourseMutation.mutate({
-      timetableId: activeTimetableId,
-      courseKey,
-    });
+    removeCourseMutation.mutate({ timetableId: activeTimetableId, courseKey });
   };
 
   return {
@@ -284,10 +239,7 @@ export const useTimetablePage = () => {
     activeTimetableId,
     timetableDetail,
     isDetailLoading,
-    timetableName: timetableDetail?.name || "시간표",
     totalCredits,
-    todayLabel,
-    todaySchedules,
     timetableCourses,
     wishlist,
     isWishlistLoading,
@@ -301,10 +253,9 @@ export const useTimetablePage = () => {
     isCreatingTimetable: createMutation.isPending,
     handleAddCourse,
     handleRemoveCourse,
-    pendingAddCourseKey: addCourseMutation.isPending ? addCourseMutation.variables?.courseKey ?? null : null,
-    pendingRemoveCourseKey: removeCourseMutation.isPending ? removeCourseMutation.variables?.courseKey ?? null : null,
-    isAddingCourse: addCourseMutation.isPending,
     isRemovingCourse: removeCourseMutation.isPending,
+    pendingAddCourseKey: addCourseMutation.isPending ? addCourseMutation.variables?.courseKey ?? null : null,
+    isAddingCourse: addCourseMutation.isPending,
   };
 };
 

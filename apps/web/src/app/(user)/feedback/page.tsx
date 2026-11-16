@@ -8,16 +8,32 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useRef, useState } from "react";
 
 import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
 import { useMyFeedbacks } from "@/features/feedback/hooks/useFeedback";
 import { FeedbackStatus, FeedbackType } from "@/shared/types/api";
 import { FeedbackList } from "@/features/feedback/components/feedback-list";
+import { FeedbackPagination } from "@/features/feedback/components/feedback-pagination";
 
 function FeedbackPageContent() {
   const router = useRouter();
-  const { data: feedbackList, isLoading: isListLoading } = useMyFeedbacks();
+  const [page, setPage] = useState(0);
+  const listTop = useRef<HTMLDivElement>(null);
+  const { data: feedbackList, isLoading: isListLoading, isFetching, isError, refetch } = useMyFeedbacks(page);
+
+  if (feedbackList && !isFetching && !isError) {
+    const lastPage = Math.max(0, feedbackList.totalPages - 1);
+    if (page > lastPage) setPage(lastPage);
+  }
+
+  const changePage = (nextPage: number) => {
+    if (nextPage === page) return;
+    setPage(nextPage);
+    listTop.current?.focus({ preventScroll: true });
+    listTop.current?.scrollIntoView({ block: "start" });
+  };
 
   const getStatusBadge = (status: FeedbackStatus) => {
     switch (status) {
@@ -38,7 +54,7 @@ function FeedbackPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0F0F0F] py-12 px-4 md:px-8">
+    <main className="min-h-screen px-4 py-12 md:px-8">
       <div className="container max-w-5xl mx-auto space-y-10">
         <div className="border-b border-gray-100 dark:border-gray-800 pb-8 mt-4">
           <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">문의 및 건의사항</h1>
@@ -54,18 +70,30 @@ function FeedbackPageContent() {
           </Link>
         </div>
 
-        <div className="bg-white dark:bg-black/10 min-h-[500px]">
-          <FeedbackList
-            isLoading={isListLoading}
-            feedbackList={feedbackList}
-            selectedFeedbackId={null}
-            onSelectFeedback={(id) => router.push(`/feedback/${id}`)}
-            getTypeIcon={getTypeIcon}
-            getStatusBadge={getStatusBadge}
-          />
+        <div ref={listTop} tabIndex={-1} className="scroll-mt-20">
+          <section aria-label="문의 목록" className="overflow-hidden rounded-xl border bg-card">
+            {isError ? (
+              <div role="alert" className="flex flex-wrap items-center justify-center gap-3 px-4 py-12 text-sm text-muted-foreground">
+                문의 목록을 불러오지 못했습니다.
+                <Button type="button" variant="outline" size="sm" onClick={() => { void refetch(); }}>다시 시도</Button>
+              </div>
+            ) : (
+              <FeedbackList
+                isLoading={isListLoading}
+                feedbackList={feedbackList}
+                selectedFeedbackId={null}
+                onSelectFeedback={(id) => router.push(`/feedback/${id}`)}
+                getTypeIcon={getTypeIcon}
+                getStatusBadge={getStatusBadge}
+              />
+            )}
+          </section>
+          {feedbackList && feedbackList.totalPages > 1 && (
+            <FeedbackPagination className="mt-5" page={page} totalPages={feedbackList.totalPages} onChange={changePage} />
+          )}
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 

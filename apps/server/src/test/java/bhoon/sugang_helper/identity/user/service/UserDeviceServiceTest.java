@@ -2,6 +2,7 @@ package bhoon.sugang_helper.identity.user.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
@@ -15,6 +16,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import bhoon.sugang_helper.identity.user.dto.command.RegisterDeviceCommand;
 import bhoon.sugang_helper.identity.user.dto.result.UserDeviceResult;
 import bhoon.sugang_helper.identity.user.entity.User;
@@ -169,10 +171,7 @@ class UserDeviceServiceTest {
                 new RegisterDeviceCommand(sensitiveToken, "p256", "auth", "Personal phone"));
 
         // then
-        assertThat(logAppender.list)
-                .extracting(ILoggingEvent::getFormattedMessage)
-                .noneMatch(message -> message.contains(sensitiveToken))
-                .anyMatch(message -> message.contains("tokenFingerprint=sha256:"));
+        assertRedactedTokenLog(sensitiveToken, "notification_device_registered");
     }
 
     @Test
@@ -189,10 +188,17 @@ class UserDeviceServiceTest {
                 new RegisterDeviceCommand(sensitiveToken, "P256DH", "AUTH", "Laptop"));
 
         // then
-        assertThat(logAppender.list)
-                .extracting(ILoggingEvent::getFormattedMessage)
-                .noneMatch(message -> message.contains(sensitiveToken))
-                .anyMatch(message -> message.contains("tokenFingerprint=sha256:"));
+        assertRedactedTokenLog(sensitiveToken, "notification_device_updated");
+    }
+
+    private void assertRedactedTokenLog(String token, String eventName) {
+        assertThat(logAppender.list).singleElement().satisfies(event -> {
+            assertThat(event.getFormattedMessage()).doesNotContain(token);
+            assertThat(event.getKeyValuePairs().toString()).doesNotContain(token);
+            assertThat(event.getKeyValuePairs()).extracting(pair -> pair.key, pair -> pair.value)
+                    .contains(tuple("event", eventName),
+                            tuple("tokenFingerprint", SensitiveDataRedactor.fingerprint(token)));
+        });
     }
 
     @Test
@@ -214,7 +220,7 @@ class UserDeviceServiceTest {
     void unregisterDevice_Success() {
         // given
         mockUser();
-        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(1L);
+        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(1);
 
         // when
         userDeviceService.unregisterDevice(TOKEN);
@@ -228,7 +234,7 @@ class UserDeviceServiceTest {
     void unregisterDevice_OtherUsersDevice_IsNoOp() {
         // given
         mockUser();
-        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(0L);
+        given(userDeviceRepository.deleteByTokenAndUserId(TOKEN, 1L)).willReturn(0);
 
         // when
         userDeviceService.unregisterDevice(TOKEN);

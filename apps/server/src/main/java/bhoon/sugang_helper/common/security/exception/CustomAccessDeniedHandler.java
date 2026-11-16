@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.csrf.CsrfException;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
+
+    private static final String CORRELATION_ID_KEY = "correlationId";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -29,9 +33,19 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
         ErrorCode errorCode = accessDeniedException instanceof CsrfException ? ErrorCode.CSRF_INVALID : ErrorCode.FORBIDDEN;
         ErrorResponse errorResponse = ErrorResponse.of(errorCode, request.getRequestURI());
         response.setHeader("X-Error-Id", errorResponse.getCorrelationId());
-        log.warn("[ACCESS_DENIED] 접근 권한 없음. correlationId={} method={} path={} exceptionType={}",
-                errorResponse.getCorrelationId(), request.getMethod(), errorResponse.getPath(),
-                accessDeniedException.getClass().getSimpleName());
+        logAccessDenied(errorResponse, request.getMethod(), accessDeniedException);
         objectMapper.writeValue(response.getWriter(), errorResponse);
+    }
+
+    private void logAccessDenied(ErrorResponse error, String method, AccessDeniedException failure) {
+        LoggingEventBuilder entry = log.atWarn().addKeyValue("event", "access_denied")
+                .addKeyValue("errorCode", error.getCode())
+                .addKeyValue("method", method)
+                .addKeyValue("path", error.getPath())
+                .addKeyValue("exceptionType", failure.getClass().getSimpleName());
+        if (MDC.get(CORRELATION_ID_KEY) == null) {
+            entry.addKeyValue(CORRELATION_ID_KEY, error.getCorrelationId());
+        }
+        entry.log("[ACCESS_DENIED] 접근 권한 없음.");
     }
 }

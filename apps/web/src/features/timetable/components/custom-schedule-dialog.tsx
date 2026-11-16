@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useId, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,6 +24,9 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+const fieldIconClassName = 'pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground';
+const fieldInputClassName = 'h-11 rounded-lg bg-muted/30 pl-9 shadow-none';
+
 interface CustomScheduleDialogProps {
   timetableId: number | null;
   open: boolean;
@@ -31,6 +34,7 @@ interface CustomScheduleDialogProps {
 }
 
 export function CustomScheduleDialog({ timetableId, open, onOpenChange }: CustomScheduleDialogProps) {
+  const formId = useId();
   const addCustomSchedule = useAddCustomSchedule();
   const [selectedSchedules, setSelectedSchedules] = useState<ScheduleCondition[]>([]);
 
@@ -92,72 +96,76 @@ export function CustomScheduleDialog({ timetableId, open, onOpenChange }: Custom
         <DialogHeader className="px-8 py-6 border-b border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-white/5 text-left">
           <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">일정 직접 추가</DialogTitle>
           <DialogDescription className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            시간표 그리드에서 원하는 칸을 드래그하여 일정을 추가해보세요.
+            일정 정보를 입력하고 시간을 선택하세요.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto">
           <div className="px-8 py-6 space-y-8">
-            {              }
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
-                  <Edit2 className="h-4 w-4 text-primary" />
-                  일정 제목 <span className="text-primary">*</span>
+            <div className="grid gap-x-4 gap-y-4 min-[480px]:grid-cols-2">
+              <div className="col-span-full grid gap-2">
+                <Label htmlFor={`${formId}-title`}>
+                  일정 제목 <span aria-hidden="true" className="text-primary">*</span>
                 </Label>
-                <Input 
-                  {...register('title')}
-                  className="w-full h-11 bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-gray-700 rounded-xl px-4 focus:ring-2 focus:ring-primary/50"
-                  placeholder="예: 전공 공부"
-                />
-                {errors.title && <p className="mt-1 ml-1 text-xs text-red-500">{errors.title.message}</p>}
+                <div className="relative">
+                  <Edit2 aria-hidden="true" className={fieldIconClassName} />
+                  <Input
+                    {...register('title')}
+                    id={`${formId}-title`}
+                    aria-required="true"
+                    aria-invalid={Boolean(errors.title)}
+                    aria-describedby={errors.title ? `${formId}-title-error` : undefined}
+                    className={fieldInputClassName}
+                    placeholder="예: 전공 공부"
+                  />
+                </div>
+                {errors.title && <p id={`${formId}-title-error`} className="text-xs text-destructive">{errors.title.message}</p>}
               </div>
 
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
-                  <User className="h-4 w-4 text-primary" />
-                  교수명/설명
-                </Label>
-                <Input 
-                  {...register('professor')}
-                  className="w-full h-11 bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-gray-700 rounded-xl px-4 focus:ring-2 focus:ring-primary/50"
-                  placeholder="예: 홍길동 교수님"
-                />
+              <div className="grid gap-2">
+                <Label htmlFor={`${formId}-professor`}>교수명/설명</Label>
+                <div className="relative">
+                  <User aria-hidden="true" className={fieldIconClassName} />
+                  <Input
+                    {...register('professor')}
+                    id={`${formId}-professor`}
+                    className={fieldInputClassName}
+                    placeholder="예: 홍길동 교수님"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 ml-1">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  장소/강의실
-                </Label>
-                <Input 
-                  {...register('classroom')}
-                  className="w-full h-11 bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-gray-700 rounded-xl px-4 focus:ring-2 focus:ring-primary/50"
-                  placeholder="예: 중앙도서관"
-                />
+              <div className="grid gap-2">
+                <Label htmlFor={`${formId}-classroom`}>장소/강의실</Label>
+                <div className="relative">
+                  <MapPin aria-hidden="true" className={fieldIconClassName} />
+                  <Input
+                    {...register('classroom')}
+                    id={`${formId}-classroom`}
+                    className={fieldInputClassName}
+                    placeholder="예: 중앙도서관"
+                  />
+                </div>
               </div>
             </div>
 
             <hr className="border-gray-100 dark:border-gray-800" />
 
-            {              }
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="flex items-center gap-2 text-base font-bold text-gray-800 dark:text-gray-100 ml-1">
-                  <Clock className="h-5 w-5 text-primary" />
-                  시간 선택
-                </Label>
-                <div className="text-xs text-gray-500 bg-gray-100 dark:bg-white/5 px-3 py-1 rounded-full">
-                  드래그하여 여러 칸을 한 번에 선택할 수 있습니다.
-                </div>
-              </div>
-              
-              <div className="rounded-2xl border border-gray-100 dark:border-gray-800 p-2 bg-gray-50/30 dark:bg-black/10">
-                <TimeTableSelector 
+            <div className="space-y-3">
+              <h3 id={`${formId}-time-heading`} className="flex items-center gap-2 text-base font-bold text-foreground">
+                <Clock aria-hidden="true" className="size-5 text-primary" />
+                시간 선택
+              </h3>
+
+              <div role="group" aria-labelledby={`${formId}-time-heading`} aria-describedby={`${formId}-time-help`} className="rounded-2xl border border-gray-100 dark:border-gray-800 p-2 bg-gray-50/30 dark:bg-black/10">
+                <TimeTableSelector
                   selected={selectedSchedules}
                   onChange={setSelectedSchedules}
                 />
               </div>
+              <p id={`${formId}-time-help`} className="text-xs text-muted-foreground">
+                드래그하여 여러 칸을 한 번에 선택할 수 있습니다.
+              </p>
             </div>
           </div>
 
@@ -176,7 +184,7 @@ export function CustomScheduleDialog({ timetableId, open, onOpenChange }: Custom
               className="bg-primary hover:bg-primary-hover text-white px-10 h-12 rounded-full font-bold shadow-lg shadow-primary/20 transform transition hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2"
             >
               <Check className="h-5 w-5" />
-              시간표에 반영하기
+              추가하기
             </Button>
           </DialogFooter>
         </form>

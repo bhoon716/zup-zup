@@ -90,8 +90,8 @@ class CourseSearchReadRepositoryTest {
     }
 
     @Test
-    @DisplayName("통합 검색어는 강의명 부분 일치 또는 정규화된 학수번호 완전 일치로 검색한다")
-    void searchCourses_matchesKeywordByNameOrStdtrNo() {
+    @DisplayName("검색어는 강의명 부분 일치로 검색하고 학수번호는 검색하지 않는다")
+    void searchCourses_matchesKeywordByNameOnly() {
         // given
         saveCourseWithStdtrNo("CK1", ALG, "GECO178");
         saveCourseWithStdtrNo("CK2", DS, "CSE101");
@@ -101,10 +101,10 @@ class CourseSearchReadRepositoryTest {
         var byStdtrNo = courseSearchReadRepository.searchCourses(
                 baseCondition().keyword(" geco178 ").sortBy(NAME_SORT).build(), PageRequest.of(0, 10));
         var byName = courseSearchReadRepository.searchCourses(
-                baseCondition().keyword("자료").sortBy(NAME_SORT).build(), PageRequest.of(0, 10));
+                baseCondition().keyword(" 자료 ").sortBy(NAME_SORT).build(), PageRequest.of(0, 10));
 
         // then
-        assertThat(byStdtrNo.getContent()).extracting(Course::getName).containsExactly(ALG);
+        assertThat(byStdtrNo.getContent()).isEmpty();
         assertThat(byName.getContent()).extracting(Course::getName).containsExactly(DS);
     }
 

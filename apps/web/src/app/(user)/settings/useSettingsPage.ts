@@ -1,5 +1,6 @@
 "use client";
 
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,7 +10,7 @@ import { AxiosError, CanceledError, isCancel } from "axios";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useWebPush } from "@/features/user/hooks/useWebPush";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
-import type { UserDeviceResponse } from "@/shared/types/api";
+import type { User, UserDeviceResponse } from "@/shared/types/api";
 import {
   updateSettings,
   getDevices,
@@ -22,7 +23,7 @@ import {
 import { reportClientError } from "@/shared/telemetry/client-error";
 
 const settingsSchema = z.object({
-  notificationEmail: z.string().email("유효한 이메일 주소를 입력해 주세요.").or(z.literal("")),
+  notificationEmail: z.string().trim().pipe(z.email("유효한 이메일 주소를 입력해 주세요.")),
   emailEnabled: z.boolean(),
   webPushEnabled: z.boolean(),
   discordEnabled: z.boolean(),
@@ -32,11 +33,27 @@ export type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof AxiosError) {
-    const responseData = error.response?.data as { message?: string } | undefined;
-    return responseData?.message || fallbackMessage;
+    const responseData: unknown = error.response?.data;
+    if (responseData && typeof responseData === "object" && "message" in responseData) {
+      return localizedErrorMessage(responseData.message, fallbackMessage);
+    }
   }
   return fallbackMessage;
 };
+
+function savedSettings(user: User): SettingsFormValues {
+  return {
+    notificationEmail: user.notificationEmail || user.email,
+    emailEnabled: user.emailEnabled,
+    webPushEnabled: user.webPushEnabled,
+    discordEnabled: user.discordEnabled,
+  };
+}
+
+function loadSettingsProfile() {
+  const auth = useAuthStore.getState();
+  return auth.refreshUser(auth.hasCheckedSession ? undefined : { silentAuthFailure: true });
+}
 
 export const useSettingsPage = () => {
   const router = useRouter();
@@ -66,8 +83,8 @@ export const useSettingsPage = () => {
     register,
     handleSubmit,
     reset,
-    watch,
     setValue,
+    setError,
     trigger,
     control,
     formState: { errors },
@@ -81,9 +98,9 @@ export const useSettingsPage = () => {
     },
   });
 
-  const notificationEmail = useWatch({
+  const [notificationEmail, emailEnabled, webPushEnabled, discordEnabled] = useWatch({
     control,
-    name: "notificationEmail",
+    name: ["notificationEmail", "emailEnabled", "webPushEnabled", "discordEnabled"],
   });
 
   useEffect(() => {
@@ -101,7 +118,7 @@ export const useSettingsPage = () => {
     const fetchProfile = async () => {
       try {
         const [profileRes, deviceRes] = await Promise.all([
-          refreshUser().then(profile => ({ profile, version: useAuthStore.getState().sessionVersion })),
+          loadSettingsProfile().then(profile => ({ profile, version: useAuthStore.getState().sessionVersion })),
           getDevices(),
         ]);
         if (!active) return;
@@ -109,15 +126,7 @@ export const useSettingsPage = () => {
         const userData = profileRes.profile;
         setReadyUserId(userData.id);
 
-        const initialEmail = userData.notificationEmail || "";
-
-        reset({
-          notificationEmail: initialEmail,
-          emailEnabled: userData.emailEnabled,
-          webPushEnabled: userData.webPushEnabled,
-          discordEnabled: userData.discordEnabled,
-        });
-
+        reset(savedSettings(userData));
         setDevices(deviceRes);
       } catch (error) {
         if (!active || isCancel(error)) return;
@@ -130,7 +139,7 @@ export const useSettingsPage = () => {
 
     void fetchProfile();
     return () => { active = false; };
-  }, [reset, refreshUser]);
+  }, [reset]);
 
   useEffect(() => {
     if (testCooldownSeconds <= 0) {
@@ -145,13 +154,14 @@ export const useSettingsPage = () => {
   }, [testCooldownSeconds]);
 
   const onSendCode = async () => {
-    const valid = await trigger("notificationEmail");
-    if (!valid || !notificationEmail) return;
+    const email = notificationEmail.trim();
+    if (sending || !email || !await trigger("notificationEmail")) return;
 
     setSending(true);
     try {
-      await sendVerificationCode({ email: notificationEmail });
-      setPendingVerificationEmail(notificationEmail);
+      await sendVerificationCode({ email });
+      setPendingVerificationEmail(email);
+      setAuthCode("");
       toast.success("인증 코드가 전송되었습니다.");
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "인증 코드 전송 실패"));
@@ -161,11 +171,12 @@ export const useSettingsPage = () => {
   };
 
   const onVerifyCode = async () => {
-    if (!authCode) return;
+    const email = notificationEmail.trim();
+    if (verifying || authCode.length !== 6 || pendingVerificationEmail !== email) return;
     setVerifying(true);
     try {
-      await verifyEmail({ email: notificationEmail, code: authCode });
-      setVerifiedEmail(notificationEmail);
+      await verifyEmail({ email, code: authCode });
+      setVerifiedEmail(email);
       setPendingVerificationEmail("");
       toast.success("이메일이 인증되었습니다.");
     } catch (error: unknown) {
@@ -197,7 +208,6 @@ export const useSettingsPage = () => {
   };
 
   const handleDiscordConnect = () => {
-
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/api/v1/users/discord/authorize?returnPath=/settings";
   };
@@ -212,6 +222,7 @@ export const useSettingsPage = () => {
       if (version !== useAuthStore.getState().sessionVersion) return;
       toast.success("디스코드 연동이 해제되었습니다.");
       await refreshUser();
+      if (version !== useAuthStore.getState().sessionVersion) return;
       setValue("discordEnabled", false);
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "연동 해제 실패"));
@@ -221,28 +232,26 @@ export const useSettingsPage = () => {
   };
 
   const handleRegisterDevice = async () => {
-    if (!deviceAlias.trim()) {
-      toast.error("기기 별칭을 입력해 주세요.");
-      return;
-    }
+    const alias = deviceAlias.trim();
+    if (!alias || loadingWebPush) return;
 
     try {
-      const success = await subscribe(deviceAlias);
+      const success = await subscribe(alias);
       if (success) {
         const deviceRes = await getDevices();
         setDevices(deviceRes);
         setDeviceAlias("");
-        setValue("webPushEnabled", true, { shouldDirty: true });
+        setValue("webPushEnabled", true);
         toast.success("현재 기기가 등록되었습니다.");
       }
     } catch (error: unknown) {
       reportClientError(error, { source: "settings", operation: "register-device" });
-      toast.error(getErrorMessage(error, "기기 등록 중 오류가 발생했습니다. 메세지: " + (error instanceof Error ? error.message : "알 수 없음")));
+      toast.error(getErrorMessage(error, "기기 등록 중 오류가 발생했습니다."));
     }
   };
 
   const handleDeleteDevice = async (id: number) => {
-    if (!confirm("이 기기를 삭제하시겠습니까? 더 이상 알림을 받을 수 없습니다.")) return;
+    if (!confirm("이 기기를 삭제하시겠습니까? 이 기기에서는 웹 푸시 알림을 받을 수 없습니다.")) return;
 
     try {
       await deleteDevice(id);
@@ -258,12 +267,12 @@ export const useSettingsPage = () => {
       toast.error("프로필 정보를 확인한 뒤 다시 시도해 주세요.");
       return;
     }
-    const isOriginal = values.notificationEmail === (user.notificationEmail || "");
-    const isGoogle = values.notificationEmail === user.email || (!values.notificationEmail && !user.notificationEmail);
+    const isOriginal = values.notificationEmail === user.notificationEmail;
+    const isGoogle = values.notificationEmail === user.email;
     const isVerified = isOriginal || isGoogle || verifiedEmail === values.notificationEmail;
 
-    if (values.emailEnabled && !isVerified) {
-      toast.error("변경된 이메일 인증을 완료해주세요.");
+    if (!isVerified) {
+      setError("notificationEmail", { message: "수신 이메일을 먼저 인증해 주세요." }, { shouldFocus: true });
       return;
     }
 
@@ -274,12 +283,8 @@ export const useSettingsPage = () => {
       if (version !== useAuthStore.getState().sessionVersion) return;
       useAuthStore.getState().setUser(response);
       toast.success("알림 설정이 저장되었습니다.");
-      reset({
-        notificationEmail: response.notificationEmail || "",
-        emailEnabled: response.emailEnabled,
-        webPushEnabled: response.webPushEnabled,
-        discordEnabled: response.discordEnabled,
-      });
+      reset(savedSettings(response));
+      setPendingVerificationEmail("");
       setAuthCode("");
     } catch (error: unknown) {
       reportClientError(error, { source: "settings", operation: "update" });
@@ -289,16 +294,28 @@ export const useSettingsPage = () => {
     }
   };
 
-  const isGoogleEmail = user?.email === notificationEmail;
-  const isOriginal = user && notificationEmail === (user.notificationEmail || "");
-  const needsVerification = !isOriginal && !isGoogleEmail && notificationEmail;
-  const verified = !!notificationEmail && (isOriginal || isGoogleEmail || verifiedEmail === notificationEmail);
-  const emailSent = pendingVerificationEmail === notificationEmail && !verified;
+  const email = notificationEmail.trim();
+  const verified = Boolean(email && (user?.notificationEmail === email || user?.email === email || verifiedEmail === email));
+  const emailSent = Boolean(email && pendingVerificationEmail === email && !verified);
+  const saved = user && savedSettings(user);
+  const isDirty = Boolean(saved && (
+    email !== saved.notificationEmail
+    || emailEnabled !== saved.emailEnabled
+    || webPushEnabled !== saved.webPushEnabled
+    || discordEnabled !== saved.discordEnabled
+  ));
+
+  const cancelChanges = () => {
+    if (!saved) return;
+    reset(saved);
+    setPendingVerificationEmail("");
+    setAuthCode("");
+  };
 
   return {
-    router,
     user,
     loading,
+    isDirty,
     isSubmitting,
     emailSent,
     verified,
@@ -315,8 +332,10 @@ export const useSettingsPage = () => {
     loadingWebPush,
     register,
     handleSubmit,
-    reset,
-    watch,
+    notificationEmail,
+    emailEnabled,
+    webPushEnabled,
+    discordEnabled,
     setValue,
     errors,
     onSendCode,
@@ -327,9 +346,7 @@ export const useSettingsPage = () => {
     handleRegisterDevice,
     handleDeleteDevice,
     onSubmit,
-    isGoogleEmail,
-    isOriginal,
-    needsVerification,
+    cancelChanges,
   };
 };
 

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
+import bhoon.sugang_helper.seatalert.notification.repository.InboxChannelDeliveryRepository;
 import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationDeliveryRepository;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,11 +27,14 @@ class NotificationDeliveryRetentionSchedulerTest {
     @Captor
     private ArgumentCaptor<LocalDateTime> cutoffCaptor;
 
+    @Mock
+    private InboxChannelDeliveryRepository inboxDeliveries;
+
     private NotificationDeliveryRetentionScheduler scheduler;
 
     @BeforeEach
     void setUp() {
-        scheduler = new NotificationDeliveryRetentionScheduler(deliveryRepository);
+        scheduler = new NotificationDeliveryRetentionScheduler(deliveryRepository, inboxDeliveries);
     }
 
     @Test

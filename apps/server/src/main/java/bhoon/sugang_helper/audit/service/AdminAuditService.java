@@ -2,28 +2,19 @@ package bhoon.sugang_helper.audit.service;
 
 import bhoon.sugang_helper.audit.api.AuditRecorder;
 import bhoon.sugang_helper.audit.dto.response.AdminAuditMetadata;
-import bhoon.sugang_helper.audit.dto.response.AdminActionLogResponse;
 import bhoon.sugang_helper.audit.entity.AdminActionLog;
 import bhoon.sugang_helper.audit.enums.ActionType;
 import bhoon.sugang_helper.audit.enums.TargetType;
 import bhoon.sugang_helper.audit.repository.AdminActionLogRepository;
-import bhoon.sugang_helper.common.api.web.PageableGuard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class AdminAuditService implements AuditRecorder {
-
-    private static final int MAX_PAGE_SIZE = 100;
 
     private final AdminActionLogRepository adminActionLogRepository;
     private final ObjectMapper objectMapper;
@@ -68,14 +59,6 @@ public class AdminAuditService implements AuditRecorder {
                 AdminAuditMetadata.deliveryReplayed(previousStatus, attemptsBefore));
     }
 
-    public Page<AdminActionLogResponse> getActionLogs(Pageable pageable) {
-        Pageable requested = PageableGuard.requireBounded(pageable, MAX_PAGE_SIZE, 10_000);
-        Pageable boundedPageable = PageRequest.of(requested.getPageNumber(), requested.getPageSize(),
-                Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
-        return adminActionLogRepository.findAllByOrderByCreatedAtDescIdDesc(boundedPageable)
-                .map(this::toResponse);
-    }
-
     private void record(Long adminId, ActionType actionType, TargetType targetType, Long targetId,
                         AdminAuditMetadata metadata) {
         AdminActionLog actionLog = AdminActionLog.builder()
@@ -93,30 +76,6 @@ public class AdminAuditService implements AuditRecorder {
             return objectMapper.writeValueAsString(metadata);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("관리자 감사 로그 메타데이터를 직렬화할 수 없습니다.", exception);
-        }
-    }
-
-    private AdminActionLogResponse toResponse(AdminActionLog actionLog) {
-        return new AdminActionLogResponse(
-                actionLog.getId(),
-                actionLog.getAdminId(),
-                actionLog.getActionType(),
-                actionLog.getTargetType(),
-                actionLog.getTargetId(),
-                deserializeSafely(actionLog.getMetaData()),
-                actionLog.getCreatedAt());
-    }
-
-    private AdminAuditMetadata deserializeSafely(String serializedMetadata) {
-        if (serializedMetadata == null || serializedMetadata.isBlank()) {
-            return AdminAuditMetadata.legacySanitized();
-        }
-
-        try {
-            AdminAuditMetadata metadata = objectMapper.readValue(serializedMetadata, AdminAuditMetadata.class);
-            return metadata.isSupported() ? metadata : AdminAuditMetadata.legacySanitized();
-        } catch (JsonProcessingException exception) {
-            return AdminAuditMetadata.legacySanitized();
         }
     }
 }

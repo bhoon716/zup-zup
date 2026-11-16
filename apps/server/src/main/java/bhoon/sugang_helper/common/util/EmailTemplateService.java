@@ -30,8 +30,16 @@ public class EmailTemplateService implements EmailTemplates {
 
             return content;
         } catch (Exception e) {
-            log.error("[EmailTemplate] 이메일 템플릿 읽기 실패. template= {}", templateName, SensitiveDataRedactor.safeStackTrace(e));
-            return "Content Error: " + values.toString();
+            logEmailTemplateReadFailed(templateName, e);
+            return "이메일 템플릿을 읽을 수 없습니다: " + values.toString();
         }
     }
+
+    private void logEmailTemplateReadFailed(String template, Exception failure) {
+        log.atError().addKeyValue("event", "email_template_read_failed")
+                .addKeyValue("template", template)
+                .setCause(SensitiveDataRedactor.safeStackTrace(failure))
+                .log("[EmailTemplate] 이메일 템플릿 읽기 실패.");
+    }
+
 }

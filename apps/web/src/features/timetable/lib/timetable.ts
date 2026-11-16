@@ -142,6 +142,7 @@ export const getRenderingBlocks = (timetable: TimetableResponse): RenderingBlock
         next.id === current.id &&
         next.dayOfWeek === current.dayOfWeek &&
         next.type === current.type &&
+        next.classroom === last.classroom &&
         getTimeInMinutes(next.startTime) === getTimeInMinutes(last.endTime)
       ) {
         consecutive.push(next);
@@ -236,7 +237,12 @@ export function mergeAdjacentSchedules(schedules: CustomScheduleTimeResponse[]):
 
   for (const slot of sorted) {
     const last = merged[merged.length - 1];
-    if (last && formatDayOfWeek(last.dayOfWeek) === formatDayOfWeek(slot.dayOfWeek) && last.endTime === slot.startTime) {
+    if (
+      last &&
+      formatDayOfWeek(last.dayOfWeek) === formatDayOfWeek(slot.dayOfWeek) &&
+      last.endTime === slot.startTime &&
+      formatClassroom(last.classroom) === formatClassroom(slot.classroom)
+    ) {
       merged[merged.length - 1] = { ...last, endTime: slot.endTime };
     } else {
       merged.push({ ...slot });

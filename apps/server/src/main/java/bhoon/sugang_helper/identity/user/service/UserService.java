@@ -7,13 +7,13 @@ import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.identity.auth.service.SessionInvalidator;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.notifications.NotificationRecipient;
+import bhoon.sugang_helper.identity.api.notifications.OnboardingNotificationRecipients;
 import bhoon.sugang_helper.identity.user.dto.command.CompleteOnboardingCommand;
 import bhoon.sugang_helper.identity.user.dto.command.SendVerificationCodeCommand;
-import bhoon.sugang_helper.identity.user.dto.command.UpdateProfileCommand;
 import bhoon.sugang_helper.identity.user.dto.command.UpdateSettingsCommand;
 import bhoon.sugang_helper.identity.user.dto.result.UserOnboardingResult;
 import bhoon.sugang_helper.identity.user.dto.result.UserProfileResult;
-import bhoon.sugang_helper.identity.user.dto.result.UserProfileUpdateResult;
 import bhoon.sugang_helper.identity.user.dto.result.UserSettingsResult;
 import bhoon.sugang_helper.identity.user.dto.command.VerifyEmailCommand;
 import bhoon.sugang_helper.identity.user.entity.User;
@@ -29,7 +29,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class UserService {
+public class UserService implements OnboardingNotificationRecipients {
+
+    private static final String EVENT_KEY = "event";
+    private static final String USER_ID_KEY = "userId";
 
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
@@ -53,14 +56,6 @@ public class UserService {
     }
 
     @Transactional
-    public UserProfileUpdateResult updateProfile(UpdateProfileCommand command) {
-        User user = getCurrentUser();
-        user.update(command.name());
-        log.info("[User] 프로필 수정. userId={}", user.getId());
-        return UserProfileUpdateResult.from(user);
-    }
-
-    @Transactional
     public UserSettingsResult updateSettings(UpdateSettingsCommand command) {
         User user = getCurrentUser();
 
@@ -76,8 +71,7 @@ public class UserService {
                 command.emailEnabled(),
                 command.webPushEnabled(),
                 command.discordEnabled());
-        log.info("[User] 알림 설정 변경. userId={}, emailEnabled={}, webPushEnabled={}",
-                user.getId(), command.emailEnabled(), command.webPushEnabled());
+        logUserNotificationSettingsUpdated(user.getId(), command.emailEnabled(), command.webPushEnabled());
         return UserSettingsResult.from(user);
     }
 
@@ -94,7 +88,7 @@ public class UserService {
         emailVerificationService.clearVerificationState(userId, email, notificationEmail);
         eventPublisher.publishEvent(new UserWithdrawnEvent(userId));
         userDeviceRepository.deleteAllByUserId(userId);
-        log.info("[User] 회원 탈퇴 처리. userId={}", userId);
+        logUserWithdrawn(userId);
     }
 
     @Transactional
@@ -102,20 +96,25 @@ public class UserService {
         User user = getCurrentUser();
         String newEmail = command.notificationEmail();
 
-        if (newEmail != null && !newEmail.equals(user.getEmail())) {
-            if (!emailVerificationService.isVerified(user.getId(), newEmail)) {
-                throw new CustomException(ErrorCode.UNVERIFIED_EMAIL);
-            }
-        }
+        requireVerifiedNotificationEmail(user, newEmail);
 
         user.completeOnboarding(
                 newEmail,
                 command.emailEnabled(),
                 command.webPushEnabled(),
                 command.discordEnabled());
-        log.info("[User] 초기 설정 완료. userId={}, emailFingerprint={}", user.getId(),
-                SensitiveDataRedactor.fingerprint(user.getEmail()));
+        logUserOnboardingCompleted(user.getId(), SensitiveDataRedactor.fingerprint(user.getEmail()));
         return UserOnboardingResult.from(user);
+    }
+
+    @Override
+    public NotificationRecipient requireCurrentOnboardingTestRecipient(String requestedEmail) {
+        User user = getCurrentUser();
+        if (user.isOnboardingCompleted()) {
+            throw new CustomException(ErrorCode.FORBIDDEN, "초기 설정이 완료된 계정은 설정에서 테스트해 주세요.");
+        }
+        requireVerifiedNotificationEmail(user, requestedEmail);
+        return UserNotificationQueryService.toRecipient(user, requestedEmail);
     }
 
     @Transactional
@@ -142,15 +141,14 @@ public class UserService {
     public void linkDiscordId(String discordId) {
         User user = getCurrentUser();
         user.linkDiscord(discordId);
-        log.info("[User] Discord 계정 연결. userId={}, discordIdFingerprint={}", user.getId(),
-                SensitiveDataRedactor.fingerprint(discordId));
+        logUserDiscordLinked(user.getId(), SensitiveDataRedactor.fingerprint(discordId));
     }
 
     @Transactional
     public void unlinkDiscord() {
         User user = getCurrentUser();
         user.unlinkDiscord();
-        log.info("[User] Discord 계정 연결 해제. userId={}", user.getId());
+        logUserDiscordUnlinked(user.getId());
     }
 
     public User getCurrentUser() {
@@ -158,6 +156,47 @@ public class UserService {
         return userRepository.findByEmail(email)
                 .filter(user -> !user.isDeleted())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
+    }
+
+    private void requireVerifiedNotificationEmail(User user, String requestedEmail) {
+        if (requestedEmail != null && !requestedEmail.equals(user.getEmail())
+                && !emailVerificationService.isVerified(user.getId(), requestedEmail)) {
+            throw new CustomException(ErrorCode.UNVERIFIED_EMAIL);
+        }
+    }
+
+    private void logUserNotificationSettingsUpdated(Long userId, boolean emailEnabled, boolean webPushEnabled) {
+        log.atInfo().addKeyValue(EVENT_KEY, "user_notification_settings_updated")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue("emailEnabled", emailEnabled)
+                .addKeyValue("webPushEnabled", webPushEnabled)
+                .log("[User] 알림 설정 변경.");
+    }
+
+    private void logUserWithdrawn(Long userId) {
+        log.atInfo().addKeyValue(EVENT_KEY, "user_withdrawn")
+                .addKeyValue(USER_ID_KEY, userId)
+                .log("[User] 회원 탈퇴 처리.");
+    }
+
+    private void logUserOnboardingCompleted(Long userId, String emailFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "user_onboarding_completed")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue("emailFingerprint", emailFingerprint)
+                .log("[User] 초기 설정 완료.");
+    }
+
+    private void logUserDiscordLinked(Long userId, String discordIdFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "user_discord_linked")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue("discordIdFingerprint", discordIdFingerprint)
+                .log("[User] Discord 계정 연결.");
+    }
+
+    private void logUserDiscordUnlinked(Long userId) {
+        log.atInfo().addKeyValue(EVENT_KEY, "user_discord_unlinked")
+                .addKeyValue(USER_ID_KEY, userId)
+                .log("[User] Discord 계정 연결 해제.");
     }
 
 }

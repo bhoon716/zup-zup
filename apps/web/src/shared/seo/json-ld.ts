@@ -1,20 +1,5 @@
 import { BRAND_LOGO_URL, SITE_URL } from "@/shared/seo/branding";
 
-interface CourseSchemaParams {
-  name: string;
-  code?: string;
-  professor?: string;
-  department?: string;
-  credits?: string;
-}
-
-interface ArticleSchemaParams {
-  title: string;
-  description: string;
-  url: string;
-  createdAt?: string;
-}
-
 export function generateWebsiteJsonLd() {
   return {
     "@context": "https://schema.org",
@@ -43,56 +28,5 @@ export function generateWebsiteJsonLd() {
         },
       },
     ],
-  };
-}
-
-export function generateCourseJsonLd({
-  name,
-  code,
-  professor,
-  department,
-  credits,
-}: CourseSchemaParams) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "Course",
-    "name": name,
-    "courseCode": code ?? "",
-    "description": [
-      professor && `담당교수: ${professor}`,
-      department && `학과: ${department}`,
-      credits && `학점: ${credits}학점`,
-    ]
-      .filter(Boolean)
-      .join(" · ") || "전북대학교 개설 강의",
-    "provider": {
-      "@type": "CollegeOrUniversity",
-      "name": "전북대학교",
-      "sameAs": "https://www.jbnu.ac.kr",
-    },
-  };
-}
-
-export function generateArticleJsonLd({
-  title,
-  description,
-  url,
-  createdAt,
-}: ArticleSchemaParams) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "NewsArticle",
-    "headline": title,
-    "description": description,
-    "url": url,
-    "datePublished": createdAt || new Date().toISOString(),
-    "publisher": {
-      "@type": "Organization",
-      "name": "줍줍",
-      "logo": {
-        "@type": "ImageObject",
-        "url": BRAND_LOGO_URL,
-      },
-    },
   };
 }

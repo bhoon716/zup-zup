@@ -10,6 +10,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -77,6 +78,16 @@ public class Schedule extends BaseTimeEntity {
 
     public boolean isOngoingAt(LocalDateTime now) {
         return !now.isBefore(startsAt()) && now.isBefore(endsAt());
+    }
+
+    public String dDayLabel(LocalDate today) {
+        if (today.isBefore(startDate)) {
+            return "D-" + ChronoUnit.DAYS.between(today, startDate);
+        }
+        if (today.isAfter(endDate)) {
+            return "D+" + ChronoUnit.DAYS.between(endDate, today);
+        }
+        return "D-Day";
     }
 
     public void delete(LocalDateTime now) {

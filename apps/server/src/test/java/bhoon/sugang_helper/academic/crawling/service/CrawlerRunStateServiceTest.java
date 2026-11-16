@@ -311,7 +311,7 @@ class CrawlerRunStateServiceTest {
 
         // when & then
         assertThat(summary.failureType()).isEqualTo(ILLEGAL_STATE_TYPE);
-        assertThat(summary.failureMessage()).isEqualTo("Unexpected crawler failure");
+        assertThat(summary.failureMessage()).isEqualTo("강의 수집 중 예상하지 못한 오류가 발생했습니다.");
     }
 
     @Test

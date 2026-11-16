@@ -7,9 +7,18 @@ public interface NotificationSender {
 
     boolean supports(NotificationChannel channel);
 
+    default boolean isConfigured() {
+        return true;
+    }
+
     void send(NotificationTarget target, String title, String message);
 
     default void send(NotificationTarget target, String title, String message, String idempotencyKey) {
         send(target, title, message);
+    }
+
+    default void sendDelivery(NotificationTarget target, String title, String message, String idempotencyKey,
+                              String path) {
+        send(target, title, message, idempotencyKey);
     }
 }

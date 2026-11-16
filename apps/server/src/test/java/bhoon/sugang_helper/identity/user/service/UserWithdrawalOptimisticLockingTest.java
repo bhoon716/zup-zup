@@ -27,9 +27,9 @@ class UserWithdrawalOptimisticLockingTest {
     private PlatformTransactionManager transactionManager;
 
     @Test
-    @DisplayName("오래된 프로필 수정은 탈퇴한 계정을 복구할 수 없다")
+    @DisplayName("오래된 알림 설정 저장은 탈퇴한 계정을 복구할 수 없다")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void staleProfileUpdateCannotRestoreAWithdrawnAccount() {
+    void staleSettingsUpdateCannotRestoreAWithdrawnAccount() {
         // given
         TransactionTemplate transactions = new TransactionTemplate(transactionManager);
         transactions.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -47,7 +47,7 @@ class UserWithdrawalOptimisticLockingTest {
             userRepository.flush();
         });
 
-        staleUser.update("동시 프로필 변경");
+        staleUser.updateSettings("notify@example.com", true, false, false);
 
         // then
         assertThatThrownBy(() -> transactions.executeWithoutResult(status -> userRepository.saveAndFlush(staleUser)))

@@ -1,6 +1,6 @@
 package bhoon.sugang_helper.academic.crawling.service;
 
-import bhoon.sugang_helper.academic.course.dto.external.ParsedCourseDto;
+import bhoon.sugang_helper.academic.course.dto.external.ParsedCourse;
 import bhoon.sugang_helper.academic.course.enums.SemesterType;
 import bhoon.sugang_helper.academic.crawling.dto.diagnostic.CrawlerFailureSummary;
 import bhoon.sugang_helper.academic.crawling.dto.result.CrawlTargetInfo;
@@ -10,20 +10,12 @@ import bhoon.sugang_helper.common.api.error.ErrorCode;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.Year;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -35,6 +27,15 @@ public class CourseCrawlerService {
     private static final String YEAR_KEY = "year";
     private static final String SEMESTER_KEY = "semester";
     private static final String STAGE_KEY = "stage";
+    private static final String COURSE_COUNT_KEY = "courseCount";
+    private static final String ELAPSED_MS_KEY = "elapsedMs";
+    private static final String CRAWLER_RUN_ID_KEY = "crawlerRunId";
+    private static final String RESULT_SUCCESS = "success";
+
+    private static final String METRIC_STATUS_SKIPPED = "SKIPPED";
+    private static final String METRIC_STATUS_STARTED = "STARTED";
+    private static final String METRIC_STATUS_SUCCEEDED = "SUCCEEDED";
+    private static final String METRIC_STATUS_FAILED = "FAILED";
 
     private final CourseCrawlFetcher courseCrawlFetcher;
     private final CourseCrawlCompletionService courseCrawlCompletionService;
@@ -42,15 +43,6 @@ public class CourseCrawlerService {
     private final CrawlerRunStateService crawlerRunStateService;
     private final MeterRegistry meterRegistry;
     private final AtomicBoolean isCrawling = new AtomicBoolean(false);
-    private final AtomicLong freshnessAgeSeconds = new AtomicLong(-1);
-    private final AtomicLong staleGauge = new AtomicLong(1);
-    private final AtomicLong lastSuccessTimestamp = new AtomicLong();
-    private final AtomicLong freshnessCheckTimestamp = new AtomicLong();
-    private final AtomicLong freshnessCheckHealthy = new AtomicLong();
-    private final AtomicBoolean staleAlertActive = new AtomicBoolean(false);
-
-    @Value("${jbnu.crawler.stale-threshold-minutes:15}")
-    private long staleThresholdMinutes;
 
     public CourseCrawlerService(CourseCrawlFetcher courseCrawlFetcher,
                                 CourseCrawlCompletionService courseCrawlCompletionService,
@@ -62,15 +54,6 @@ public class CourseCrawlerService {
         this.crawlerTargetService = crawlerTargetService;
         this.crawlerRunStateService = crawlerRunStateService;
         this.meterRegistry = meterRegistry;
-        if (meterRegistry != null) {
-            meterRegistry.gauge("crawler.data.freshness.age.seconds", freshnessAgeSeconds);
-            meterRegistry.gauge("crawler.data.stale", staleGauge);
-            meterRegistry.gauge("crawler.data.last.success.timestamp.seconds", lastSuccessTimestamp);
-            meterRegistry.gauge("crawler.data.freshness.check.last.success.timestamp.seconds", freshnessCheckTimestamp);
-            meterRegistry.gauge("crawler.data.freshness.check.healthy", freshnessCheckHealthy);
-            meterRegistry.gauge("crawler.data.freshness.threshold.seconds", this,
-                    service -> Duration.ofMinutes(service.staleThresholdMinutes).toSeconds());
-        }
     }
 
     public boolean crawlAndSaveCourses() {
@@ -80,18 +63,18 @@ public class CourseCrawlerService {
 
     public boolean crawlAndSaveCourses(String year, String semester) {
         if (!isCrawling.compareAndSet(false, true)) {
-            incrementCounter("SKIPPED");
+            incrementCounter(METRIC_STATUS_SKIPPED);
             logCrawlSkipped("current");
             return false;
         }
 
-        incrementCounter("STARTED");
+        incrementCounter(METRIC_STATUS_STARTED);
         try {
             executeCrawl(year, semester);
-            incrementCounter("SUCCEEDED");
+            incrementCounter(METRIC_STATUS_SUCCEEDED);
             return true;
         } catch (RuntimeException exception) {
-            incrementCounter("FAILED");
+            incrementCounter(METRIC_STATUS_FAILED);
             throw exception;
         } finally {
             isCrawling.set(false);
@@ -100,15 +83,15 @@ public class CourseCrawlerService {
 
     public boolean crawlRecentYears() {
         if (!isCrawling.compareAndSet(false, true)) {
-            incrementCounter("SKIPPED");
+            incrementCounter(METRIC_STATUS_SKIPPED);
             logCrawlSkipped("recent-years");
             return false;
         }
 
-        incrementCounter("STARTED");
+        incrementCounter(METRIC_STATUS_STARTED);
         try {
             if (crawlRecentTargets()) {
-                incrementCounter("SUCCEEDED");
+                incrementCounter(METRIC_STATUS_SUCCEEDED);
             }
             return true;
         } finally {
@@ -134,46 +117,10 @@ public class CourseCrawlerService {
                 executeCrawl(year, semester.getCode());
             } catch (RuntimeException exception) {
                 failed = true;
-                incrementCounter("FAILED");
+                incrementCounter(METRIC_STATUS_FAILED);
             }
         }
         return !failed;
-    }
-
-    @Scheduled(fixedDelayString = "${jbnu.crawler.freshness-check-ms:60000}", scheduler = "monitoringTaskScheduler")
-    public void checkDataFreshness() {
-        if (crawlerRunStateService == null || meterRegistry == null) {
-            return;
-        }
-        try {
-            refreshDataFreshness();
-            freshnessCheckHealthy.set(1);
-            freshnessCheckTimestamp.set(Instant.now().getEpochSecond());
-        } catch (RuntimeException exception) {
-            freshnessCheckHealthy.set(0);
-            freshnessAgeSeconds.set(-1);
-            staleGauge.set(1);
-            logFreshnessCheckFailed(exception);
-        }
-    }
-
-    private void refreshDataFreshness() {
-        Optional<LocalDateTime> latest = crawlerRunStateService.findLastSuccessAt();
-        lastSuccessTimestamp.set(latest.map(value -> value.atZone(ZoneId.systemDefault()).toEpochSecond()).orElse(0L));
-        long ageSeconds = latest.map(value -> Math.max(0, Duration.between(value, LocalDateTime.now()).toSeconds()))
-                .orElse(-1L);
-        freshnessAgeSeconds.set(ageSeconds);
-        boolean stale = ageSeconds < 0 || ageSeconds > Duration.ofMinutes(staleThresholdMinutes).toSeconds();
-        if (!stale) {
-            staleGauge.set(0);
-            staleAlertActive.set(false);
-            return;
-        }
-        staleGauge.set(1);
-        if (!staleAlertActive.compareAndSet(false, true)) {
-            return;
-        }
-        logDataStale(ageSeconds);
     }
 
     private void logCrawlSkipped(String targetScope) {
@@ -181,27 +128,14 @@ public class CourseCrawlerService {
                 .addKeyValue(RESULT_KEY, "skipped").log("[Crawler] 다른 수집이 실행 중이므로 중복 실행 생략.");
     }
 
-    private void logFreshnessCheckFailed(RuntimeException exception) {
-        log.atError().addKeyValue(EVENT_KEY, "crawler_freshness_check_failed")
-                .addKeyValue("exceptionType", SensitiveDataRedactor.exceptionType(exception))
-                .log("[Crawler] 강의 데이터 신선도 확인 실패.");
-    }
-
-    private void logDataStale(long ageSeconds) {
-        log.atError().addKeyValue(EVENT_KEY, "crawler_data_stale").addKeyValue("ageSeconds", ageSeconds)
-                .addKeyValue("thresholdMinutes", staleThresholdMinutes).addKeyValue("alert", "ADMIN")
-                .log("[Crawler] 강의 데이터 신선도 기준 초과. ageSeconds={}, thresholdMinutes={}, alert=ADMIN",
-                        ageSeconds, staleThresholdMinutes);
-    }
-
     private void executeCrawl(String year, String semester) {
         CrawlerFailureStage stage = CrawlerFailureStage.FETCH_PARSE;
         String runId = UUID.randomUUID().toString();
         long startedAt = System.nanoTime();
-        MDC.put("crawlerRunId", runId);
+        MDC.put(CRAWLER_RUN_ID_KEY, runId);
         try {
             logCrawlStarted(runId, year, semester, stage);
-            List<ParsedCourseDto> parsedCourses = courseCrawlFetcher.fetch(year, semester);
+            List<ParsedCourse> parsedCourses = courseCrawlFetcher.fetch(year, semester);
             logFetchCompleted(runId, year, semester, stage, parsedCourses.size(), startedAt);
             stage = CrawlerFailureStage.PERSIST;
             courseCrawlCompletionService.complete(parsedCourses);
@@ -215,7 +149,7 @@ public class CourseCrawlerService {
             }
             throw new CustomException(ErrorCode.FAILED_TO_CRAWL_COURSES);
         } finally {
-            MDC.remove("crawlerRunId");
+            MDC.remove(CRAWLER_RUN_ID_KEY);
         }
     }
 
@@ -231,8 +165,8 @@ public class CourseCrawlerService {
                                    int courseCount, long startedAt) {
         log.atDebug().addKeyValue(EVENT_KEY, "stage_completed").addKeyValue(YEAR_KEY, year)
                 .addKeyValue(SEMESTER_KEY, semester).addKeyValue(STAGE_KEY, stage.name())
-                .addKeyValue(RESULT_KEY, "success").addKeyValue("courseCount", courseCount)
-                .addKeyValue("elapsedMs", elapsedMs(startedAt))
+                .addKeyValue(RESULT_KEY, RESULT_SUCCESS).addKeyValue(COURSE_COUNT_KEY, courseCount)
+                .addKeyValue(ELAPSED_MS_KEY, elapsedMs(startedAt))
                 .log("[Crawler] 수집 단계 완료. stage_completed runId={} year={} semester={} stage={} result=success "
                                 + "courseCount={} elapsedMs={}",
                         runId, year, semester, stage, courseCount, elapsedMs(startedAt));
@@ -242,8 +176,8 @@ public class CourseCrawlerService {
                                    int courseCount, long startedAt) {
         log.atInfo().addKeyValue(EVENT_KEY, "run_succeeded").addKeyValue(YEAR_KEY, year)
                 .addKeyValue(SEMESTER_KEY, semester).addKeyValue(STAGE_KEY, stage.name())
-                .addKeyValue(RESULT_KEY, "success").addKeyValue("courseCount", courseCount)
-                .addKeyValue("elapsedMs", elapsedMs(startedAt))
+                .addKeyValue(RESULT_KEY, RESULT_SUCCESS).addKeyValue(COURSE_COUNT_KEY, courseCount)
+                .addKeyValue(ELAPSED_MS_KEY, elapsedMs(startedAt))
                 .log("[Crawler] 수집 완료. run_succeeded runId={} year={} semester={} stage={} result=success "
                         + "courseCount={} elapsedMs={}",
                 runId, year, semester, stage, courseCount, elapsedMs(startedAt));
@@ -253,7 +187,7 @@ public class CourseCrawlerService {
                                 RuntimeException exception, long startedAt) {
         log.atError().addKeyValue(EVENT_KEY, "run_failed").addKeyValue(YEAR_KEY, year)
                 .addKeyValue(SEMESTER_KEY, semester).addKeyValue(STAGE_KEY, summary.stage().name())
-                .addKeyValue(RESULT_KEY, "failed").addKeyValue("elapsedMs", elapsedMs(startedAt))
+                .addKeyValue(RESULT_KEY, "failed").addKeyValue(ELAPSED_MS_KEY, elapsedMs(startedAt))
                 .addKeyValue("errorCode", SensitiveDataRedactor.failureCode(exception))
                 .addKeyValue("exceptionType", SensitiveDataRedactor.exceptionType(exception))
                 .addKeyValue("rootCauseType", summary.failureType())

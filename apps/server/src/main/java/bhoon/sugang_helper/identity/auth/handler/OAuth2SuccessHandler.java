@@ -34,7 +34,15 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         authService.login(request, response, user.getUserId(), user.getEmail());
 
-        log.info("[OAuth2] 외부 계정 로그인 완료. userId={}, authenticationSaved=true", user.getUserId());
+        logOauthLoginSucceeded(user.getUserId());
         getRedirectStrategy().sendRedirect(request, response, redirectUri);
     }
+
+    private void logOauthLoginSucceeded(Long userId) {
+        log.atInfo().addKeyValue("event", "oauth_login_succeeded")
+                .addKeyValue("userId", userId)
+                .addKeyValue("authenticationSaved", true)
+                .log("[OAuth2] 외부 계정 로그인 완료.");
+    }
+
 }

@@ -164,6 +164,11 @@ export function formatRelativeTime(dateString?: string): string {
   }
 }
 
+export function formatClassTime(value?: string): string {
+  const classTime = value?.trim() ?? "";
+  return classTime === "0" ? "" : classTime;
+}
+
 export function formatClassroom(value?: string): string {
   if (!value) return '';
 

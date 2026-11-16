@@ -1,5 +1,6 @@
 "use client";
 
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import dynamic from "next/dynamic";
 import { useRef, useState } from "react";
 
@@ -42,11 +43,6 @@ export function CourseReviewSection({
   isReviewed,
   isProfessorUnassigned = false,
 }: CourseReviewSectionProps) {
-  const { data: myReview, status: reviewStatus } = useReviews(reviewScopeKey, courseKey);
-  const { mutate: createReview, isPending: isCreating } = useCreateReview(reviewScopeKey, courseKey);
-  const { mutate: updateReview, isPending: isUpdating } = useUpdateReview(reviewScopeKey, courseKey);
-  const { data: emojiStats, status: emojiStatus } = useCourseEmojis(reviewScopeKey, courseKey);
-  const { mutate: toggleEmoji, isPending: isEmojiToggling } = useToggleCourseEmoji(reviewScopeKey, courseKey);
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isUserLoading = useAuthStore(
@@ -54,6 +50,12 @@ export function CourseReviewSection({
   );
   const verifiedUser = isAuthenticated ? user : null;
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
+  const { data: review, status: reviewStatus } = useReviews(reviewScopeKey, courseKey, !!verifiedUser);
+  const myReview = verifiedUser ? review : null;
+  const { mutate: createReview, isPending: isCreating } = useCreateReview(reviewScopeKey, courseKey);
+  const { mutate: updateReview, isPending: isUpdating } = useUpdateReview(reviewScopeKey, courseKey);
+  const { data: emojiStats, status: emojiStatus } = useCourseEmojis(reviewScopeKey, courseKey);
+  const { mutate: toggleEmoji, isPending: isEmojiToggling } = useToggleCourseEmoji(reviewScopeKey, courseKey);
 
   const [draftRating, setDraftRating] = useState<number | null>(null);
   const [hoverRating, setHoverRating] = useState<number>(0);
@@ -94,7 +96,7 @@ export function CourseReviewSection({
           onError: (err: unknown) => {
             let errorMsg = "수정에 실패했습니다.";
             if (axios.isAxiosError(err)) {
-              errorMsg = err.response?.data?.message || errorMsg;
+              errorMsg = localizedErrorMessage(err.response?.data?.message, errorMsg);
             }
             toast.error(errorMsg);
           },
@@ -114,7 +116,7 @@ export function CourseReviewSection({
         onError: (err: unknown) => {
           let errorMsg = "작성에 실패했습니다. 이미 작성하셨을 수 있습니다.";
           if (axios.isAxiosError(err)) {
-            errorMsg = err.response?.data?.message || errorMsg;
+            errorMsg = localizedErrorMessage(err.response?.data?.message, errorMsg);
           }
           toast.error(errorMsg);
         },
@@ -163,14 +165,14 @@ export function CourseReviewSection({
   return (
     <section className="mt-8 flex flex-col gap-6">
       <div className="flex items-center gap-2">
-        <MessageSquare className="h-5 w-5 text-primary" />
+        <MessageSquare className="size-5 text-primary" aria-hidden="true" />
         <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">강의 리뷰</h2>
       </div>
 
       <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-[#1E1E1E]">
-        <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4 dark:border-gray-800 dark:bg-gray-900/30">
-            <div className="flex items-end justify-between gap-3">
+            <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
               <div>
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">전체 평균 별점</p>
               </div>
@@ -191,8 +193,8 @@ export function CourseReviewSection({
                 })}
               </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-black tracking-tight text-primary">{averageRatingText}</span>
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-2">
+              <span className="text-3xl font-black tracking-tight tabular-nums text-primary">{averageRatingText}</span>
               <span className="text-sm text-gray-500 dark:text-gray-400">({averageReviewCount}개)</span>
             </div>
           </div>
@@ -252,7 +254,7 @@ export function CourseReviewSection({
             {isProfessorUnassigned && (
               <p className="mt-1 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-300" role="status">
                 <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                교수 정보가 없어 이전 학기 반응과 자동 연결하지 않았습니다.
+                담당 교수가 지정되지 않아 이 강의의 이모지 반응만 표시합니다.
               </p>
             )}
           </div>

@@ -1,0 +1,7 @@
+name = "comment-sicko"
+description = "Audits scoped comments and flags code that needs to be made self-explanatory."
+developer_instructions = """
+Read .agents/pstack/agents/comment-sicko.md in full before your first response.
+Follow its opening, scope, deletion exceptions and report format. Use the Codex
+host mapping in .agents/pstack/CODEX.md for how/why and file operations.
+"""

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 import OnboardingPage from "./page";
+import * as userApi from "@/features/user/api/user.api";
 import { trackOnboardingStarted } from "@/shared/analytics/onboarding-events";
 
 const createDeferred = <T,>() => {
@@ -23,14 +24,19 @@ vi.mock("@/features/user/hooks/useUser", () => ({
 vi.mock("@/features/user/hooks/useWebPush", () => ({
   useWebPush: () => ({ loading: false, subscribe: mockSubscribe, unsubscribe: mockUnsubscribe }),
 }));
+vi.mock("@/features/user/api/user.api", () => ({
+  sendOnboardingTestNotification: vi.fn(),
+  sendVerificationCode: vi.fn(),
+  verifyEmail: vi.fn(),
+}));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("@/shared/analytics/onboarding-events", () => ({ trackOnboardingStarted: vi.fn() }));
 
 const pushSwitch = () => screen.getByRole("switch", { name: "웹 푸시 (현재 기기)" });
 
-const deviceInput = () => screen.getByPlaceholderText("기기 이름 (예: 내 노트북, 스마트폰)");
+const deviceInput = () => screen.getByRole("textbox", { name: "기기 별칭" });
 
-const completeButton = () => screen.getByRole("button", { name: "완료" });
+const completeButton = () => screen.getByRole("button", { name: "설정 완료" });
 
 const registerButton = () => screen.getByRole("button", { name: "현재 기기 등록" });
 
@@ -107,6 +113,7 @@ describe("OnboardingPage", () => {
     const user = userEvent.setup();
     mockSubscribe.mockResolvedValue(false);
     render(<OnboardingPage />);
+    await user.type(deviceInput(), "내 노트북");
     await user.click(pushSwitch());
     await waitFor(() => expect(pushSwitch()).toBeEnabled());
     expect(pushSwitch()).not.toBeChecked();
@@ -196,7 +203,7 @@ describe("OnboardingPage", () => {
       data: { discordId: "linked", email: "user@example.com", onboardingCompleted: false }, isLoading: false,
     });
     render(<OnboardingPage />);
-    await user.click(document.getElementById("emailEnabled")!);
+    await user.click(screen.getByRole("switch", { name: "이메일 알림" }));
     await user.click(completeButton());
     await waitFor(() => expect(mockCompleteOnboarding).toHaveBeenCalledTimes(1));
     expect(mockCompleteOnboarding).toHaveBeenCalledWith(
@@ -208,10 +215,98 @@ describe("OnboardingPage", () => {
   it("이메일 변경 시 기존 인증 요구를 유지한다", async () => {
     const user = userEvent.setup();
     render(<OnboardingPage />);
-    const email = screen.getByPlaceholderText("example@email.com");
+    const email = screen.getByRole("textbox", { name: "수신 이메일" });
     fireEvent.change(email, { target: { value: "other@example.com" } });
     await user.click(completeButton());
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("이메일 인증을 완료해주세요."));
     expect(mockCompleteOnboarding).not.toHaveBeenCalled();
+  });
+
+  it("스위치와 등록 버튼 모두 별칭을 요구하고 Enter로 입력한 별칭을 등록한다", async () => {
+    const user = userEvent.setup();
+    render(<OnboardingPage />);
+
+    await user.click(pushSwitch());
+    expect(deviceInput()).toHaveFocus();
+    expect(deviceInput()).toBeInvalid();
+    await user.click(registerButton());
+    expect(mockSubscribe).not.toHaveBeenCalled();
+
+    await user.type(deviceInput(), "  내 노트북  {Enter}");
+    await waitFor(() => expect(pushSwitch()).toBeChecked());
+    expect(mockSubscribe).toHaveBeenCalledExactlyOnceWith("내 노트북");
+    expect(mockCompleteOnboarding).not.toHaveBeenCalled();
+  });
+
+  it("미인증 이메일을 테스트에서 제외하고 인증에 성공한 주소로 발송한다", async () => {
+    const user = userEvent.setup();
+    render(<OnboardingPage />);
+    const email = screen.getByRole("textbox", { name: "수신 이메일" });
+
+    expect(screen.getByRole("img", { name: "인증된 이메일" })).toBeVisible();
+    await user.clear(email);
+    await user.type(email, "other@example.com");
+    expect(screen.getByRole("img", { name: "인증이 필요한 이메일" })).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "알림 테스트" }));
+    expect(screen.getByText("테스트하려면 연결된 채널을 하나 이상 켜 주세요.")).toBeVisible();
+    expect(userApi.sendOnboardingTestNotification).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "인증하기" }));
+    expect(userApi.sendVerificationCode).toHaveBeenCalledExactlyOnceWith({ email: "other@example.com" });
+    await user.type(screen.getByRole("textbox", { name: "인증 코드" }), "123456{Enter}");
+    expect(userApi.verifyEmail).toHaveBeenCalledExactlyOnceWith({ email: "other@example.com", code: "123456" });
+    await waitFor(() => expect(screen.getByRole("img", { name: "인증된 이메일" })).toBeVisible());
+
+    await user.click(screen.getByRole("button", { name: "알림 테스트" }));
+    expect(userApi.sendOnboardingTestNotification).toHaveBeenCalledExactlyOnceWith({
+      notificationEmail: "other@example.com", emailEnabled: true, webPushEnabled: false, discordEnabled: false,
+    });
+    expect(screen.getByText("알림 테스트를 전송했습니다.")).toBeVisible();
+    expect(screen.getByRole("button", { name: /알림 테스트 \(\d+초\)/ })).toBeDisabled();
+    expect(mockCompleteOnboarding).not.toHaveBeenCalled();
+  });
+
+  it("다른 채널만 테스트한 경우 인증이 필요한 이메일을 안내한다", async () => {
+    const user = userEvent.setup();
+    render(<OnboardingPage />);
+    const email = screen.getByRole("textbox", { name: "수신 이메일" });
+    await user.clear(email);
+    await user.type(email, "other@example.com");
+    await user.type(deviceInput(), "내 노트북");
+    await user.click(registerButton());
+    await waitFor(() => expect(pushSwitch()).toBeChecked());
+
+    await user.click(screen.getByRole("button", { name: "알림 테스트" }));
+    expect(userApi.sendOnboardingTestNotification).toHaveBeenCalledExactlyOnceWith({
+      notificationEmail: "user@example.com", emailEnabled: false, webPushEnabled: true, discordEnabled: false,
+    });
+    expect(screen.getByText(/이메일은 인증 후 테스트할 수 있어요/)).toBeVisible();
+  });
+
+  it("현재 계정이 바뀌면 이전 계정에서 인증한 주소와 등록한 기기를 초기화한다", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<OnboardingPage />);
+    const emailInput = () => screen.getByRole("textbox", { name: "수신 이메일" });
+    await user.clear(emailInput());
+    await user.type(emailInput(), "other@example.com");
+    await user.click(screen.getByRole("button", { name: "인증하기" }));
+    await user.type(screen.getByRole("textbox", { name: "인증 코드" }), "123456{Enter}");
+    await waitFor(() => expect(screen.getByRole("img", { name: "인증된 이메일" })).toBeVisible());
+    await user.type(deviceInput(), "내 노트북");
+    await user.click(registerButton());
+    await waitFor(() => expect(pushSwitch()).toBeChecked());
+
+    mockUseUser.mockReturnValue({
+      data: { id: 2, discordId: null, email: "second@example.com", onboardingCompleted: false }, isLoading: false,
+    });
+    rerender(<OnboardingPage />);
+
+    expect(emailInput()).toHaveValue("second@example.com");
+    expect(deviceInput()).toHaveValue("");
+    expect(pushSwitch()).not.toBeChecked();
+    await user.clear(emailInput());
+    await user.type(emailInput(), "other@example.com");
+    expect(screen.getByRole("img", { name: "인증이 필요한 이메일" })).toBeVisible();
   });
 });

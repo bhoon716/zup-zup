@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getCampusMapQuery, getMapSearchUrls } from "./map-links";
+import { getCampusMapQuery } from "./map-links";
 
 describe("map-links", () => {
   it("다양한 호수/방 번호 형태의 강의실 문자열에서 건물명 중심 검색어를 만든다", () => {
@@ -18,12 +18,5 @@ describe("map-links", () => {
     expect(getCampusMapQuery("온라인")).toBeNull();
     expect(getCampusMapQuery("원격수업")).toBeNull();
     expect(getCampusMapQuery("비대면 (zoom)")).toBeNull();
-  });
-
-  it("카카오/네이버 검색 링크를 만든다", () => {
-    const urls = getMapSearchUrls("인문대학1호관 404");
-    expect(urls).not.toBeNull();
-    expect(urls?.kakao).toContain("map.kakao.com");
-    expect(urls?.naver).toContain("map.naver.com");
   });
 });

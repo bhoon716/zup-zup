@@ -1,11 +1,16 @@
 package bhoon.sugang_helper.academic.crawling.dto.response;
 
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class SearchDefaultSemesterResponse {
 
-    private String semester;
+    private final String semester;
+
+    public static SearchDefaultSemesterResponse of(String semester) {
+        return new SearchDefaultSemesterResponse(semester);
+    }
 }

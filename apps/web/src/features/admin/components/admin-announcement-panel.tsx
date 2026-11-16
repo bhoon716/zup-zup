@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { EyeOff, Loader2, Megaphone, Pencil, Pin, Plus, Trash2 } from "lucide-react";
+import { Fragment, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, EyeOff, Loader2, Megaphone, Pencil, Pin, Plus, RotateCcw, Trash2 } from "lucide-react";
 import {
   useAdminAnnouncements,
   useCreateAdminAnnouncement,
   useDeleteAdminAnnouncement,
+  useRestoreAdminAnnouncement,
   useUpdateAdminAnnouncement,
 } from "@/features/admin/hooks/useAdminAnnouncements";
 import type { AnnouncementDetailResponse, AnnouncementSearchType } from "@/shared/types/api";
@@ -63,19 +63,17 @@ const matchesSearch = (
   }
 };
 
-function AnnouncementItem({ 
-  announcement, 
-  isActive, 
-  onClick 
-}: { 
+function AnnouncementItem({ announcement, isActive, disabled, onClick }: {
   announcement: AnnouncementDetailResponse;
   isActive: boolean;
+  disabled: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={cn(
         "w-full rounded-xl border px-3 py-2.5 text-left transition",
         isActive 
@@ -90,7 +88,12 @@ function AnnouncementItem({
             고정
           </span>
         )}
-        {!announcement.published && (
+        {announcement.deletedAt ? (
+          <span className="inline-flex items-center rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+            <Trash2 className="mr-1 h-3 w-3" />
+            삭제됨
+          </span>
+        ) : !announcement.published && (
           <span className="inline-flex items-center rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
             <EyeOff className="mr-1 h-3 w-3" />
             비공개
@@ -107,42 +110,63 @@ function AnnouncementItem({
 }
 
 export function AdminAnnouncementPanel() {
-  const { data: announcements, isLoading } = useAdminAnnouncements();
+  const [page, setPage] = useState(0);
+  const { data: announcements, isLoading, isError, isPlaceholderData, refetch } = useAdminAnnouncements(page);
+  const listRef = useRef<HTMLDivElement>(null);
   const { mutate: createAnnouncement, isPending: isCreating } = useCreateAdminAnnouncement();
   const { mutate: updateAnnouncement, isPending: isUpdating } = useUpdateAdminAnnouncement();
   const { mutate: deleteAnnouncement, isPending: isDeleting } = useDeleteAdminAnnouncement();
+  const { mutate: restoreAnnouncement, isPending: isRestoring } = useRestoreAdminAnnouncement();
 
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<AnnouncementDetailResponse | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [pinned, setPinned] = useState(false);
   const [published, setPublished] = useState(true);
+  const [notify, setNotify] = useState(false);
   const [searchType, setSearchType] = useState<AnnouncementSearchType>("TITLE_CONTENT");
   const [keyword, setKeyword] = useState("");
 
   const isSaving = isCreating || isUpdating;
-  const canSave = useMemo(() => title.trim().length > 0 && content.trim().length > 0, [title, content]);
+  const isBusy = isSaving || isDeleting || isRestoring;
+  const editingId = editingAnnouncement?.id;
+  const isDeleted = !!editingAnnouncement?.deletedAt;
+  const canNotify = published && !isDeleted && (editingAnnouncement === null || editingAnnouncement.firstPublishedAt === null);
+  const canSave = title.trim().length > 0 && content.trim().length > 0;
+  const totalPages = announcements?.totalPages ?? 0;
+  const pageNumbers = [...new Set([0, page - 1, page, page + 1, totalPages - 1])]
+    .filter((number) => number >= 0 && number < totalPages)
+    .sort((first, second) => first - second);
+  const paginationDisabled = isBusy || isPlaceholderData;
+
+  const changePage = (nextPage: number) => {
+    if (nextPage === page) return;
+    listRef.current?.scrollTo({ top: 0 });
+    setPage(nextPage);
+  };
 
   const filteredAnnouncements = useMemo(() => {
-    return (announcements ?? []).filter((announcement) =>
+    return (announcements?.content ?? []).filter((announcement) =>
       matchesSearch(announcement, keyword.trim(), searchType)
     );
   }, [announcements, keyword, searchType]);
 
   const resetForm = () => {
-    setEditingId(null);
+    setEditingAnnouncement(null);
     setTitle("");
     setContent("");
     setPinned(false);
     setPublished(true);
+    setNotify(false);
   };
 
   const startEdit = (announcement: AnnouncementDetailResponse) => {
-    setEditingId(announcement.id);
+    setEditingAnnouncement(announcement);
     setTitle(announcement.title);
     setContent(announcement.content);
     setPinned(announcement.pinned);
     setPublished(announcement.published);
+    setNotify(false);
   };
 
   const handleSubmit = () => {
@@ -151,6 +175,7 @@ export function AdminAnnouncementPanel() {
       content: content.trim(),
       pinned,
       published,
+      notify: canNotify && notify,
     };
 
     if (editingId) {
@@ -162,16 +187,12 @@ export function AdminAnnouncementPanel() {
 
   const handleDelete = (id: number) => {
     if (window.confirm("이 공지사항을 삭제할까요?")) {
-      deleteAnnouncement(id);
+      deleteAnnouncement(id, { onSuccess: resetForm });
     }
   };
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-[2.2rem] bg-white p-5 shadow-2xl shadow-slate-200/50 md:p-6"
-    >
+    <section className="rounded-[2.2rem] bg-white p-5 shadow-2xl shadow-slate-200/50 md:p-6">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -182,7 +203,7 @@ export function AdminAnnouncementPanel() {
             <p className="mt-0.5 text-xs font-medium text-slate-500">좌측 목록, 우측 작성/수정</p>
           </div>
         </div>
-        <Button type="button" variant="outline" onClick={resetForm} className="rounded-xl text-xs font-bold">
+        <Button type="button" variant="outline" onClick={resetForm} disabled={isBusy} className="rounded-xl text-xs font-bold">
           <Plus className="mr-1 h-4 w-4" />
           새 공지 작성
         </Button>
@@ -204,7 +225,7 @@ export function AdminAnnouncementPanel() {
               <Input
                 value={keyword}
                 onChange={(event) => setKeyword(event.target.value)}
-                placeholder="공지 검색"
+                placeholder="현재 페이지에서 검색"
                 className="h-9 text-xs"
               />
             </div>
@@ -214,13 +235,19 @@ export function AdminAnnouncementPanel() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 공지 목록 불러오는 중...
               </div>
+            ) : isError ? (
+              <div role="alert" className="flex flex-wrap items-center gap-2 rounded-xl bg-red-50 p-3 text-xs text-red-800">
+                공지 목록을 불러오지 못했습니다.
+                <Button type="button" variant="outline" size="sm" onClick={() => { void refetch(); }}>다시 불러오기</Button>
+              </div>
             ) : (
-              <div className="max-h-[640px] space-y-2 overflow-y-auto pr-1">
+              <div ref={listRef} aria-busy={isPlaceholderData} className="max-h-[640px] space-y-2 overflow-y-auto pr-1">
                 {filteredAnnouncements.map((announcement) => (
                   <AnnouncementItem 
                     key={announcement.id}
                     announcement={announcement}
                     isActive={editingId === announcement.id}
+                    disabled={isBusy || isPlaceholderData}
                     onClick={() => startEdit(announcement)}
                   />
                 ))}
@@ -230,6 +257,34 @@ export function AdminAnnouncementPanel() {
                   </div>
                 )}
               </div>
+            )}
+            {(page > 0 || totalPages > 1) && (
+              <nav aria-label="관리 공지 페이지" className="mt-3 flex flex-wrap items-center justify-center gap-0.5">
+                <Button type="button" variant="ghost" size="icon-sm" aria-label="이전 페이지" disabled={page === 0 || paginationDisabled} onClick={() => changePage(page - 1)}>
+                  <ChevronLeft aria-hidden="true" />
+                </Button>
+                {pageNumbers.map((number, index) => (
+                  <Fragment key={number}>
+                    {index > 0 && number - pageNumbers[index - 1] > 1 && (
+                      <span aria-hidden="true" className="px-0.5 text-xs text-slate-500">…</span>
+                    )}
+                    <Button
+                      type="button"
+                      variant={number === page ? "default" : "ghost"}
+                      size="icon-sm"
+                      aria-label={`${number + 1} 페이지`}
+                      aria-current={number === page ? "page" : undefined}
+                      disabled={paginationDisabled}
+                      onClick={() => changePage(number)}
+                    >
+                      {number + 1}
+                    </Button>
+                  </Fragment>
+                ))}
+                <Button type="button" variant="ghost" size="icon-sm" aria-label="다음 페이지" disabled={page + 1 >= totalPages || paginationDisabled} onClick={() => changePage(page + 1)}>
+                  <ChevronRight aria-hidden="true" />
+                </Button>
+              </nav>
             )}
           </div>
         </div>
@@ -241,37 +296,61 @@ export function AdminAnnouncementPanel() {
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="공지 제목"
-                disabled={isSaving}
+                disabled={isBusy || isDeleted}
               />
               <textarea
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
                 placeholder={"마크다운으로 공지 내용을 입력하세요.\n예) ## 수강신청 안내\n- 일정\n- 유의사항"}
-                disabled={isSaving}
+                disabled={isBusy || isDeleted}
                 className="min-h-[220px] w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-primary/20 transition focus:border-primary focus:ring-2 disabled:cursor-not-allowed disabled:opacity-70"
               />
               <div className="flex flex-wrap items-center gap-5">
                 <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                  <Switch checked={pinned} onCheckedChange={setPinned} disabled={isSaving} />
+                  <Switch checked={pinned} onCheckedChange={setPinned} disabled={isBusy || isDeleted} />
                   상단 고정
                 </label>
                 <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                  <Switch checked={published} onCheckedChange={setPublished} disabled={isSaving} />
+                  <Switch checked={published} onCheckedChange={(checked) => {
+                    setPublished(checked);
+                    if (!checked) setNotify(false);
+                  }} disabled={isBusy || isDeleted} />
                   공개
                 </label>
               </div>
+              {canNotify && (
+                <div className="space-y-1">
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <Switch checked={notify} onCheckedChange={setNotify} disabled={isBusy} aria-describedby="announcement-notify-description" />
+                    중요 공지 알림 보내기
+                  </label>
+                  <p id="announcement-notify-description" className="text-xs text-slate-500">처음 공개할 때 알림함과 사용자가 켜 둔 채널로 보냅니다.</p>
+                </div>
+              )}
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={!canSave || isSaving}
-                  className="rounded-xl bg-primary text-xs font-bold text-white hover:bg-primary-dark"
-                >
-                  {isSaving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-                  {editingId ? "공지 수정" : "공지 등록"}
-                </Button>
+                {isDeleted ? (
+                  <Button
+                    type="button"
+                    onClick={() => restoreAnnouncement(editingAnnouncement.id, { onSuccess: startEdit })}
+                    disabled={isBusy}
+                    className="rounded-xl text-xs font-bold"
+                  >
+                    {isRestoring ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-1 h-4 w-4" />}
+                    공지 복원
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={!canSave || isBusy}
+                    className="rounded-xl bg-primary text-xs font-bold text-white hover:bg-primary-dark"
+                  >
+                    {isSaving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                    {editingId ? "공지 수정" : "공지 등록"}
+                  </Button>
+                )}
                 {editingId && (
-                  <Button type="button" variant="outline" onClick={resetForm} disabled={isSaving} className="rounded-xl text-xs font-bold">
+                  <Button type="button" variant="outline" onClick={resetForm} disabled={isBusy} className="rounded-xl text-xs font-bold">
                     편집 취소
                   </Button>
                 )}
@@ -281,7 +360,7 @@ export function AdminAnnouncementPanel() {
             <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs font-bold text-slate-600">미리보기</p>
-                {editingId && (
+                {editingId && !isDeleted && (
                   <div className="flex items-center gap-2">
                     <span className="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-700">
                       <Pencil className="mr-1 h-3.5 w-3.5" />
@@ -291,7 +370,7 @@ export function AdminAnnouncementPanel() {
                       type="button"
                       variant="outline"
                       onClick={() => handleDelete(editingId)}
-                      disabled={isDeleting}
+                      disabled={isBusy}
                       className="h-8 rounded-lg px-3 text-xs font-bold text-red-600 hover:text-red-700"
                     >
                       <Trash2 className="mr-1 h-3.5 w-3.5" />
@@ -306,6 +385,6 @@ export function AdminAnnouncementPanel() {
           </div>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

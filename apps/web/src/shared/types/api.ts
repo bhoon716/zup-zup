@@ -141,28 +141,6 @@ export interface CourseSearchCondition {
   departmentId?: number;
 }
 
-export interface CourseCategoryResponse {
-  category: string;
-  details: string[];
-}
-
-export interface CollegeHierarchyResponse {
-  id: number;
-  name: string;
-  departments: {
-    id: number;
-    name: string;
-  }[];
-}
-
-export interface CourseSeatHistory {
-  id: number;
-  courseKey: string;
-  capacity: number;
-  current: number;
-  detectedAt: string;
-}
-
 export interface Subscription {
   id: number;
   courseKey: string;
@@ -203,10 +181,6 @@ export interface UserSettingsRequest {
   discordEnabled: boolean;
 }
 
-export interface UserUpdateRequest {
-  name: string;
-}
-
 export interface EmailRequest {
   email: string;
 }
@@ -226,15 +200,6 @@ export interface NotificationHistory {
   createdAt?: string;
 }
 
-export interface UserDevice {
-  id: number;
-  token: string;
-  p256dh?: string;
-  auth?: string;
-  isActive: boolean;
-  createdAt: string;
-}
-
 export interface UserDeviceRequest {
   token: string;
   p256dh?: string;
@@ -249,28 +214,22 @@ export interface UserDeviceResponse {
   registeredAt: string;
 }
 
+export type AdminTrafficRange = "LAST_24_HOURS" | "LAST_7_DAYS";
+
 export interface AdminTrafficPointResponse {
   label: string;
-  count: number;
-}
-
-export interface AdminRecentLogResponse {
-  timestamp: string;
-  level: string;
-  message: string;
-  source: string;
+  bucketStart: string;
+  seatOpened: number;
+  feedbackReply: number;
+  announcement: number;
 }
 
 export interface AdminOverviewResponse {
   totalUsers: number;
   totalActiveSubscriptions: number;
-  todayNotificationCount: number;
   crawlingStatus: string;
   lastCrawledAt: string | null;
-  jbnuLatencyMs: number | null;
   serverTime: string;
-  notificationTraffic: AdminTrafficPointResponse[];
-  recentLogs: AdminRecentLogResponse[];
 }
 
 export interface AdminDashboardSnapshotResponse {
@@ -460,6 +419,8 @@ export interface AnnouncementDetailResponse {
   published: boolean;
   createdAt: string;
   updatedAt: string;
+  firstPublishedAt: string | null;
+  deletedAt: string | null;
 }
 
 export interface AnnouncementRequest {
@@ -467,6 +428,7 @@ export interface AnnouncementRequest {
   content: string;
   pinned?: boolean;
   published?: boolean;
+  notify?: boolean;
 }
 
 export interface ReviewResponse {
@@ -486,10 +448,6 @@ export interface ReviewCreateRequest {
 
 export interface ReviewUpdateRequest {
   rating: number;
-}
-
-export interface ReviewReactionRequest {
-  reactionType: 'LIKE' | 'DISLIKE';
 }
 
 export interface EmojiReviewResponse {
@@ -531,6 +489,13 @@ export interface FeedbackReplyResponse {
 }
 
 export type AdminFeedbackDeletionFilter = 'ALL' | 'ACTIVE' | 'DELETED';
+export type AdminFeedbackOrder = 'PENDING_FIRST' | 'NEWEST' | 'OLDEST';
+export type AdminFeedbackSearchType = 'TITLE' | 'TITLE_CONTENT' | 'TITLE_CONTENT_REPLY';
+
+export interface AdminFeedbackSearch {
+  keyword: string;
+  searchType: AdminFeedbackSearchType;
+}
 
 export interface AdminFeedbackResponse {
   id: number;

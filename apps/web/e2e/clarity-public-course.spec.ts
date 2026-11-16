@@ -24,10 +24,11 @@ test.beforeEach(async ({ page, context, baseURL }) => {
     if (path === "/api/v1/courses/search") return fulfill({ content: [course, { ...course, courseKey: "PRIVATE", name: "비공개 강의", disclosure: "비공개" }], last: true, number: 0, size: 30 });
     if (path === "/api/v1/subscriptions") return fulfill([{ id: 1, courseKey: course.courseKey, courseName: course.name, professorName: course.professor }]);
     if (path === "/api/v1/wishlist") return fulfill([]);
+    if (path === "/api/v1/notifications/inbox") return fulfill({ content: [], number: 0, totalPages: 0, totalElements: 0 });
     if (path === "/api/v1/notifications/history" || path.endsWith("/reviews")) return fulfill({ content: [], last: true, number: 0 });
     if (path.endsWith("/emojis")) return fulfill([]);
     if (path === "/api/v1/timetables") return fulfill([{ id: 1, name: "개인 시간표", primary: true }]);
-    if (path === "/api/v1/timetables/1" || path === "/api/v1/timetables/primary") return fulfill({ id: 1, name: "개인 시간표", primary: true, courses: [course], customSchedules: [], totalCredits: "3" });
+    if (path === "/api/v1/timetables/1") return fulfill({ id: 1, name: "개인 시간표", primary: true, courses: [course], customSchedules: [], totalCredits: "3" });
     if (path === `/api/v1/courses/${course.courseKey}`) return fulfill(course);
     return route.fulfill({ status: 500, json: { code: "UNEXPECTED_TEST_API" } });
   });
@@ -74,7 +75,7 @@ for (const { path, label, now } of [
     await page.goto(path);
     const sidebar = page.locator("aside");
     const privateCourse = path === "/timetable"
-      ? sidebar.getByText("시간표 강의 1건", { exact: true }).locator("..").getByText(course.name, { exact: true })
+      ? sidebar.getByRole("region", { name: "담은 강의" }).getByText(course.name, { exact: true })
       : sidebar.getByRole("heading", { name: course.name, exact: true });
     if (path === "/timetable") {
       await expect(sidebar.getByText(course.name, { exact: true })).toHaveCount(label === "월요일" ? 2 : 1);

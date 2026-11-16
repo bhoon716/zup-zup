@@ -52,11 +52,11 @@ class CourseSearchConditionValidationTest {
     }
 
     @Test
-    @DisplayName("통합 검색어와 강의명 필터를 동시에 사용하지 못한다")
-    void integratedKeywordCannotBeCombinedWithNameFilter() {
+    @DisplayName("keyword와 name 조건을 동시에 사용하지 못한다")
+    void keywordCannotBeCombinedWithNameFilter() {
         // given
         CourseSearchCondition condition = CourseSearchCondition.builder()
-                .keyword("GECO178")
+                .keyword("자료")
                 .name("자료구조")
                 .build();
 

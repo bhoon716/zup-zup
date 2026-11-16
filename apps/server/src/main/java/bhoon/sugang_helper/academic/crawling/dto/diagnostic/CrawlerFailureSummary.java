@@ -1,32 +1,34 @@
 package bhoon.sugang_helper.academic.crawling.dto.diagnostic;
 
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
-import bhoon.sugang_helper.academic.crawling.exception.CrawlerUpstreamFailure;
+import bhoon.sugang_helper.academic.crawling.exception.CrawlerUpstreamException;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.security.SensitiveDataRedactor;
+import java.util.Objects;
 
 public record CrawlerFailureSummary(CrawlerFailureStage stage, String failureType, String failureMessage,
                                     Integer upstreamStatus, Boolean retryable) {
 
+    private static final String UNKNOWN_LABEL = "UNKNOWN";
     private static final int MAX_TYPE_LENGTH = 100;
     private static final int MAX_MESSAGE_LENGTH = 500;
 
     public static CrawlerFailureSummary from(CrawlerFailureStage stage, RuntimeException exception) {
-        CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.find(exception);
-        Throwable rootCause = upstream == null ? exception : CrawlerUpstreamFailure.rootCause(upstream);
-        CrawlerFailureStage effectiveStage = upstream == null ? stage : upstream.stage();
-        String type = truncate(SensitiveDataRedactor.exceptionType(rootCause), MAX_TYPE_LENGTH);
-        String message = exception instanceof CustomException customException
-                ? customException.getErrorCode().getCode() + ": " + customException.getErrorCode().getMessage()
-                : "Unexpected crawler failure";
-        if (upstream != null) {
-            message = message + "; stage=" + effectiveStage
+        String message = "강의 수집 중 예상하지 못한 오류가 발생했습니다.";
+        if (exception instanceof CustomException customException) {
+            message = customException.getErrorCode().getCode() + ": " + customException.getErrorCode().getMessage();
+        }
+        if (exception instanceof CrawlerUpstreamException upstream) {
+            Throwable rootCause = CrawlerUpstreamException.rootCause(upstream);
+            String type = truncate(SensitiveDataRedactor.exceptionType(rootCause), MAX_TYPE_LENGTH);
+            message = message + "; stage=" + upstream.stage()
                     + "; upstreamStatus=" + upstreamStatusLabel(upstream.upstreamStatus())
                     + "; retryable=" + upstream.retryable();
+            return new CrawlerFailureSummary(upstream.stage(), type, truncate(message, MAX_MESSAGE_LENGTH),
+                    upstream.upstreamStatus(), upstream.retryable());
         }
-        return new CrawlerFailureSummary(effectiveStage, type, truncate(message, MAX_MESSAGE_LENGTH),
-                upstream == null ? null : upstream.upstreamStatus(),
-                upstream == null ? null : upstream.retryable());
+        String type = truncate(SensitiveDataRedactor.exceptionType(exception), MAX_TYPE_LENGTH);
+        return new CrawlerFailureSummary(stage, type, truncate(message, MAX_MESSAGE_LENGTH), null, null);
     }
 
     public boolean hasUpstreamMetadata() {
@@ -48,7 +50,7 @@ public record CrawlerFailureSummary(CrawlerFailureStage stage, String failureTyp
     }
 
     public String retryableLabel() {
-        return retryable == null ? "UNKNOWN" : retryable.toString();
+        return Objects.toString(retryable, UNKNOWN_LABEL);
     }
 
     private static String truncate(String value, int maxLength) {
@@ -56,6 +58,6 @@ public record CrawlerFailureSummary(CrawlerFailureStage stage, String failureTyp
     }
 
     private static String upstreamStatusLabel(Integer status) {
-        return status == null ? "UNKNOWN" : status.toString();
+        return Objects.toString(status, UNKNOWN_LABEL);
     }
 }

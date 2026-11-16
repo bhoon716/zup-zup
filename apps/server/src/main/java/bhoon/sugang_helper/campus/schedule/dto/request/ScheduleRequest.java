@@ -16,6 +16,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ScheduleRequest {
 
+    private static final String TIME_FORMAT = "HH:mm";
+
     @NotBlank(message = "일정 구분은 필수입니다.")
     @Size(max = 255, message = "일정 구분은 255자 이하여야 합니다.")
     private String scheduleType;
@@ -26,10 +28,10 @@ public class ScheduleRequest {
     @NotNull(message = "종료일은 필수입니다.")
     private LocalDate endDate;
 
-    @JsonFormat(pattern = "HH:mm")
+    @JsonFormat(pattern = TIME_FORMAT)
     private LocalTime startTime;
 
-    @JsonFormat(pattern = "HH:mm")
+    @JsonFormat(pattern = TIME_FORMAT)
     private LocalTime endTime;
 
     private Boolean ddayEnabled;

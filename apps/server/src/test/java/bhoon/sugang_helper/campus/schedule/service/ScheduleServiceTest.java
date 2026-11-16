@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import bhoon.sugang_helper.campus.api.ScheduleSummary;
 import bhoon.sugang_helper.campus.schedule.dto.request.ScheduleRequest;
 import bhoon.sugang_helper.campus.schedule.dto.response.ScheduleResponse;
 import bhoon.sugang_helper.campus.schedule.entity.Schedule;
@@ -63,8 +64,9 @@ class ScheduleServiceTest {
         // when & then
         assertThat(service.getUpcomingSchedules()).extracting(ScheduleResponse::getDDay)
                 .containsExactly(D_DAY, "D-3");
-        assertThat(service.findUpcomingSchedules()).extracting(summary -> summary.id())
-                .containsExactly(1L, 2L);
+        assertThat(service.findUpcomingSchedules()).containsExactly(
+                new ScheduleSummary(1L, TITLE, TODAY.minusDays(1), TODAY, null, LocalTime.of(9, 0), D_DAY),
+                new ScheduleSummary(2L, TITLE, TODAY.plusDays(3), TODAY.plusDays(4), null, null, "D-3"));
     }
 
     @Test

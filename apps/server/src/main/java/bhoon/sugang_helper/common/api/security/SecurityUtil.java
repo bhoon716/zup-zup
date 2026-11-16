@@ -7,14 +7,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 public class SecurityUtil {
 
+    private static final String ANONYMOUS_PRINCIPAL = "anonymousUser";
+
     private SecurityUtil() {
-        throw new IllegalStateException("Utility class");
+        throw new IllegalStateException("유틸리티 클래스는 인스턴스를 생성할 수 없습니다.");
     }
 
     public static String getCurrentUserEmail() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null ||
-                "anonymousUser".equals(authentication.getPrincipal())) {
+                ANONYMOUS_PRINCIPAL.equals(authentication.getPrincipal())) {
             throw new CustomException(ErrorCode.AUTHENTICATION_REQUIRED, "인증 정보가 없습니다.");
         }
         return authentication.getName();
@@ -23,7 +25,7 @@ public class SecurityUtil {
     public static String getCurrentUserEmailOrNull() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null ||
-                "anonymousUser".equals(authentication.getPrincipal())) {
+                ANONYMOUS_PRINCIPAL.equals(authentication.getPrincipal())) {
             return null;
         }
         return authentication.getName();

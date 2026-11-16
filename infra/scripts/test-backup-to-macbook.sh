@@ -57,7 +57,7 @@ assert_checksum_failure_is_fail_closed() {
     echo "unverified backup must not be promoted" >&2
     return 1
   fi
-  if grep -Fq 'Cleaning up MacBook backups' "${output_file}"; then
+  if grep -Fq '지난 백업을 정리합니다.' "${output_file}"; then
     echo "checksum failure must stop before retention" >&2
     return 1
   fi

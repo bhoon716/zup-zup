@@ -7,6 +7,8 @@ import bhoon.sugang_helper.campus.api.ScheduleSummary;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardNotificationResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardPrimaryTimetableResult;
 import bhoon.sugang_helper.dashboard.dto.response.DashboardSnapshotResponse;
+import bhoon.sugang_helper.dashboard.dto.response.DashboardUserResult;
+import bhoon.sugang_helper.identity.api.users.UserDashboardProfile;
 import bhoon.sugang_helper.planning.api.TimetableCourseScheduleSnapshot;
 import bhoon.sugang_helper.planning.api.TimetableCourseSnapshot;
 import bhoon.sugang_helper.planning.api.TimetableCustomScheduleSnapshot;
@@ -28,33 +30,35 @@ class DashboardSnapshotResponseContractTest {
     @Test
     @DisplayName("소유 모듈의 계약을 조합해도 대시보드 JSON 필드를 보존한다")
     void preservesDashboardJsonFieldsAcrossOwnerContracts() {
-        // when
-        DashboardSnapshotResponse response = DashboardSnapshotResponse.builder()
-                .notifications(List.of(new DashboardNotificationResult(
-                        1L, "CS101", "공석 발생", "알림", NotificationChannel.EMAIL,
-                        LocalDateTime.of(2026, 9, 29, 10, 0))))
-                .primaryTimetable(new DashboardPrimaryTimetableResult(
-                        10L,
-                        "대표 시간표",
-                        true,
-                        List.of(new TimetableCourseSnapshot(
-                                "CS101", "자료구조", "홍길동", "월 1-A", "3", "전공", "공대",
-                                List.of(new TimetableCourseScheduleSnapshot("MONDAY", "09:00", "10:00")))),
-                        List.of(new TimetableCustomScheduleSnapshot(
-                                20L, "동아리", "김교수",
-                                List.of(new TimetableCustomScheduleTimeSnapshot(
-                                        30L, "TUESDAY", LocalTime.of(18, 0), LocalTime.of(19, 0), "공대")))),
-                        "3"))
-                .upcomingSchedules(List.of(new ScheduleSummary(
-                        40L, "수강 신청", LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 2),
-                        LocalTime.of(9, 0), LocalTime.of(18, 0), "D-2")))
-                .announcements(List.of(new AnnouncementPreview(
-                        50L, "공지", "미리보기", true, LocalDateTime.of(2026, 9, 29, 9, 0))))
-                .build();
+        // given
+        DashboardNotificationResult notification = new DashboardNotificationResult(
+                1L, "CS101", "공석 발생", "알림", NotificationChannel.EMAIL, LocalDateTime.of(2026, 9, 29, 10, 0));
+        DashboardPrimaryTimetableResult primaryTimetable = new DashboardPrimaryTimetableResult(
+                10L,
+                "대표 시간표",
+                true,
+                List.of(new TimetableCourseSnapshot(
+                        "CS101", "자료구조", "홍길동", "월 1-A", "3", "전공", "공대",
+                        List.of(new TimetableCourseScheduleSnapshot("MONDAY", "09:00", "10:00")))),
+                List.of(new TimetableCustomScheduleSnapshot(
+                        20L, "동아리", "김교수",
+                        List.of(new TimetableCustomScheduleTimeSnapshot(
+                                30L, "TUESDAY", LocalTime.of(18, 0), LocalTime.of(19, 0), "공대")))),
+                "3");
+        ScheduleSummary upcomingSchedule = new ScheduleSummary(
+                40L, "수강 신청", LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 2),
+                LocalTime.of(9, 0), LocalTime.of(18, 0), "D-2");
+        AnnouncementPreview announcementPreview = new AnnouncementPreview(
+                50L, "공지", "미리보기", true, LocalDateTime.of(2026, 9, 29, 9, 0));
+        DashboardUserResult user = DashboardUserResult.from(new UserDashboardProfile(
+                7L, "user@example.com", "사용자", "USER", "user@example.com", true, false, true, null, false));
+        DashboardSnapshotResponse response = DashboardSnapshotResponse.forSignedInUser(
+                user, List.of(notification), primaryTimetable, List.of(upcomingSchedule), List.of(announcementPreview));
 
-        // then
+        // when
         JsonNode json = objectMapper.valueToTree(response);
 
+        // then
         assertThat(json.path("notifications").get(0).has("sentAt")).isTrue();
         assertThat(json.path("notifications").get(0).has("courseKey")).isTrue();
         assertThat(json.path("primaryTimetable").has("isPrimary")).isTrue();

@@ -3,9 +3,7 @@ package bhoon.sugang_helper.academic.crawling.dto.diagnostic;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.academic.crawling.enums.CrawlerFailureStage;
-import bhoon.sugang_helper.academic.crawling.exception.CrawlerUpstreamFailure;
-import bhoon.sugang_helper.common.api.error.CustomException;
-import bhoon.sugang_helper.common.api.error.ErrorCode;
+import bhoon.sugang_helper.academic.crawling.exception.CrawlerUpstreamException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClientResponseException;
@@ -16,13 +14,10 @@ class CrawlerFailureSummaryTest {
     @DisplayName("상위 서버 실패 요약에는 안전한 단계·상태·재시도 여부를 보존한다")
     void upstreamFailureSummaryPreservesSafeStageStatusAndRetryability() {
         // given
-        CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.wrap(
-                CrawlerFailureStage.COURSE_API, 503,
+        CrawlerUpstreamException failure = new CrawlerUpstreamException(
+                CrawlerFailureStage.COURSE_API, 503, true,
                 new RestClientResponseException("https://jump.example.test/secret", 503,
-                        "Service Unavailable", null, new byte[0], null),
-                true);
-        CustomException failure = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
-        failure.initCause(upstream);
+                        "Service Unavailable", null, new byte[0], null));
 
         // when
         CrawlerFailureSummary summary = CrawlerFailureSummary.from(CrawlerFailureStage.FETCH_PARSE, failure);
@@ -45,13 +40,9 @@ class CrawlerFailureSummaryTest {
     @DisplayName("응답 상태 오류는 본문 없이 HTTP 상태만 유지한다")
     void responseStatusFailureRetainsHttpStatusWithoutResponseBody() {
         // given
-        CrawlerUpstreamFailure upstream = CrawlerUpstreamFailure.wrap(
-                CrawlerFailureStage.COURSE_API,
-                429,
-                new RuntimeException("response body must not be stored"),
-                true);
-        CustomException failure = new CustomException(ErrorCode.CRAWLER_CONNECTION_ERROR);
-        failure.initCause(upstream);
+        CrawlerUpstreamException failure = new CrawlerUpstreamException(
+                CrawlerFailureStage.COURSE_API, 429, true,
+                new RuntimeException("response body must not be stored"));
 
         // when
         CrawlerFailureSummary summary = CrawlerFailureSummary.from(CrawlerFailureStage.FETCH_PARSE, failure);

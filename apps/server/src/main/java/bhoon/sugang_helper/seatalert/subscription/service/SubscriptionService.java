@@ -7,12 +7,13 @@ import bhoon.sugang_helper.academic.api.catalog.TrackedSemester;
 import bhoon.sugang_helper.academic.api.catalog.TrackedSemesterQuery;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.CurrentUserQuery;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
-import bhoon.sugang_helper.identity.api.users.Users;
 import bhoon.sugang_helper.seatalert.subscription.dto.request.SubscriptionRequest;
 import bhoon.sugang_helper.seatalert.subscription.dto.response.SubscriptionResponse;
 import bhoon.sugang_helper.seatalert.subscription.entity.Subscription;
+import bhoon.sugang_helper.seatalert.subscription.entity.SubscriptionEnd;
+import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionEndRepository;
 import bhoon.sugang_helper.seatalert.subscription.repository.SubscriptionRepository;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -30,18 +32,22 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class SubscriptionService {
 
+    private static final String EVENT_KEY = "event";
+    private static final String USER_ID_KEY = "userId";
+
     private final SubscriptionRepository subscriptionRepository;
     private final CourseCatalog courseCatalogQuery;
-    private final Users userIdentityQuery;
+    private final CurrentUserQuery currentUserQuery;
     private final TrackedSemesterQuery crawlerTargetQuery;
+    private final SubscriptionEndRepository subscriptionEndRepository;
 
     @Value("${app.subscription.max-limit:3}")
     private int maxLimit;
 
     @Transactional
     public SubscriptionResponse subscribe(SubscriptionRequest request) {
-        UserIdentity user = getCurrentUser();
-        CourseSummary course = courseCatalogQuery.findByCourseKey(request.getCourseKey())
+        UserIdentity user = currentUserQuery.requireCurrentUser();
+        CourseSummary course = courseCatalogQuery.findWithoutSchedulesByCourseKey(request.getCourseKey())
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "과목을 찾을 수 없습니다."));
 
         validateSubscription(user, course);
@@ -53,9 +59,9 @@ public class SubscriptionService {
                 .build();
 
         Subscription saved = subscriptionRepository.save(subscription);
-        log.info("[Subscription] 구독 등록. userId={}, courseKey={}", user.id(), course.courseKey());
+        logSubscriptionCreated(user.id(), course.courseKey());
 
-        return SubscriptionResponse.of(saved, course.name(), course.professor());
+        return SubscriptionResponse.from(saved, course.name(), course.professor());
     }
 
     private void validateSubscription(UserIdentity user, CourseSummary course) {
@@ -73,29 +79,39 @@ public class SubscriptionService {
         }
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void unsubscribe(Long subscriptionId) {
-        UserIdentity user = getCurrentUser();
-        Subscription subscription = subscriptionRepository.findById(subscriptionId)
+        UserIdentity user = currentUserQuery.requireCurrentUser();
+        Subscription subscription = subscriptionRepository.findByIdForUpdate(subscriptionId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "구독 정보를 찾을 수 없습니다."));
 
         if (!subscription.getUserId().equals(user.id())) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
 
-        subscriptionRepository.delete(subscription);
-        log.info("[Subscription] 구독 취소. userId={}, subscriptionId={}", user.id(), subscriptionId);
+        deleteSubscription(subscription);
+        logSubscriptionCancelled(user.id(), subscriptionId);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void unsubscribeAll() {
-        UserIdentity user = getCurrentUser();
-        subscriptionRepository.deleteAllByUserId(user.id());
-        log.info("[Subscription] 전체 구독 취소. userId={}", user.id());
+        UserIdentity user = currentUserQuery.requireCurrentUser();
+        for (Long subscriptionId : subscriptionRepository.findIdsByUserIdOrderById(user.id())) {
+            subscriptionRepository.findByIdForUpdate(subscriptionId).ifPresent(this::deleteSubscription);
+        }
+        logSubscriptionsCancelled(user.id());
+    }
+
+    private void deleteSubscription(Subscription subscription) {
+        SubscriptionEnd.Key key = new SubscriptionEnd.Key(subscription.getUserId(), subscription.getCourseKey());
+        if (!subscriptionEndRepository.existsById(key)) {
+            subscriptionEndRepository.save(new SubscriptionEnd(key));
+        }
+        subscriptionRepository.delete(subscription);
     }
 
     public List<SubscriptionResponse> getMySubscriptions() {
-        UserIdentity user = getCurrentUser();
+        UserIdentity user = currentUserQuery.requireCurrentUser();
         List<Subscription> subscriptions = subscriptionRepository.findByUserId(user.id());
         Map<String, CourseName> coursesByKey = courseCatalogQuery.findNamesByCourseKeyIn(subscriptions.stream()
                         .map(Subscription::getCourseKey)
@@ -106,20 +122,28 @@ public class SubscriptionService {
                         (existing, replacement) -> existing));
 
         return subscriptions.stream()
-                .map(subscription -> convertToResponse(subscription, coursesByKey.get(subscription.getCourseKey())))
+                .map(subscription -> SubscriptionResponse.from(subscription, coursesByKey.get(subscription.getCourseKey())))
                 .collect(Collectors.toList());
     }
 
-    private SubscriptionResponse convertToResponse(Subscription subscription, CourseName course) {
-        if (course == null) {
-            return SubscriptionResponse.of(subscription, "Unknown", "Unknown");
-        }
-        return SubscriptionResponse.of(subscription, course.name(), course.professor());
+    private void logSubscriptionCreated(Long userId, String courseKey) {
+        log.atInfo().addKeyValue(EVENT_KEY, "subscription_created")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue("courseKey", courseKey)
+                .log("[Subscription] 구독 등록.");
     }
 
-    private UserIdentity getCurrentUser() {
-        String email = SecurityUtil.getCurrentUserEmail();
-        return userIdentityQuery.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
+    private void logSubscriptionCancelled(Long userId, Long subscriptionId) {
+        log.atInfo().addKeyValue(EVENT_KEY, "subscription_cancelled")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue("subscriptionId", subscriptionId)
+                .log("[Subscription] 구독 취소.");
     }
+
+    private void logSubscriptionsCancelled(Long userId) {
+        log.atInfo().addKeyValue(EVENT_KEY, "subscriptions_cancelled")
+                .addKeyValue(USER_ID_KEY, userId)
+                .log("[Subscription] 전체 구독 취소.");
+    }
+
 }

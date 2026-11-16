@@ -7,7 +7,7 @@ readonly COMPOSE_FILE="${RELEASE_ROOT}/docker-compose.yml"
 diagnostics_env=""
 
 fail() {
-  echo "observability diagnostics failed: $*" >&2
+  echo "모니터링 진단에 실패했습니다: $*" >&2
   exit 1
 }
 
@@ -17,22 +17,22 @@ cleanup() {
 trap cleanup EXIT
 
 operation="${1:-}"
-[ -n "${operation}" ] || fail "operation is required: ps, logs, probe, or start"
+[ -n "${operation}" ] || fail "ps, logs, probe, start 중 하나를 지정해야 합니다."
 shift
 case "${operation}" in
   ps|logs)
     ;;
   probe|start)
-    [ "$#" -eq 0 ] || fail "${operation} does not accept extra arguments"
+    [ "$#" -eq 0 ] || fail "${operation} 명령에는 추가 인수를 지정할 수 없습니다."
     ;;
   *)
-    fail "unsupported operation: ${operation}"
+    fail "지원하지 않는 명령입니다: ${operation}"
     ;;
 esac
 
-[ -f "${RUNTIME_ENV}" ] || fail "persistent runtime environment is missing: ${RUNTIME_ENV}"
-[ -f "${COMPOSE_FILE}" ] || fail "runtime Compose file is missing: ${COMPOSE_FILE}"
-command -v docker >/dev/null || fail "docker is required"
+[ -f "${RUNTIME_ENV}" ] || fail "실행 환경 설정 파일이 없습니다: ${RUNTIME_ENV}"
+[ -f "${COMPOSE_FILE}" ] || fail "실행 환경의 Compose 파일이 없습니다: ${COMPOSE_FILE}"
+command -v docker >/dev/null || fail "Docker가 필요합니다."
 
 diagnostics_env="$(mktemp "${RELEASE_ROOT}/.compose-diagnostics.XXXXXX")"
 printf '%s\n' \

@@ -1,17 +1,19 @@
 package bhoon.sugang_helper.academic.course.dto.response;
 
 import bhoon.sugang_helper.academic.course.entity.Course;
+import bhoon.sugang_helper.academic.course.enums.CourseAccreditation;
+import bhoon.sugang_helper.academic.course.enums.CourseClassification;
+import bhoon.sugang_helper.academic.course.enums.CourseStatus;
+import bhoon.sugang_helper.academic.course.enums.DisclosureStatus;
+import bhoon.sugang_helper.academic.course.enums.GradingMethod;
+import bhoon.sugang_helper.academic.course.enums.LectureLanguage;
 import bhoon.sugang_helper.academic.course.enums.TargetGrade;
 import java.time.LocalDateTime;
 import java.util.List;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import java.util.Optional;
 import lombok.Getter;
 
 @Getter
-@Builder
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CourseDetailResponse {
 
     private final String courseKey;
@@ -84,61 +86,59 @@ public class CourseDetailResponse {
 
     private final LocalDateTime lastCrawledAt;
 
-    public static CourseDetailResponse from(Course course, String currentYear, String currentSemester,
-                                            boolean isReviewed, LocalDateTime lastCrawledAt) {
-
-        String status = course.getAvailable() > 0 ? "AVAILABLE" : "FULL";
-
+    private CourseDetailResponse(Course course, String currentYear, String currentSemester,
+                                 boolean isReviewed, LocalDateTime lastCrawledAt) {
+        String status = resolveSeatStatus(course.getAvailable());
         boolean isSubscribable = course.isMatchingTarget(currentYear, currentSemester);
 
-        return CourseDetailResponse.builder()
-                .courseKey(course.getCourseKey())
-                .subjectCode(course.getSubjectCode())
-                .stdtrNo(course.getStdtrNo())
-                .name(course.getName())
-                .classNumber(course.getClassNumber())
-                .professor(course.getProfessor())
-                .targetGrade(course.getTargetGrade())
-                .capacity(course.getCapacity())
-                .current(course.getCurrent())
-                .available(course.getAvailable())
-                .classification(course.getClassification() != null
-                        ? course.getClassification().getDescription()
-                        : null)
-                .department(course.getDepartment())
-                .gradingMethod(course.getGradingMethod() != null
-                        ? course.getGradingMethod().getDescription()
-                        : null)
-                .lectureLanguage(
-                        course.getLectureLanguage() != null
-                                ? course.getLectureLanguage().getValue()
-                                : null)
-                .classTime(course.getClassTime())
-                .credits(course.getCredits())
-                .lectureHours(course.getLectureHours())
-                .disclosure(course.getDisclosure() != null ? course.getDisclosure().getDescription()
-                        : null)
-                .disclosureReason(course.getDisclosureReason())
-                .generalCategory(course.getGeneralCategory())
-                .generalDetail(course.getGeneralDetail())
-                .accreditation(course.getAccreditation() != null
-                        ? course.getAccreditation().getDescription()
-                        : null)
-                .courseStatus(course.getStatus() != null ? course.getStatus().getDescription() : null)
-                .classroom(course.getClassroom())
-                .hasSyllabus(course.getHasSyllabus())
-                .generalCategoryByYear(course.getGeneralCategoryByYear())
-                .courseDirection(course.getCourseDirection())
-                .classDuration(course.getClassDuration())
-                .status(status)
-                .isSubscribable(isSubscribable)
-                .averageRating(course.getAverageRating())
-                .reviewCount(course.getReviewCount())
-                .isReviewed(isReviewed)
-                .lastCrawledAt(lastCrawledAt)
-                .schedules(course.getSchedules().stream()
-                        .map(ScheduleResponse::from)
-                        .toList())
-                .build();
+        this.courseKey = course.getCourseKey();
+        this.subjectCode = course.getSubjectCode();
+        this.stdtrNo = course.getStdtrNo();
+        this.name = course.getName();
+        this.classNumber = course.getClassNumber();
+        this.professor = course.getProfessor();
+        this.targetGrade = course.getTargetGrade();
+        this.capacity = course.getCapacity();
+        this.current = course.getCurrent();
+        this.available = course.getAvailable();
+        this.classification = Optional.ofNullable(course.getClassification()).map(CourseClassification::getDescription).orElse(null);
+        this.department = course.getDepartment();
+        this.gradingMethod = Optional.ofNullable(course.getGradingMethod()).map(GradingMethod::getDescription).orElse(null);
+        this.lectureLanguage = Optional.ofNullable(course.getLectureLanguage()).map(LectureLanguage::getValue).orElse(null);
+        this.classTime = course.getClassTime();
+        this.credits = course.getCredits();
+        this.lectureHours = course.getLectureHours();
+        this.disclosure = Optional.ofNullable(course.getDisclosure()).map(DisclosureStatus::getDescription).orElse(null);
+        this.disclosureReason = course.getDisclosureReason();
+        this.generalCategory = course.getGeneralCategory();
+        this.generalDetail = course.getGeneralDetail();
+        this.accreditation = Optional.ofNullable(course.getAccreditation()).map(CourseAccreditation::getDescription).orElse(null);
+        this.courseStatus = Optional.ofNullable(course.getStatus()).map(CourseStatus::getDescription).orElse(null);
+        this.classroom = course.getClassroom();
+        this.hasSyllabus = course.getHasSyllabus();
+        this.generalCategoryByYear = course.getGeneralCategoryByYear();
+        this.courseDirection = course.getCourseDirection();
+        this.classDuration = course.getClassDuration();
+        this.status = status;
+        this.isSubscribable = isSubscribable;
+        this.averageRating = course.getAverageRating();
+        this.reviewCount = course.getReviewCount();
+        this.isReviewed = isReviewed;
+        this.lastCrawledAt = lastCrawledAt;
+        this.schedules = course.getSchedules().stream()
+                .map(ScheduleResponse::from)
+                .toList();
+    }
+
+    public static CourseDetailResponse from(Course course, String currentYear, String currentSemester,
+                                            boolean isReviewed, LocalDateTime lastCrawledAt) {
+        return new CourseDetailResponse(course, currentYear, currentSemester, isReviewed, lastCrawledAt);
+    }
+
+    private static String resolveSeatStatus(Integer available) {
+        if (available > 0) {
+            return "AVAILABLE";
+        }
+        return "FULL";
     }
 }

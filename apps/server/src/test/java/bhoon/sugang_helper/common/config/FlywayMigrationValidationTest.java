@@ -156,19 +156,13 @@ class FlywayMigrationValidationTest {
                 .withCommand("--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci")) {
             mysql.start();
 
-            Flyway flyway = Flyway.configure()
-                    .dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
-                    .locations(MIGRATION_LOCATION)
-                    .load();
-
-            flyway.migrate();
-            assertThat(flyway.info().current()).isNotNull();
-            flyway.validate();
-
             JdbcTemplate jdbcTemplate = new JdbcTemplate(new DriverManagerDataSource(
                     mysql.getJdbcUrl(),
                     mysql.getUsername(),
                     mysql.getPassword()));
+            Flyway flyway = migrateWithSeatInboxFixture(jdbcTemplate, mysql);
+            assertThat(flyway.info().current()).isNotNull();
+            flyway.validate();
 
             assertThat(tableCount(jdbcTemplate, USERS_TABLE_NAME)).isEqualTo(1);
             assertThat(tableCount(jdbcTemplate, COURSES_TABLE_NAME)).isEqualTo(1);
@@ -216,7 +210,21 @@ class FlywayMigrationValidationTest {
                             WHERE course_key = ?
                             """, Integer.class, "2026:U211600010:LONG_DIRECTION:01")).isEqualTo(501);
             assertAllCourseKeyCollationsMatchCourses(jdbcTemplate);
-            assertOnlyRequiredNonUniqueIndexes(jdbcTemplate);
+            String wishlistCourseKeyIndex = "wishlists.idx_wishlist_course_key";
+            String seatInboxIndex = "seat_inbox_items.idx_seat_inbox_owner_visible_order";
+            String inboxTargetIndex = "seat_inbox_items.idx_inbox_type_target";
+            String inboxSourceIndex = "seat_inbox_items.idx_inbox_type_source";
+            String deliveryOwnerIndex = "inbox_channel_deliveries.idx_inbox_delivery_owner";
+            String deliveryReadyIndex = "inbox_channel_deliveries.idx_inbox_delivery_ready";
+            String deliveryLeaseIndex = "inbox_channel_deliveries.idx_inbox_delivery_lease";
+            String deliveryFinishedIndex = "inbox_channel_deliveries.idx_inbox_delivery_finished";
+            assertThat(optionalNonUniqueIndexes(jdbcTemplate))
+                    .containsExactlyInAnyOrder(wishlistCourseKeyIndex, seatInboxIndex, inboxTargetIndex, inboxSourceIndex,
+                            deliveryOwnerIndex, deliveryReadyIndex, deliveryLeaseIndex, deliveryFinishedIndex);
+            assertThat(nonUniqueIndexes(jdbcTemplate)).containsEntry(wishlistCourseKeyIndex, "`course_key`")
+                    .containsEntry(seatInboxIndex, "`user_id`, `deleted_at`, `occurred_at` DESC, `id` DESC")
+                    .containsEntry(inboxTargetIndex, "`type`, `target_id`")
+                    .containsEntry(inboxSourceIndex, "`type`, `source_key`");
             assertThat(columnCollation(jdbcTemplate, "course_emoji_reviews", "emoji"))
                     .isEqualTo("utf8mb4_0900_bin");
             jdbcTemplate.update("""
@@ -432,8 +440,30 @@ class FlywayMigrationValidationTest {
         }
     }
 
-    private static void assertOnlyRequiredNonUniqueIndexes(JdbcTemplate jdbc) {
-        List<String> optionalIndexes = jdbc.queryForList("""
+    private static Flyway migrateWithSeatInboxFixture(JdbcTemplate jdbc, MySQLContainer<?> mysql) {
+        Flyway.configure().dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
+                .locations(MIGRATION_LOCATION).target("35").load().migrate();
+        jdbc.update("""
+                INSERT INTO seat_inbox_items (outbox_id, user_id, course_key, course_name, available_seats,
+                    occurred_at, read_at, deleted_at)
+                VALUES (1001, 1002, 'legacy-course', '이전 여석 강의', 2,
+                    '2026-11-11 10:00:00', '2026-11-11 11:00:00', '2026-11-11 12:00:00')
+                """);
+
+        Flyway flyway = Flyway.configure().dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
+                .locations(MIGRATION_LOCATION).load();
+        flyway.migrate();
+
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM seat_inbox_items
+                WHERE outbox_id = 1001 AND user_id = 1002 AND type = 'SEAT_OPENED' AND available_seats = 2
+                  AND read_at = '2026-11-11 11:00:00' AND deleted_at = '2026-11-11 12:00:00'
+                """, Long.class)).isEqualTo(1L);
+        return flyway;
+    }
+
+    private static List<String> optionalNonUniqueIndexes(JdbcTemplate jdbc) {
+        return jdbc.queryForList("""
                 SELECT DISTINCT CONCAT(s.TABLE_NAME, '.', s.INDEX_NAME)
                 FROM information_schema.statistics s
                 WHERE s.TABLE_SCHEMA = DATABASE() AND s.NON_UNIQUE = 1
@@ -446,7 +476,6 @@ class FlywayMigrationValidationTest {
                   )
                   AND s.SEQ_IN_INDEX = 1
                 """, String.class);
-        assertThat(optionalIndexes).as("성능 전용 비유니크 인덱스가 남지 않음").isEmpty();
     }
 
     private static Map<String, String> nonUniqueIndexes(JdbcTemplate jdbc) {
@@ -509,7 +538,7 @@ class FlywayMigrationValidationTest {
         Set<String> removed = new TreeSet<>(beforeIndexes.keySet());
         removed.removeAll(afterIndexes.keySet());
         assertThat(removed).hasSize(22);
-        assertOnlyRequiredNonUniqueIndexes(jdbc);
+        assertThat(optionalNonUniqueIndexes(jdbc)).as("성능 전용 비유니크 인덱스가 남지 않음").isEmpty();
         assertThat(constraints(jdbc)).containsExactlyElementsOf(beforeConstraints);
         assertThat(notificationPage(jdbc, userId, 0)).containsExactlyElementsOf(beforeNotifications).hasSize(30);
         assertThat(notificationPage(jdbc, userId, 30)).hasSize(2).doesNotContainAnyElementsOf(beforeNotifications);

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import bhoon.sugang_helper.academic.course.entity.Course;
 import bhoon.sugang_helper.academic.course.repository.CourseRepository;
+import bhoon.sugang_helper.academic.review.dto.result.CourseReviewStats;
 import bhoon.sugang_helper.academic.review.entity.CourseReview;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -48,9 +49,8 @@ class CourseReviewRepositoryTest {
         assertThat(page.getContent().getFirst().getId()).isEqualTo(myReview.getId());
         assertThat(reviewRepository.findByCourseKeysAndUserId(courseKeys, 1L))
                 .contains(myReview);
-        assertThat(reviewRepository.countByCourseKeys(courseKeys)).isEqualTo(2L);
+        assertThat(reviewRepository.findStatsByCourseKeys(courseKeys)).isEqualTo(new CourseReviewStats(4.0, 2L));
         assertThat(reviewRepository.countByCourseKeysAndUserId(courseKeys, 1L)).isEqualTo(1L);
-        assertThat(reviewRepository.getAverageRatingByCourseKeys(courseKeys)).isEqualTo(4.0);
     }
 
     private Course course(String courseKey, String professor, String semester) {

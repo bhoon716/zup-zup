@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact|fork",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "root=$(git rev-parse --show-toplevel) && sh \"$root/.agents/pstack/session-start.sh\"",
+            "timeout": 5,
+            "statusMessage": "pstack 불러오는 중"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,6 +1,5 @@
 "use client";
 
-import type { MouseEvent } from "react";
 import { useLogout } from "@/features/user/hooks/useUser";
 import { Button } from "@/shared/ui/button";
 import Link from "next/link";
@@ -21,82 +20,87 @@ import {
   SheetTrigger,
 } from "@/shared/ui/sheet";
 import { usePWAInstall } from "@/shared/hooks/usePWAInstall";
-import { useHasMounted } from "@/shared/hooks/useHasMounted";
+import { cn } from "@/shared/lib/utils";
 
+import { HeaderInbox } from "./ui/header-inbox";
+import { mobileMenuHeadingClass, mobileMenuRowClass } from "./ui/mobile-menu-styles";
 import { NavLinks } from "./ui/nav-links";
-import { HeaderDesktopUser, HeaderMobileUserStatus } from "./ui/user-status";
+import { HeaderUserActions } from "./ui/user-status";
 
 export function Header() {
   const mobileMenuTriggerId = "header-mobile-menu-trigger";
   const mobileMenuContentId = "header-mobile-menu-content";
-  const user = useAuthStore((state) => state.user);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isLoading = useAuthStore((state) => state.isLoading);
+  const verifiedUser = useAuthStore((state) => state.isAuthenticated ? state.user : null);
   const { mutate: logout, isPending } = useLogout();
-  const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
   const pathname = usePathname();
   const { install, platform } = usePWAInstall();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const hasMounted = useHasMounted();
-  const shouldShowSkeleton = hasMounted ? isLoading && !user : true;
-  const verifiedUser = isAuthenticated ? user : null;
-  const shouldShowUserSkeleton = hasMounted
-    ? (isLoading && !user) || Boolean(user && !isAuthenticated)
-    : true;
 
   if (pathname === "/onboarding") {
     return null;
   }
 
-  const handleGuardedAction = (e: MouseEvent) => {
-    if (!user) {
-      e.preventDefault();
-      setLoginModalOpen(true);
-    }
-  };
-
   const closeMenu = () => setIsMenuOpen(false);
+  const installButton = (
+    <Button
+      onClick={install}
+      variant="outline"
+      className="hidden rounded-xl border-primary/20 bg-primary/10 leading-5 text-primary hover:bg-primary/20 hover:text-primary xl:inline-flex"
+    >
+      <Download aria-hidden="true" />
+      {platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}
+    </Button>
+  );
+  const mobileInstallAction = (
+    <Button
+      variant="ghost"
+      onClick={() => {
+        install();
+        closeMenu();
+      }}
+      className={cn(mobileMenuRowClass, "text-primary")}
+    >
+      <Download aria-hidden="true" />
+      웹앱 설치하기
+    </Button>
+  );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/90 backdrop-blur-md">
-      <div className="container flex h-16 items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-8">
-          <Link href="/" className="flex shrink-0 items-center gap-2 group transition-all active:scale-95">
-            <Image src="/zub-zub-logo.png" alt="로고" width={38} height={38} className="w-10 h-10 object-contain group-hover:scale-110 transition-transform" />
-            <span className="font-bold text-xl text-primary tracking-tight">줍줍</span>
+    <header className="sticky top-0 z-50 w-full border-b bg-card/90 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="flex h-9 shrink-0 items-center gap-2 rounded-xl text-primary transition-colors hover:text-primary/80">
+            <Image src="/zub-zub-logo.png" alt="" width={32} height={32} className="size-8 object-contain" />
+            <span className="text-[1.375rem] leading-none font-bold">줍줍</span>
           </Link>
-          <nav aria-label="주요 메뉴" className="hidden min-w-0 md:flex items-center gap-1">
-            <NavLinks 
-              isLoading={shouldShowSkeleton}
-              isLoggedIn={hasMounted ? !!user : false} 
-              isAdmin={hasMounted ? verifiedUser?.role === "ADMIN" : false}
-              onGuardedAction={handleGuardedAction} 
+          <nav aria-label="주요 메뉴" className="hidden items-center xl:flex 2xl:gap-1">
+            <NavLinks
+              isLoggedIn={Boolean(verifiedUser)}
+              isAdmin={verifiedUser?.role === "ADMIN"}
             />
           </nav>
         </div>
 
         <div role="group" aria-label="헤더 액션" className="flex shrink-0 items-center gap-2">
-          <Button
-            onClick={install}
-            variant="outline"
-            size="sm"
-            className="hidden md:flex gap-2 rounded-xl px-3 h-9 bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
-          >
-            <Download className="w-4 h-4" />
-            <span className="font-medium">{platform === "ios" ? "공유 → 홈 추가" : "웹앱 설치"}</span>
-          </Button>
+          {!verifiedUser && installButton}
 
-          <div className="hidden md:flex items-center gap-2 border-l border-gray-100 pl-3" role="group" aria-label="사용자 메뉴">
-            <HeaderDesktopUser 
-              user={hasMounted && (isAuthenticated || !user) ? verifiedUser : undefined}
-              isLoading={shouldShowUserSkeleton}
-              isPending={isPending} 
-              onLogout={() => logout()} 
+          <div
+            className={cn("items-center", verifiedUser ? "flex" : "hidden xl:flex xl:border-l xl:pl-3")}
+            role="group"
+            aria-label="사용자 메뉴"
+          >
+            <HeaderUserActions
+              isLoggedIn={Boolean(verifiedUser)}
+              isPending={isPending}
+              onLogout={() => logout()}
               onLoginClick={closeMenu}
-            />
+            >
+              {verifiedUser && <HeaderInbox key={verifiedUser.id} userId={verifiedUser.id} />}
+              {verifiedUser && installButton}
+            </HeaderUserActions>
           </div>
 
-          <div className="flex shrink-0 md:hidden items-center gap-2" role="group" aria-label="모바일 메뉴">
+          <div className="flex shrink-0 items-center gap-2 xl:hidden" role="group" aria-label="모바일 메뉴">
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
                 <Button
@@ -104,66 +108,58 @@ export function Header() {
                   aria-controls={mobileMenuContentId}
                   aria-label="메뉴 열기"
                   variant="ghost"
-                  size="icon"
-                  className="rounded-xl w-10 h-10 hover:bg-accent/50"
+                  size="icon-lg"
+                  className="rounded-[8px] text-muted-foreground hover:bg-primary/10 hover:text-primary data-[state=open]:bg-primary/15 data-[state=open]:text-primary"
                 >
-                  <Menu className="w-6 h-6" />
+                  <Menu aria-hidden="true" className="size-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent id={mobileMenuContentId} side="right" className="w-[280px] sm:w-[350px] p-0 border-l border-white/5 bg-background/95 backdrop-blur-xl flex flex-col h-full">
-                <SheetHeader className="p-6 border-b border-white/5">
-                  <SheetTitle className="text-left flex items-center gap-2.5">
-                    <Image src="/zub-zub-logo.png" alt="로고" width={32} height={32} className="w-8 h-8 object-contain" />
-                    <span className="bg-linear-to-r from-[#56296e] to-[#7c4d91] bg-clip-text text-transparent font-bold tracking-tight">줍줍</span>
+              <SheetContent
+                id={mobileMenuContentId}
+                side="right"
+                aria-describedby={undefined}
+                className="flex h-dvh w-[min(280px,100%)] flex-col gap-0 bg-background p-0 sm:w-[350px]"
+              >
+                <SheetHeader className="h-[72px] shrink-0 justify-center border-b border-border px-6">
+                  <SheetTitle className="flex items-center gap-2.5 text-left font-bold text-primary">
+                    <Image src="/zub-zub-logo.png" alt="" width={32} height={32} className="size-8 object-contain" />
+                    줍줍
                   </SheetTitle>
                 </SheetHeader>
-                <div className="flex flex-col gap-2 p-4 flex-1 overflow-y-auto min-h-0">
-                  <div className="mb-4 px-2">
-                    <HeaderMobileUserStatus 
-                      user={hasMounted && (isAuthenticated || !user) ? verifiedUser : undefined}
-                      isLoading={shouldShowUserSkeleton}
-                      onLinkClick={closeMenu} 
-                    />
-                  </div>
-
-                    <div className="px-2 mb-2">
-                      <Button
-                        onClick={() => {
-                          install();
-                          closeMenu();
-                        }}
-                        className="w-full gap-2 rounded-xl h-11 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
-                      >
-                        <Download className="w-4 h-4" />
-                        {platform === "ios" ? "홈 화면에 추가 안내" : "바로가기 설치하기"}
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                  {!verifiedUser && (
+                    <div className="shrink-0 border-b border-border pb-3">
+                      <Button asChild className="h-10 w-full rounded-lg">
+                        <Link href="/login" onClick={closeMenu}>
+                          로그인
+                        </Link>
                       </Button>
                     </div>
+                  )}
 
-                  <div className="space-y-1">
-                    <p className="px-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">메뉴</p>
-                    <NavLinks 
-                      isMobile 
-                      isLoading={shouldShowSkeleton}
-                      isLoggedIn={hasMounted ? !!user : false} 
-                      isAdmin={hasMounted ? verifiedUser?.role === "ADMIN" : false}
-                      onGuardedAction={handleGuardedAction} 
-                      onLinkClick={closeMenu} 
+                  <nav aria-label="모바일 메뉴" className="flex shrink-0 flex-col gap-0.5 py-3">
+                    <h3 className={mobileMenuHeadingClass}>메뉴</h3>
+                    <NavLinks
+                      isMobile
+                      isLoggedIn={Boolean(verifiedUser)}
+                      isAdmin={verifiedUser?.role === "ADMIN"}
+                      onLinkClick={closeMenu}
+                      mobileInstallAction={mobileInstallAction}
                     />
-                  </div>
+                  </nav>
 
-                  {user && (
-                    <div className="mt-auto pt-6 border-t border-white/5 p-2 shrink-0">
+                  {verifiedUser && (
+                    <div className="mt-auto shrink-0 border-t border-border pt-2">
                       <Button
                         variant="ghost"
-                        size="sm"
                         onClick={() => {
                           logout();
                           closeMenu();
                         }}
                         disabled={isPending}
-                        className="w-full gap-3 rounded-xl h-11 justify-start px-4 hover:bg-destructive/5 hover:text-destructive text-muted-foreground transition-colors"
+                        className={cn(mobileMenuRowClass, "text-muted-foreground hover:bg-destructive/5 hover:text-destructive")}
                       >
-                        <LogOut className="w-4 h-4" />
+                        <LogOut aria-hidden="true" />
                         로그아웃
                       </Button>
                     </div>

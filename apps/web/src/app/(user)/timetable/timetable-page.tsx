@@ -18,7 +18,6 @@ export function TimetablePage({ model }: { model: TimetablePageModel }) {
     activeTimetableId,
     timetableDetail,
     isDetailLoading,
-    timetableName,
     setSelectedTimetableId,
     onCreateTimetable,
     onDeleteTimetable,
@@ -28,30 +27,26 @@ export function TimetablePage({ model }: { model: TimetablePageModel }) {
     sidebarTab,
     setSidebarTab,
     totalCredits,
-    todayLabel,
-    todaySchedules,
     timetableCourses,
     wishlist,
     isWishlistLoading,
     handleSidebarCourseClick,
     handleAddCourse,
     handleRemoveCourse,
-    isAddingCourse,
     isRemovingCourse,
+    isAddingCourse,
     pendingAddCourseKey,
-    pendingRemoveCourseKey,
   } = model;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-100">
-      <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-2 p-2 sm:gap-4 sm:p-4 lg:flex-row">
+    <div className="min-h-[calc(100vh-4rem)] bg-background">
+      <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:flex-row lg:items-start">
         <TimetableMainSection
           timetables={timetables}
           isListLoading={isListLoading}
           activeTimetableId={activeTimetableId}
           timetableDetail={timetableDetail}
           isDetailLoading={isDetailLoading}
-          timetableName={timetableName}
           setSelectedTimetableId={setSelectedTimetableId}
           onCreateTimetable={onCreateTimetable}
           onDeleteTimetable={onDeleteTimetable}
@@ -64,8 +59,6 @@ export function TimetablePage({ model }: { model: TimetablePageModel }) {
           sidebarTab={sidebarTab}
           setSidebarTab={setSidebarTab}
           totalCredits={totalCredits}
-          todayLabel={todayLabel}
-          todaySchedules={todaySchedules}
           timetableCourses={timetableCourses}
           wishlist={wishlist}
           isWishlistLoading={isWishlistLoading}
@@ -74,10 +67,9 @@ export function TimetablePage({ model }: { model: TimetablePageModel }) {
           handleSidebarCourseClick={handleSidebarCourseClick}
           handleAddCourse={handleAddCourse}
           handleRemoveCourse={handleRemoveCourse}
-          isAddingCourse={isAddingCourse}
           isRemovingCourse={isRemovingCourse}
+          isAddingCourse={isAddingCourse}
           pendingAddCourseKey={pendingAddCourseKey}
-          pendingRemoveCourseKey={pendingRemoveCourseKey}
         />
       </main>
 

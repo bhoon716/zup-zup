@@ -4,7 +4,7 @@
 - 결정일: 2026-10-10
 - 범위: 백엔드 상태 확인의 대상
 - 대체 결정: 없음
-- 관련 자료: [백엔드 재설계 체크리스트](../backend-redesign-checklist.md), [수집 실패 처리 정책](2026-10-04-course-collection-policy.md), [알림 전달 정책](2026-10-01-notification-at-least-once-delivery.md)
+- 관련 자료: [수집 실패 처리 정책](2026-10-04-course-collection-policy.md), [알림 전달 정책](2026-10-01-notification-at-least-once-delivery.md)
 
 ## 문제와 목표
 

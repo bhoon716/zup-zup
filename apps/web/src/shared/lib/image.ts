@@ -26,7 +26,7 @@ export async function compressImage(file: File, maxWidth: number = 1280, quality
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          reject(new Error('Canvas context is null'));
+          reject(new Error('이미지를 처리할 캔버스를 준비하지 못했습니다.'));
           return;
         }
 
@@ -44,7 +44,7 @@ export async function compressImage(file: File, maxWidth: number = 1280, quality
               });
               resolve(compressedFile);
             } else {
-              reject(new Error('Canvas toBlob failed'));
+              reject(new Error('캔버스 이미지를 파일로 변환하지 못했습니다.'));
             }
           },
           outputType,

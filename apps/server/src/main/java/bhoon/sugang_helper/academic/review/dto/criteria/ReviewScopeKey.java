@@ -1,5 +1,7 @@
 package bhoon.sugang_helper.academic.review.dto.criteria;
 
+import org.springframework.util.StringUtils;
+
 public record ReviewScopeKey(String subjectCode, String professor) {
 
     public static ReviewScopeKey from(String subjectCode, String professor) {
@@ -12,6 +14,6 @@ public record ReviewScopeKey(String subjectCode, String professor) {
     }
 
     public boolean hasIdentifiableProfessor() {
-        return professor != null && !professor.isBlank();
+        return StringUtils.hasText(professor);
     }
 }

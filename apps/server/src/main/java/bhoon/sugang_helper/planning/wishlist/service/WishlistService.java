@@ -4,9 +4,8 @@ import bhoon.sugang_helper.academic.api.catalog.CourseSummary;
 import bhoon.sugang_helper.academic.api.catalog.CourseCatalog;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
+import bhoon.sugang_helper.identity.api.users.CurrentUserQuery;
 import bhoon.sugang_helper.identity.api.users.UserIdentity;
-import bhoon.sugang_helper.identity.api.users.Users;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistResponse;
 import bhoon.sugang_helper.planning.wishlist.dto.response.WishlistToggleResponse;
 import bhoon.sugang_helper.planning.wishlist.entity.Wishlist;
@@ -27,21 +26,25 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class WishlistService {
 
+    private static final String COURSE_KEY = "courseKey";
+    private static final String EVENT_KEY = "event";
+    private static final String USER_ID_KEY = "userId";
+
     private final WishlistRepository wishlistRepository;
     private final CourseCatalog courseCatalogQuery;
-    private final Users userIdentityQuery;
+    private final CurrentUserQuery currentUserQuery;
 
     @Transactional
     public WishlistToggleResponse toggleWishlist(String courseKey) {
-        UserIdentity user = getCurrentUser();
+        UserIdentity user = currentUserQuery.requireCurrentUser();
         validateCourseExists(courseKey);
 
         Wishlist existingWishlist = wishlistRepository.findByUserIdAndCourseKey(user.id(), courseKey)
                 .orElse(null);
         if (existingWishlist != null) {
             wishlistRepository.delete(existingWishlist);
-            log.debug("[Wishlist] 관심 강의 제거. userId={}, courseKey={}", user.id(), courseKey);
-            return WishlistToggleResponse.of(false);
+            logWishlistCourseRemoved(user.id(), courseKey);
+            return WishlistToggleResponse.removed();
         }
 
         Wishlist wishlist = Wishlist.builder()
@@ -49,12 +52,12 @@ public class WishlistService {
                 .courseKey(courseKey)
                 .build();
         wishlistRepository.save(wishlist);
-        log.debug("[Wishlist] 관심 강의 추가. userId={}, courseKey={}", user.id(), courseKey);
-        return WishlistToggleResponse.of(true);
+        logWishlistCourseAdded(user.id(), courseKey);
+        return WishlistToggleResponse.added();
     }
 
     public List<WishlistResponse> getMyWishlist() {
-        UserIdentity user = getCurrentUser();
+        UserIdentity user = currentUserQuery.requireCurrentUser();
         List<Wishlist> wishlists = wishlistRepository.findByUserId(user.id());
         if (wishlists.isEmpty()) {
             return Collections.emptyList();
@@ -68,7 +71,7 @@ public class WishlistService {
     }
 
     private void validateCourseExists(String courseKey) {
-        if (courseCatalogQuery.findByCourseKey(courseKey).isPresent()) {
+        if (courseCatalogQuery.existsByCourseKey(courseKey)) {
             return;
         }
 
@@ -80,7 +83,7 @@ public class WishlistService {
                 .map(Wishlist::getCourseKey)
                 .toList();
 
-        return courseCatalogQuery.findByCourseKeyIn(courseKeys).stream()
+        return courseCatalogQuery.findWithoutSchedulesByCourseKeyIn(courseKeys).stream()
                 .collect(Collectors.toMap(CourseSummary::courseKey, Function.identity(),
                         (existing, replacement) -> existing));
     }
@@ -88,16 +91,30 @@ public class WishlistService {
     private WishlistResponse toWishlistResponse(Wishlist wishlist, Map<String, CourseSummary> courseMap) {
         CourseSummary course = courseMap.get(wishlist.getCourseKey());
         if (course == null) {
-            log.warn("[Wishlist] 강의 정보가 없어 응답에서 제외. courseKey={}",
-                    wishlist.getCourseKey());
+            logWishlistCourseMissing(wishlist.getCourseKey());
             return null;
         }
-        return WishlistResponse.of(wishlist, course);
+        return WishlistResponse.from(wishlist, course);
     }
 
-    private UserIdentity getCurrentUser() {
-        String email = SecurityUtil.getCurrentUserEmail();
-        return userIdentityQuery.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED));
+    private void logWishlistCourseRemoved(Long userId, String courseKey) {
+        log.atDebug().addKeyValue(EVENT_KEY, "wishlist_course_removed")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue(COURSE_KEY, courseKey)
+                .log("[Wishlist] 관심 강의 제거.");
     }
+
+    private void logWishlistCourseAdded(Long userId, String courseKey) {
+        log.atDebug().addKeyValue(EVENT_KEY, "wishlist_course_added")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue(COURSE_KEY, courseKey)
+                .log("[Wishlist] 관심 강의 추가.");
+    }
+
+    private void logWishlistCourseMissing(String courseKey) {
+        log.atWarn().addKeyValue(EVENT_KEY, "wishlist_course_missing")
+                .addKeyValue(COURSE_KEY, courseKey)
+                .log("[Wishlist] 강의 정보가 없어 응답에서 제외.");
+    }
+
 }

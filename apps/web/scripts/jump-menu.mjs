@@ -227,7 +227,7 @@ async function postJson(url, body, cookie) {
   }
 
   if (!response.ok) {
-    throw new Error(`${url.pathname}: HTTP ${response.status}`);
+    throw new Error(`JUMP 요청에 실패했습니다. 경로: ${url.pathname}, HTTP 상태 코드: ${response.status}`);
   }
 
   return payload;
@@ -247,21 +247,21 @@ async function loadMenuInfo(baseUrl, cookie, row) {
 
 function printUsage() {
   const lines = [
-    "Usage:",
+    "사용법:",
     "  node scripts/jump-menu.mjs [options]",
     "",
-    "Options:",
-    "  --cookie <value>      Raw Cookie header value",
-    "  --base-url <url>      Jump base URL (default: https://jump.jbnu.ac.kr)",
-    "  --menu-id <id>        Filter by MENU_ID",
-    "  --menu-key <key>      Filter by MENU_KEY",
-    "  --details             Fetch /Main/getMenuInfo.do for each matched row",
-    "  --json                Print JSON instead of a text report",
-    "  -h, --help            Show this message",
+    "옵션:",
+    "  --cookie <value>      Cookie 헤더 원본 값",
+    "  --base-url <url>      JUMP 기본 주소 (기본값: https://jump.jbnu.ac.kr)",
+    "  --menu-id <id>        MENU_ID로 필터링",
+    "  --menu-key <key>      MENU_KEY로 필터링",
+    "  --details             일치하는 메뉴마다 /Main/getMenuInfo.do 조회",
+    "  --json                텍스트 보고서 대신 JSON 출력",
+    "  -h, --help            도움말 표시",
     "",
-    "Environment:",
-    "  JUMP_COOKIE           Raw Cookie header value",
-    "  COOKIE                Fallback cookie header value",
+    "환경 변수:",
+    "  JUMP_COOKIE           Cookie 헤더 원본 값",
+    "  COOKIE                기본 Cookie 헤더 값",
   ];
 
   process.stdout.write(`${lines.join("\n")}\n`);
@@ -321,7 +321,7 @@ async function runCli() {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   runCli().catch((error) => {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(`JUMP 메뉴를 조회하지 못했습니다: ${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 1;
   });
 }

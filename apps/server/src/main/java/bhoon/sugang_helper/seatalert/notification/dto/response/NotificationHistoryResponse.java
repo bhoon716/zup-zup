@@ -4,43 +4,42 @@ import bhoon.sugang_helper.seatalert.api.NotificationChannel;
 import bhoon.sugang_helper.seatalert.api.NotificationHistoryItem;
 import bhoon.sugang_helper.seatalert.notification.entity.NotificationHistory;
 import java.time.LocalDateTime;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class NotificationHistoryResponse {
-    private Long id;
+    private final Long id;
 
-    private String courseKey;
+    private final String courseKey;
 
-    private String title;
+    private final String title;
 
-    private String message;
+    private final String message;
 
-    private NotificationChannel channel;
+    private final NotificationChannel channel;
 
-    private LocalDateTime sentAt;
+    private final LocalDateTime sentAt;
 
     public static NotificationHistoryResponse from(NotificationHistory history) {
-        return NotificationHistoryResponse.builder()
-                .id(history.getId())
-                .courseKey(history.getCourseKey())
-                .title(history.getTitle())
-                .message(history.getMessage())
-                .channel(history.getChannel())
-                .sentAt(history.getCreatedAt())
-                .build();
+        return new NotificationHistoryResponse(
+                history.getId(),
+                history.getCourseKey(),
+                history.getTitle(),
+                history.getMessage(),
+                history.getChannel(),
+                history.getCreatedAt());
     }
 
     public static NotificationHistoryResponse from(NotificationHistoryItem history) {
-        return NotificationHistoryResponse.builder()
-                .id(history.id())
-                .courseKey(history.courseKey())
-                .title(history.title())
-                .message(history.message())
-                .channel(history.channel())
-                .sentAt(history.createdAt())
-                .build();
+        return new NotificationHistoryResponse(
+                history.id(),
+                history.courseKey(),
+                history.title(),
+                history.message(),
+                history.channel(),
+                history.createdAt());
     }
 }

@@ -17,11 +17,24 @@
 !/.agents/scripts/**
 !/.agents/docs/
 !/.agents/docs/**
-/.agents/skills/
-/.agents/skills/**
+!/.agents/conventions/
+!/.agents/conventions/**
+!/.agents/pstack/
+/.agents/pstack/*
+!/.agents/pstack/CODEX.md
+!/.agents/pstack/upstream.lock.json
+!/.agents/pstack/install.py
+!/.agents/pstack/session-start.sh
+!/.agents/pstack/verify.py
+!/.agents/pstack/verify_runtime.py
+!/.agents/pstack/automations/
+!/.agents/pstack/host/
+!/.agents/pstack/patches/
+!/.agents/pstack/transcripts/
 # Keep OS metadata ignored after re-including agent assets.
 **/.DS_Store
-/.agents/skills/ultra-grill-me/logs/
+**/__pycache__/
+*.pyc
 
 # Environment files
 /.env

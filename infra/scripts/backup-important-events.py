@@ -39,7 +39,7 @@ class SafeParser(argparse.ArgumentParser):
 
 def _timestamp(value):
     if not isinstance(value, str) or not TIMESTAMP.fullmatch(value):
-        raise ValueError('invalid timestamp')
+        raise ValueError('타임스탬프 형식이 올바르지 않습니다.')
     return datetime.fromisoformat(value.replace('Z', '+00:00')).astimezone(timezone.utc)
 
 
@@ -53,9 +53,9 @@ def _options(arguments):
     options = parser.parse_args(arguments)
     try:
         if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', options.container):
-            raise ValueError('invalid container')
+            raise ValueError('컨테이너 식별자가 올바르지 않습니다.')
         if not 1 <= options.timeout_seconds <= 210:
-            raise ValueError('invalid timeout')
+            raise ValueError('제한 시간이 올바르지 않습니다.')
         if options.until is None:
             options.until = datetime.now(timezone.utc).isoformat()
         options.end = _timestamp(options.until)
@@ -63,11 +63,11 @@ def _options(arguments):
             options.since = (options.end - timedelta(minutes=10)).isoformat()
         options.start = _timestamp(options.since)
         if not timedelta(0) < options.end - options.start <= timedelta(hours=1):
-            raise ValueError('invalid window')
+            raise ValueError('백업 시간 범위가 올바르지 않습니다.')
         if options.end > datetime.now(timezone.utc) + timedelta(seconds=5):
-            raise ValueError('future window')
+            raise ValueError('미래 시각은 백업 범위로 지정할 수 없습니다.')
         if not Path(options.release_root).is_absolute():
-            raise ValueError('absolute root required')
+            raise ValueError('백업 루트는 절대 경로여야 합니다.')
     except (ValueError, OverflowError):
         parser.error('invalid options')
     return options
@@ -77,7 +77,7 @@ def _unique_object(pairs):
     result = {}
     for key, value in pairs:
         if key in result:
-            raise ValueError('duplicate key')
+            raise ValueError('중복된 키가 있습니다.')
         result[key] = value
     return result
 
@@ -116,7 +116,7 @@ def _minimal_event(line, options):
 
 def _record_line(line, archive, counters, options):
     if len(line) > MAX_LINE_BYTES:
-        raise ValueError('line limit')
+        raise ValueError('입력 한 줄의 길이 제한을 초과했습니다.')
     record = _minimal_event(line, options)
     if record is None:
         counters['skippedLines'] += 1
@@ -132,7 +132,7 @@ def _read_logs(process, archive, counters, options, deadline):
         while True:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise TimeoutError('docker timeout')
+                raise TimeoutError('Docker 명령의 제한 시간이 지났습니다.')
             if not selector.select(min(remaining, 1)):
                 continue
             chunk = os.read(process.stdout.fileno(), 65536)
@@ -140,23 +140,23 @@ def _read_logs(process, archive, counters, options, deadline):
                 break
             counters['inputBytes'] += len(chunk)
             if counters['inputBytes'] > MAX_INPUT_BYTES:
-                raise ValueError('input limit')
+                raise ValueError('입력 크기 제한을 초과했습니다.')
             pending.extend(chunk)
             while b'\n' in pending:
                 line, _, remainder = pending.partition(b'\n')
                 pending = bytearray(remainder)
                 _record_line(line, archive, counters, options)
                 if time.monotonic() >= deadline:
-                    raise TimeoutError('processing timeout')
+                    raise TimeoutError('처리 제한 시간이 지났습니다.')
             if len(pending) > MAX_LINE_BYTES:
-                raise ValueError('line limit')
+                raise ValueError('입력 한 줄의 길이 제한을 초과했습니다.')
         if pending:
             _record_line(pending, archive, counters, options)
     remaining = deadline - time.monotonic()
     if remaining <= 0:
-        raise TimeoutError('docker timeout')
+        raise TimeoutError('Docker 명령의 제한 시간이 지났습니다.')
     if process.wait(timeout=remaining) != 0:
-        raise RuntimeError('docker failed')
+        raise RuntimeError('Docker 명령 실행에 실패했습니다.')
 
 
 def _capture_logs(archive, counters, options):
@@ -203,7 +203,7 @@ def _publish_snapshot(options):
     root = Path(options.release_root)
     for directory in (root, root / 'backups', root / 'backups/events'):
         if directory.is_symlink():
-            raise ValueError('symlink destination')
+            raise ValueError('백업 대상 경로는 심볼릭 링크일 수 없습니다.')
         directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     destination = root / 'backups/events'
     stage = Path(tempfile.mkdtemp(prefix='.partial-events-', dir=destination))

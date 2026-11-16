@@ -5,4 +5,6 @@ public interface WebPushSubscriptionManagement {
     void validateEndpoint(String endpoint);
 
     void deleteDeviceByToken(String token);
+
+    boolean deleteInvalidSubscription(NotificationDevice device);
 }

@@ -3,9 +3,8 @@ package bhoon.sugang_helper.seatalert.notification.service;
 import bhoon.sugang_helper.audit.api.AuditRecorder;
 import bhoon.sugang_helper.common.api.error.CustomException;
 import bhoon.sugang_helper.common.api.error.ErrorCode;
-import bhoon.sugang_helper.common.api.security.SecurityUtil;
 import bhoon.sugang_helper.common.api.web.PageableGuard;
-import bhoon.sugang_helper.identity.api.users.Users;
+import bhoon.sugang_helper.identity.api.users.CurrentUserQuery;
 import bhoon.sugang_helper.seatalert.notification.dto.response.AdminNotificationDeliveryResponse;
 import bhoon.sugang_helper.seatalert.notification.entity.SeatNotificationDelivery;
 import bhoon.sugang_helper.seatalert.notification.enums.SeatNotificationDeliveryStatus;
@@ -24,7 +23,7 @@ public class AdminNotificationDeliveryService {
 
     private final SeatNotificationDeliveryRepository deliveryRepository;
     private final AuditRecorder adminAuditRecorder;
-    private final Users userIdentityQuery;
+    private final CurrentUserQuery currentUserQuery;
 
     public Page<AdminNotificationDeliveryResponse> getDeadLetters(Pageable pageable) {
         return deliveryRepository.findByStatusOrderByDeadLetteredAtDescIdDesc(
@@ -37,10 +36,7 @@ public class AdminNotificationDeliveryService {
     }
 
     public Long getCurrentAdminId() {
-        String email = SecurityUtil.getCurrentUserEmail();
-        return userIdentityQuery.findByEmail(email)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_UNAUTHORIZED))
-                .id();
+        return currentUserQuery.requireCurrentUser().id();
     }
 
     @Transactional
@@ -61,7 +57,7 @@ public class AdminNotificationDeliveryService {
     }
 
     private SeatNotificationDelivery findDelivery(Long deliveryId) {
-        return deliveryRepository.findById(deliveryId)
+        return deliveryRepository.findWithOutboxById(deliveryId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
     }
 

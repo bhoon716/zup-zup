@@ -1,3 +1,4 @@
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import { useEffect } from 'react';
 import { AxiosError, isCancel } from 'axios';
 import { isUnauthenticated } from '@/shared/api/auth-error';
@@ -18,7 +19,13 @@ export const useUser = (options?: { enabled?: boolean }) => {
   const refreshUser = useAuthStore((state) => state.refreshUser);
 
   useEffect(() => {
-    if (!enabled || Date.now() - useAuthStore.getState().lastProfileCheckAt < 5 * 60 * 1000) return;
+    if (!enabled) return;
+    const session = useAuthStore.getState();
+    if (!session.hasCheckedSession) {
+      void session.checkSession();
+      return;
+    }
+    if (Date.now() - session.lastProfileCheckAt < 5 * 60 * 1000) return;
     void refreshUser().catch((error: unknown) => {
       if (!isCancel(error) && !isUnauthenticated(error)) {
         reportClientError(error, { source: 'auth', operation: 'fetch-profile' });
@@ -43,7 +50,7 @@ export const useLogout = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '로그아웃에 실패했습니다';
+      const message = localizedErrorMessage(error.response?.data?.message, '로그아웃에 실패했습니다');
       toast.error(message);
     },
   });
@@ -64,26 +71,7 @@ export const useWithdraw = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '회원 탈퇴에 실패했습니다';
-      toast.error(message);
-    },
-  });
-};
-
-export const useUpdateProfile = () => {
-  return useMutation({
-    onMutate: () => useAuthStore.getState().sessionVersion,
-    mutationFn: (request: Parameters<typeof userApi.updateProfile>[0]) => userApi.updateProfile(request),
-
-    onSuccess: (response, _request, version) => {
-      if (version !== useAuthStore.getState().sessionVersion) return;
-      const user = response ?? null;
-      useAuthStore.getState().setUser(user);
-      toast.success('프로필이 수정되었습니다');
-    },
-
-    onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '프로필 수정에 실패했습니다';
+      const message = localizedErrorMessage(error.response?.data?.message, '회원 탈퇴에 실패했습니다');
       toast.error(message);
     },
   });
@@ -111,7 +99,7 @@ export const useCompleteOnboarding = (accountId?: number) => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const message = error.response?.data?.message || '설정 저장에 실패했습니다';
+      const message = localizedErrorMessage(error.response?.data?.message, '설정 저장에 실패했습니다');
       toast.error(message);
     },
   });

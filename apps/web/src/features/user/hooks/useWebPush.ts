@@ -1,3 +1,4 @@
+import { localizedErrorMessage } from "@/shared/lib/error-message";
 import { useState, useCallback } from 'react';
 import * as webPush from '@/features/user/lib/webpush';
 import { extractSubscriptionKeys } from '@/features/user/lib/webpush';
@@ -24,17 +25,17 @@ export const useWebPush = () => {
 
       if (!alias) {
 
-          alias = "Unknown Device";
-          if (ua.includes("iPhone") || ua.includes("iPad")) alias = "iOS Device";
-          else if (ua.includes("Android")) alias = "Android Device";
-          else if (ua.includes("Win")) alias = "Windows PC";
+          alias = "알 수 없는 기기";
+          if (ua.includes("iPhone") || ua.includes("iPad")) alias = "iOS 기기";
+          else if (ua.includes("Android")) alias = "안드로이드 기기";
+          else if (ua.includes("Win")) alias = "윈도우 PC";
           else if (ua.includes("Mac")) alias = "Mac";
-          else if (ua.includes("Linux")) alias = "Linux PC";
+          else if (ua.includes("Linux")) alias = "리눅스 PC";
 
-          if (ua.includes("Chrome")) alias = `Chrome on ${alias}`;
-          else if (ua.includes("Firefox")) alias = `Firefox on ${alias}`;
-          else if (ua.includes("Safari") && !ua.includes("Chrome")) alias = `Safari on ${alias}`;
-          else if (ua.includes("Edge")) alias = `Edge on ${alias}`;
+          if (ua.includes("Chrome")) alias = `${alias} · Chrome`;
+          else if (ua.includes("Firefox")) alias = `${alias} · Firefox`;
+          else if (ua.includes("Safari") && !ua.includes("Chrome")) alias = `${alias} · Safari`;
+          else if (ua.includes("Edge")) alias = `${alias} · Edge`;
       }
 
       await userApi.registerDevice({
@@ -51,7 +52,7 @@ export const useWebPush = () => {
       const isError = error instanceof Error || error instanceof DOMException;
       const message = isError && error.name === 'NotAllowedError'
         ? '웹 푸시 권한이 허용되지 않았습니다. 브라우저 설정에서 알림 권한을 확인하거나, 웹 푸시를 끄고 이메일 등 다른 알림으로 계속해 주세요.'
-        : isError ? error.message : '웹 푸시 설정에 실패했습니다.';
+        : localizedErrorMessage(isError && error.message, '웹 푸시 설정에 실패했습니다.');
       toast.error(message);
       return false;
     } finally {

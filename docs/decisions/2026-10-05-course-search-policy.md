@@ -4,7 +4,7 @@
 - 결정일: 2026-10-05
 - 범위: 강의 검색·상세 조회와 개인 기능의 로그인 요구
 - 대체 결정: 없음
-- 관련 자료: [SecurityConfig](../../apps/server/src/main/java/bhoon/sugang_helper/bootstrap/SecurityConfig.java), [강의 탐색 기능 체크리스트](../backend-redesign-checklist.md), [찜·구독 정책](2026-10-05-course-interest-policy.md)
+- 관련 자료: [SecurityConfig](../../apps/server/src/main/java/bhoon/sugang_helper/identity/auth/config/SecurityConfig.java), [찜·구독 정책](2026-10-05-course-interest-policy.md)
 
 ## 문제와 목표
 
@@ -43,7 +43,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-05
 - 범위: 강의 검색 결과의 기본 조회 방식과 별도 캐시 도입 여부
-- 관련 자료: [CourseSearchReadRepository](../../apps/server/src/main/java/bhoon/sugang_helper/readmodel/course/infra/CourseSearchReadRepository.java), [강의 수집 정책](2026-10-04-course-collection-policy.md)
+- 관련 자료: [CourseSearchReadRepository](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/repository/CourseSearchReadRepository.java), [강의 수집 정책](2026-10-04-course-collection-policy.md)
 
 ### 비교와 결정
 
@@ -67,7 +67,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-05
 - 범위: 강의 검색 쿼리의 구현 방식과 QueryDSL 사용 근거
-- 관련 자료: [CourseSearchReadRepository](../../apps/server/src/main/java/bhoon/sugang_helper/readmodel/course/infra/CourseSearchReadRepository.java), [QueryDSL 공식 설명](https://github.com/querydsl/querydsl), [직접 SQL 실행의 Spring JDBC 대안](https://docs.spring.io/spring-framework/reference/data-access/jdbc/core.html)
+- 관련 자료: [CourseSearchReadRepository](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/repository/CourseSearchReadRepository.java), [QueryDSL 공식 설명](https://github.com/querydsl/querydsl), [직접 SQL 실행의 Spring JDBC 대안](https://docs.spring.io/spring-framework/reference/data-access/jdbc/core.html)
 
 ### 비교와 결정
 
@@ -91,7 +91,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-05
 - 범위: 강의 검색 목록의 추가 조회 방식과 전체 건수 제공 여부
-- 관련 자료: [현재 Slice 기반 검색](../../apps/server/src/main/java/bhoon/sugang_helper/readmodel/course/infra/CourseSearchReadRepository.java)
+- 관련 자료: [현재 Slice 기반 검색](../../apps/server/src/main/java/bhoon/sugang_helper/academic/course/repository/CourseSearchReadRepository.java)
 
 ### 비교와 결정
 

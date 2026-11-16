@@ -1,0 +1,155 @@
+.step {
+  --step-gap: 0rem;
+  isolation: isolate;
+  padding-bottom: var(--step-gap);
+}
+
+.step:not(:last-child) {
+  --step-gap: 1.25rem;
+}
+
+.step::before {
+  position: absolute;
+  z-index: -1;
+  inset: -0.375rem -0.5rem calc(var(--step-gap) - 0.375rem);
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--primary) 34%, transparent);
+  border-radius: 0.875rem;
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  opacity: 0;
+  content: "";
+}
+
+.step[aria-current="step"]::before {
+  opacity: 1;
+}
+
+.stepMarker {
+  transform: scale(0.76);
+}
+
+[aria-current="step"] .stepMarker {
+  transform: scale(1);
+  border-color: var(--primary);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
+.stepCopy {
+  transform: scale(0.94);
+  transform-origin: top left;
+}
+
+[aria-current="step"] .stepCopy {
+  transform: scale(1);
+  color: var(--muted-foreground);
+}
+
+[aria-current="step"] .stepCopy h3 {
+  color: var(--primary);
+}
+
+.example {
+  --foreground: #161118;
+  --primary: var(--primary-light);
+  --primary-foreground: white;
+  --border: color-mix(in srgb, var(--primary) 12%, transparent);
+  --bell-duration: 520ms;
+  --bell-idle-background: color-mix(in srgb, var(--primary) 8%, white);
+  --bell-idle-border: color-mix(in srgb, var(--primary) 35%, white);
+  --bell-halo: color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.bell {
+  border-color: var(--bell-idle-border);
+  background-color: var(--bell-idle-background);
+  color: var(--primary);
+}
+
+:is([data-seat-alert-stage="subscribe"], [data-seat-alert-stage="available"]) .bell {
+  border-color: var(--primary);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+:is([data-seat-alert-stage="subscribe"], [data-seat-alert-stage="available"]) .bell svg {
+  fill: currentColor;
+}
+
+.status {
+  grid-area: 1 / 1;
+  opacity: 0;
+}
+
+.currentStatus {
+  opacity: 1;
+}
+
+.status[data-seat-alert-status="search"] .statusIcon {
+  background-color: var(--bell-idle-background);
+  color: var(--primary);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .step[aria-current="step"]::before {
+    transition: opacity 220ms ease-out;
+  }
+
+  .stepMarker,
+  .stepCopy {
+    transition: transform 220ms ease;
+  }
+
+  .bell {
+    transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease;
+  }
+
+  [data-seat-alert-stage="subscribe"] .bell {
+    animation: bell-highlight var(--bell-duration) ease-out both;
+  }
+
+  [data-seat-alert-stage="subscribe"] .bell svg {
+    transform-origin: 50% 25%;
+    animation: bell-ring var(--bell-duration) ease-in-out both;
+  }
+
+  .statusGrid {
+    --status-fade-out-duration: 100ms;
+  }
+
+  .status {
+    transition: opacity var(--status-fade-out-duration) ease-in;
+  }
+
+  .currentStatus {
+    transition: opacity 180ms ease-out var(--status-fade-out-duration);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .example article * {
+    transition: none;
+  }
+}
+
+@keyframes bell-highlight {
+  0% {
+    box-shadow: 0 0 0 0 var(--bell-halo);
+  }
+
+  45% {
+    box-shadow: 0 0 0 0.25rem var(--bell-halo);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0.5rem transparent;
+  }
+}
+
+@keyframes bell-ring {
+  0%, 65%, 100% { transform: none; }
+  18% { transform: rotate(18deg) scale(1.12); }
+  33% { transform: rotate(-15deg) scale(1.12); }
+  48% { transform: rotate(8deg) scale(1.04); }
+}

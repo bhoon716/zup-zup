@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 
 class CourseSearchCriteriaBoundaryTest {
 
+    private static final String COURSE_DIRECTION_LABEL = "수업 운영 방식";
+
     @Test
     @DisplayName("저장소 조건 확장 전에 수업 운영 방식을 정규화하고 중복을 제거한다")
     void normalizesAndDeduplicatesCourseDirectionTermsBeforeRepositoryExpansion() {
@@ -34,12 +36,12 @@ class CourseSearchCriteriaBoundaryTest {
                 .courseDirectionTerms(tooManyTerms)
                 .build())
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("courseDirection");
+                .hasMessageContaining(COURSE_DIRECTION_LABEL);
         assertThatThrownBy(() -> CourseSearchCriteria.builder()
                 .courseDirectionTerms(List.of("x".repeat(101)))
                 .build())
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("courseDirection");
+                .hasMessageContaining(COURSE_DIRECTION_LABEL);
     }
 
     @Test
@@ -55,6 +57,6 @@ class CourseSearchCriteriaBoundaryTest {
                 .statuses(tooManyStatuses)
                 .build())
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("statuses");
+                .hasMessageContaining("강의 상태 필터");
     }
 }

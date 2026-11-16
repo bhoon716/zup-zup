@@ -4,7 +4,7 @@
 - 결정일: 2026-10-04
 - 범위: 강의 수집 실패 시 데이터 보존·여석 알림 생성·재시도와 사용자 갱신 지연 표시
 - 대체 결정: 없음
-- 관련 자료: [재설계 논의 계획](../backend-redesign-plan.md), [여석 발생 사실 발송](2026-10-01-seat-alert-occurrence-notification.md)
+- 관련 자료: [여석 발생 사실 발송](2026-10-01-seat-alert-occurrence-notification.md)
 
 ## 문제와 목표
 
@@ -205,7 +205,7 @@
 - 상태: Accepted
 - 결정일: 2026-10-12
 - 범위: JUMP 세션 획득·강의 JSON 요청의 HTTP 클라이언트와 Jsoup 의존성
-- 관련 자료: [학교 API 클라이언트](../../apps/server/src/main/java/bhoon/sugang_helper/academic/crawling/infra/JbnuCourseApiClient.java), [응답 처리 단위 테스트](../../apps/server/src/test/java/bhoon/sugang_helper/academic/crawling/infra/JbnuCourseHttpResponseTest.java), [실제 학교 호출 테스트](../../apps/server/src/test/java/bhoon/sugang_helper/academic/crawling/infra/JbnuCourseApiClientTest.java), [Spring RestClient](https://docs.spring.io/spring-framework/reference/6.2/integration/rest-clients.html)
+- 관련 자료: [학교 API 클라이언트](../../apps/server/src/main/java/bhoon/sugang_helper/academic/crawling/client/JbnuCourseApiClient.java), [응답 처리 단위 테스트](../../apps/server/src/test/java/bhoon/sugang_helper/academic/crawling/client/JbnuCourseHttpResponseTest.java), [실제 학교 호출 테스트](../../apps/server/src/test/java/bhoon/sugang_helper/academic/crawling/client/JbnuCourseApiClientTest.java), [Spring RestClient](https://docs.spring.io/spring-framework/reference/6.2/integration/rest-clients.html)
 
 ### 비교와 사용자 선택
 

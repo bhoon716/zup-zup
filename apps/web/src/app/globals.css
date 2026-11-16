@@ -155,6 +155,17 @@
   background-attachment: fixed;
 }
 
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"]:has(> [data-close-button]) {
+  padding-right: 40px;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] > [data-close-button] {
+  top: 50%;
+  right: 12px;
+  left: auto;
+  transform: translateY(-50%);
+}
+
 @layer components {
   .container {
     @apply max-w-[1200px] mx-auto px-6;
@@ -242,15 +253,33 @@
 .animate-shine {
   animation: shine 1.5s infinite;
 }
+
 @layer utilities {
-  .custom-scrollbar::-webkit-scrollbar {
+  .font-schedule {
+    font-family: var(--font-schedule-noto-sans-kr), sans-serif;
+  }
+}
+
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-  .custom-scrollbar::-webkit-scrollbar-track {
+  &::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
+  &::-webkit-scrollbar-thumb {
     @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-entrance {
+    animation: page-enter 180ms ease-out;
+  }
+
+  @keyframes page-enter {
+    from { opacity: 0.82; }
+    to { opacity: 1; }
   }
 }

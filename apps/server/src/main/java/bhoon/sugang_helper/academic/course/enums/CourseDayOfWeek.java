@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import java.util.Arrays;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Getter
 @RequiredArgsConstructor
@@ -20,16 +21,18 @@ public enum CourseDayOfWeek {
     private final String shortCode;
 
     private static CourseDayOfWeek parse(String value) {
-        if (value == null || value.isBlank()) {
+        if (!StringUtils.hasText(value)) {
             return null;
         }
         String normalized = value.trim();
         return Arrays.stream(values())
-                .filter(d -> d.name().equalsIgnoreCase(normalized)
-                        || d.description.equals(normalized)
-                        || d.shortCode.equalsIgnoreCase(normalized))
+                .filter(day -> day.matches(normalized))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private boolean matches(String value) {
+        return name().equalsIgnoreCase(value) || description.equals(value) || shortCode.equalsIgnoreCase(value);
     }
 
     public static CourseDayOfWeek from(String description) {

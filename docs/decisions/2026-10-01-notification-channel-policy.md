@@ -4,7 +4,7 @@
 - 결정일: 2026-10-01
 - 범위: 여석 알림의 채널 구성과 부분 실패 처리, FCM 제거 범위
 - 대체 결정: 없음
-- 관련 자료: [재설계 논의 계획](../backend-redesign-plan.md), [여석 발생 사실 발송](2026-10-01-seat-alert-occurrence-notification.md), [채널 정책](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/application/NotificationChannelPolicy.java), [발송 작업](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/domain/SeatNotificationDelivery.java), [FCM 발송기](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/infra/FcmNotificationSender.java), [웹 Firebase 모듈](../../apps/web/src/shared/lib/firebase.ts)
+- 관련 자료: [여석 발생 사실 발송](2026-10-01-seat-alert-occurrence-notification.md), [채널 정책](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/service/NotificationChannelPolicy.java), [발송 작업](../../apps/server/src/main/java/bhoon/sugang_helper/seatalert/notification/entity/SeatNotificationDelivery.java)
 
 ## 문제와 목표
 
@@ -37,7 +37,7 @@
 - 모바일 앱을 위한 FCM을 유지할 제품 요구가 사라졌다. 실제 사용 채널에 맞춰 이해해야 할 구현·설정·의존성을 줄인다.
 - 제거 대상은 서버 FCM 발송기·Firebase 초기화/의존성, 웹 Firebase 모듈·초기화/의존성, FCM 활성화 필드·기기 등록 경로, Firebase 환경 변수·인증 파일 마운트·배포 및 CI 설정이다.
 - 과거 FCM 이력·기기·대기 작업·사용자 설정 컬럼의 데이터와 호환성은 제거 구현 전에 확인한다. 운영에 적용된 Flyway 마이그레이션을 수정하지 않고 전환 방법을 정한다.
-- [WebPushEndpointValidator](../../apps/server/src/main/java/bhoon/sugang_helper/identity/user/application/WebPushEndpointValidator.java)의 `fcm.googleapis.com`은 현재 웹 푸시 endpoint로 허용된 주소다. FCM 앱 채널 제거 범위와 구분해 웹 푸시의 연결을 보존한다.
+- [WebPushEndpointValidator](../../apps/server/src/main/java/bhoon/sugang_helper/identity/user/service/WebPushEndpointValidator.java)의 `fcm.googleapis.com`은 현재 웹 푸시 endpoint로 허용된 주소다. FCM 앱 채널 제거 범위와 구분해 웹 푸시의 연결을 보존한다.
 
 ## 미결 사항
 
@@ -1128,3 +1128,11 @@
 - endpoint 검증은 모든 기기 등록에 적용하고 토큰 고유 제약·갱신·삭제·별칭·푸시 키는 보존한다. 기존 V1~V31은 변경하지 않고 V32에서 user_devices.type만 제거한다. 운영 DB 적용은 수행하지 않는다.
 - 구 서버는 type을 필수로 받으므로 앞의 웹 선배포 순서는 이번 변경에 적용하지 않는다. 앱 중지 확인 → DB가 실행 중인 상태에서 migration → 새 서버 준비 확인 → 새 웹 순서로 전환한다. 자동 배포 순서는 별도 운영 확인이 필요하다. 구버전 탭 호환·새 안내 화면은 추가하지 않는다.
 - 일반 웹 푸시 등록·목록·소유권·발송 기능을 단위/E2E로 확인한다. 제거 전용 테스트는 새로 만들지 않으며 통합 테스트·운영 발송·DB 적용·커밋·푸시·배포는 수행하지 않는다.
+
+## 변경 결정 2026-11-12 공통 채널 설정과 영구 알림함
+
+- 여석 발생, 문의 답변, 중요 공지는 개인 알림함에 저장한다. 세 종류 모두 사용자가 켠 이메일, Discord, 웹 푸시 설정을 함께 적용한다.
+- 관리자는 공지를 처음 공개할 때 중요 공지 알림을 선택할 수 있다. 선택 기본값은 꺼짐이다. 선택한 공지는 당시 미탈퇴 회원에게 안내한다.
+- 발송 실패와 기기 재등록 안내는 영구 알림함에만 저장한다.
+
+이 결정은 앞서 정한 알림 종류별 외부 채널 설정과 중요 공지의 전달 범위를 갱신한다. [공지 알림 결정](2026-10-08-announcement-policy.md#추가-결정-운영자가-선택한-공지는-영구-알림으로-안내한다)

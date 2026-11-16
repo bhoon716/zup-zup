@@ -21,6 +21,7 @@ import bhoon.sugang_helper.seatalert.notification.repository.SeatNotificationOut
 import bhoon.sugang_helper.seatalert.subscription.service.SubscriptionQueryService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,13 +35,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 @DataJpaTest
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
-@Import({SeatNotificationOutboxProcessor.class, SeatNotificationDeliverySettlementService.class,
+@Import({SeatNotificationOutboxProcessor.class, SeatNotificationDeliveryStateService.class,
         NotificationChannelPolicy.class,
         SeatNotificationOutboxRecoveryTest.TestConfig.class})
 class SeatNotificationOutboxRecoveryTest {
 
     @Autowired
     private SeatNotificationOutboxProcessor processor;
+
+    @Autowired
+    private SeatNotificationDeliveryStateService deliveryStateService;
 
     @Autowired
     private SeatNotificationOutboxRepository outboxRepository;
@@ -57,6 +61,9 @@ class SeatNotificationOutboxRecoveryTest {
     @MockitoBean
     private NotificationService notificationService;
 
+    @MockitoBean
+    private InboxWebPushNotices webPushNotices;
+
     @Test
     @DisplayName("저장된 Outbox는 작업자가 재시작한 뒤에도 발송한다")
     void persistedOutboxIsDeliveredAfterAWorkerRestart() {
@@ -69,13 +76,16 @@ class SeatNotificationOutboxRecoveryTest {
                 .build());
         NotificationRecipient user = new NotificationRecipient(1L, false, "user@example.com", null,
                 true, true, true, "discord-id");
-        when(subscriptionQueryService.findActiveRecipientIds("course-key")).thenReturn(List.of(1L));
-        when(userNotificationQuery.findByIds(List.of(1L))).thenReturn(List.of(user));
+        when(subscriptionQueryService.findActiveRecipientIdsByOutboxId(List.of(outbox.getId())))
+                .thenReturn(Map.of(outbox.getId(), List.of(1L)));
+        when(userNotificationQuery.findActiveByIdsForShare(List.of(1L))).thenReturn(List.of(user));
         when(userNotificationQuery.findDevicesByUserIds(List.of(1L))).thenReturn(List.of(
-                new NotificationDevice(1L, "web-endpoint", "p256", "auth")));
+                new NotificationDevice(1L, 1L, "web-endpoint", "p256", "auth", "브라우저")));
 
+        when(notificationService.attemptSeatOpening(eq(1L), any(), any(), any()))
+                .thenReturn(SeatDeliveryAttempt.skipped(false));
         processor.materializePendingOutboxes();
-        List<SeatNotificationDeliveryClaim> deliveryClaims = processor.claimReadyDeliveries();
+        List<SeatNotificationDeliveryClaim> deliveryClaims = deliveryStateService.claimReadyDeliveries();
         deliveryClaims.forEach(processor::processDelivery);
 
         // when & then
@@ -87,12 +97,12 @@ class SeatNotificationOutboxRecoveryTest {
                 .containsExactlyInAnyOrder(NotificationChannel.values());
         assertThat(deliveryRepository.findAll()).allSatisfy(delivery ->
                 assertThat(delivery.getStatus()).isEqualTo(SeatNotificationDeliveryStatus.SENT));
-        assertThat(processor.claimReadyDeliveries()).isEmpty();
+        assertThat(deliveryStateService.claimReadyDeliveries()).isEmpty();
         assertThat(outboxRepository.findById(outbox.getId())).get()
                 .extracting(SeatNotificationOutbox::getStatus)
                 .isEqualTo(SeatNotificationOutboxStatus.COMPLETED);
         for (NotificationChannel channel : NotificationChannel.values()) {
-            verify(notificationService).deliverSeatOpening(eq(1L), eq(channel), any(), any());
+            verify(notificationService).attemptSeatOpening(eq(1L), eq(channel), any(), any());
         }
     }
 

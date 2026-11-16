@@ -4,17 +4,18 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import org.springframework.util.StringUtils;
 
 public final class NotificationDeliveryIdempotencyKey {
 
     private static final int PROVIDER_KEY_LENGTH = 22;
 
     private NotificationDeliveryIdempotencyKey() {
-        throw new IllegalStateException("Utility class");
+        throw new IllegalStateException("유틸리티 클래스는 인스턴스를 생성할 수 없습니다.");
     }
 
     public static String providerKey(String idempotencyKey) {
-        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+        if (!StringUtils.hasText(idempotencyKey)) {
             return null;
         }
         try {
@@ -23,7 +24,7 @@ public final class NotificationDeliveryIdempotencyKey {
             return Base64.getUrlEncoder().withoutPadding().encodeToString(digest)
                     .substring(0, PROVIDER_KEY_LENGTH);
         } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is required for notification idempotency keys", exception);
+            throw new IllegalStateException("알림 멱등성 키를 생성하려면 SHA-256 알고리즘이 필요합니다.", exception);
         }
     }
 }

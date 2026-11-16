@@ -56,11 +56,4 @@ public class UserDeviceController {
         userDeviceService.deleteDeviceById(id);
         return ResponseEntity.ok(null);
     }
-
-    @Deprecated(since = "2026-07-13", forRemoval = true)
-    @DeleteMapping("/token/{token}")
-    public ResponseEntity<Void> unregisterDevice(@PathVariable String token) {
-        userDeviceService.unregisterDevice(token);
-        return ResponseEntity.ok(null);
-    }
 }

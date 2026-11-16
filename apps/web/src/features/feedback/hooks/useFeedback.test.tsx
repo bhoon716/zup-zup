@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import * as feedbackApi from "@/features/feedback/api/feedback.api";
 import {
+  feedbackKeys,
   useAdminFeedbackAttachmentDownload,
+  useAdminFeedbackDetail,
   useCreateFeedback,
   useFeedbacksForAdmin,
   useMyFeedbacks,
+  useUpdateFeedbackStatus,
 } from "./useFeedback";
 import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
-import { PageResponse, FeedbackResponse } from "@/shared/types/api";
+import { PageResponse, FeedbackResponse, type AdminFeedbackDetailResponse, type AdminFeedbackSearch } from "@/shared/types/api";
 
 vi.mock("@/features/feedback/api/feedback.api", () => ({
   createFeedback: vi.fn(),
@@ -74,7 +77,8 @@ describe("useFeedback hooks", () => {
       vi.mocked(feedbackApi.createFeedback).mockResolvedValue(1);
 
       const queryClient = createTestQueryClient();
-      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+      queryClient.setQueryData(feedbackKeys.myList(0), []);
+      queryClient.setQueryData(feedbackKeys.detail(7), { id: 7 });
       const wrapper = createQueryWrapper(queryClient);
 
       const { result } = renderHook(() => useCreateFeedback(), { wrapper });
@@ -85,12 +89,39 @@ describe("useFeedback hooks", () => {
       });
 
       expect(feedbackApi.createFeedback).toHaveBeenCalled();
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["feedback"] });
+      expect(queryClient.getQueryState(feedbackKeys.myList(0))?.isInvalidated).toBe(true);
+      expect(queryClient.getQueryState(feedbackKeys.detail(7))?.isInvalidated).toBe(false);
     });
   });
 
   describe("관리자 피드백", () => {
-    it("삭제 상태 필터를 별도 캐시 키와 API 요청으로 전달한다", async () => {
+    it("상태 변경 후 열린 상세를 한 번만 다시 조회한다", async () => {
+      const detail: AdminFeedbackDetailResponse = {
+        id: 7, type: "BUG", title: "문의", content: "본문", status: "PENDING",
+        createdAt: "2026-11-11T00:00:00", deleted: false, deletedAt: null,
+        authorLabel: "사용자", attachments: [], replies: [],
+      };
+      const updated = { ...detail, status: "COMPLETED" as const };
+      vi.mocked(feedbackApi.getFeedbackDetailForAdmin)
+        .mockResolvedValueOnce(detail)
+        .mockResolvedValue(updated);
+      vi.mocked(feedbackApi.updateFeedbackStatus).mockResolvedValue(undefined);
+      const queryClient = createTestQueryClient();
+      const wrapper = createQueryWrapper(queryClient);
+      const { result } = renderHook(() => ({
+        detail: useAdminFeedbackDetail(detail.id),
+        update: useUpdateFeedbackStatus(),
+      }), { wrapper });
+
+      await waitFor(() => expect(result.current.detail.data).toEqual(detail));
+      await act(async () => {
+        await result.current.update.mutateAsync({ id: detail.id, request: { status: updated.status } });
+      });
+      await waitFor(() => expect(result.current.detail.data).toEqual(updated));
+      expect(feedbackApi.getFeedbackDetailForAdmin).toHaveBeenCalledTimes(2);
+    });
+
+    it("삭제 상태와 정렬을 유지하고 검색 범위가 바뀌면 다시 요청한다", async () => {
       vi.mocked(feedbackApi.getFeedbacksForAdmin).mockResolvedValue({
           content: [],
           totalElements: 0,
@@ -106,10 +137,19 @@ describe("useFeedback hooks", () => {
 
       const queryClient = createTestQueryClient();
       const wrapper = createQueryWrapper(queryClient);
-      const { result } = renderHook(() => useFeedbacksForAdmin(0, "DELETED"), { wrapper });
+      const titleSearch: AdminFeedbackSearch = { keyword: "수강 신청", searchType: "TITLE" };
+      const replySearch: AdminFeedbackSearch = { keyword: "수강 신청", searchType: "TITLE_CONTENT_REPLY" };
+      const { result, rerender } = renderHook(
+        ({ search }: { search: AdminFeedbackSearch }) =>
+          useFeedbacksForAdmin(0, "DELETED", "OLDEST", search),
+        { wrapper, initialProps: { search: titleSearch } },
+      );
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
-      expect(feedbackApi.getFeedbacksForAdmin).toHaveBeenCalledWith(0, "DELETED");
+      expect(feedbackApi.getFeedbacksForAdmin).toHaveBeenLastCalledWith(0, "DELETED", "OLDEST", titleSearch);
+      rerender({ search: replySearch });
+      await waitFor(() => expect(feedbackApi.getFeedbacksForAdmin)
+        .toHaveBeenLastCalledWith(0, "DELETED", "OLDEST", replySearch));
     });
 
     it("명시적으로 확인한 관리자 첨부파일 다운로드 요청만 전송한다", async () => {

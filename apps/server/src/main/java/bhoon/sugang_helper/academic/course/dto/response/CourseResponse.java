@@ -1,15 +1,13 @@
 package bhoon.sugang_helper.academic.course.dto.response;
 
 import bhoon.sugang_helper.academic.course.entity.Course;
+import bhoon.sugang_helper.academic.course.enums.CourseClassification;
+import bhoon.sugang_helper.academic.course.enums.DisclosureStatus;
 import java.time.LocalDateTime;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import java.util.Optional;
 import lombok.Getter;
 
 @Getter
-@Builder
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CourseResponse {
 
     private final String courseKey;
@@ -50,33 +48,41 @@ public class CourseResponse {
 
     private final LocalDateTime lastCrawledAt;
 
-    public static CourseResponse from(Course course, String currentYear, String currentSemester,
-                                      LocalDateTime lastCrawledAt) {
-
-        String status = course.getAvailable() > 0 ? "AVAILABLE" : "FULL";
-
+    private CourseResponse(Course course, String currentYear, String currentSemester,
+                           LocalDateTime lastCrawledAt) {
+        String status = resolveSeatStatus(course.getAvailable());
         boolean isSubscribable = course.isMatchingTarget(currentYear, currentSemester);
 
-        return CourseResponse.builder()
-                .courseKey(course.getCourseKey())
-                .subjectCode(course.getSubjectCode())
-                .stdtrNo(course.getStdtrNo())
-                .name(course.getName())
-                .classNumber(course.getClassNumber())
-                .professor(course.getProfessor())
-                .capacity(course.getCapacity())
-                .current(course.getCurrent())
-                .available(course.getAvailable())
-                .classification(course.getClassification() != null ? course.getClassification().getDescription() : null)
-                .classTime(course.getClassTime())
-                .credits(course.getCredits())
-                .disclosure(course.getDisclosure() != null ? course.getDisclosure().getDescription() : null)
-                .classroom(course.getClassroom())
-                .status(status)
-                .averageRating(course.getAverageRating())
-                .reviewCount(course.getReviewCount())
-                .lastCrawledAt(lastCrawledAt)
-                .isSubscribable(isSubscribable)
-                .build();
+        this.courseKey = course.getCourseKey();
+        this.subjectCode = course.getSubjectCode();
+        this.stdtrNo = course.getStdtrNo();
+        this.name = course.getName();
+        this.classNumber = course.getClassNumber();
+        this.professor = course.getProfessor();
+        this.capacity = course.getCapacity();
+        this.current = course.getCurrent();
+        this.available = course.getAvailable();
+        this.classification = Optional.ofNullable(course.getClassification()).map(CourseClassification::getDescription).orElse(null);
+        this.classTime = course.getClassTime();
+        this.credits = course.getCredits();
+        this.disclosure = Optional.ofNullable(course.getDisclosure()).map(DisclosureStatus::getDescription).orElse(null);
+        this.classroom = course.getClassroom();
+        this.status = status;
+        this.averageRating = course.getAverageRating();
+        this.reviewCount = course.getReviewCount();
+        this.lastCrawledAt = lastCrawledAt;
+        this.isSubscribable = isSubscribable;
+    }
+
+    public static CourseResponse from(Course course, String currentYear, String currentSemester,
+                                      LocalDateTime lastCrawledAt) {
+        return new CourseResponse(course, currentYear, currentSemester, lastCrawledAt);
+    }
+
+    private static String resolveSeatStatus(Integer available) {
+        if (available > 0) {
+            return "AVAILABLE";
+        }
+        return "FULL";
     }
 }

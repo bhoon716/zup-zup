@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { Switch } from "@/shared/ui/switch";
@@ -9,8 +10,7 @@ import { toast } from "sonner";
 import { TimeTableSelector } from "../time-table-selector";
 import { useUser } from "@/features/user/hooks/useUser";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
-import { useTimetables } from "@/features/timetable/hooks/useTimetable";
-import { timetableApi } from "@/features/timetable/api/timetable.api";
+import { timetableDetailOptions, useTimetables } from "@/features/timetable/hooks/useTimetable";
 import { buildFreeSchedulesFromTimetable } from "../../lib/course-utils";
 import type { CourseSearchCondition, ScheduleCondition, TimetableResponse, User } from "@/shared/types/api";
 import {
@@ -46,8 +46,11 @@ export function CourseSmartFilters({
   const timetableSectionTriggerId = "course-smart-schedule-trigger";
   const timetableSectionContentId = "course-smart-schedule-content";
   const [timetableMenuOpen, setTimetableMenuOpen] = useState(false);
+  const queryClient = useQueryClient();
   const { data: user } = useUser({ enabled: initialUser === undefined && !skipPersonalFetch });
-  const { data: timetables, refetch: refetchTimetables } = useTimetables(!initialTimetables && !skipPersonalFetch, initialUser);
+  const { data: timetables, isLoading: isTimetableLoading } = useTimetables(
+    timetableMenuOpen && !initialTimetables && !skipPersonalFetch, initialUser,
+  );
   const setLoginModalOpen = useAuthStore((state) => state.setLoginModalOpen);
   const resolvedUser = initialUser !== undefined ? initialUser : user;
   const resolvedTimetables = initialTimetables ?? timetables;
@@ -62,10 +65,7 @@ export function CourseSmartFilters({
     }
 
     setTimetableMenuOpen(open);
-    if (open && !initialTimetables) {
-      void refetchTimetables();
-    }
-  }, [initialTimetables, refetchTimetables, resolvedUser, setLoginModalOpen]);
+  }, [resolvedUser, setLoginModalOpen]);
 
   const handleWishedOnlyChange = useCallback((checked: boolean) => {
     if (checked && !resolvedUser) {
@@ -88,7 +88,7 @@ export function CourseSmartFilters({
 
   const handleImportFromTimetable = async (timetableId: number, name: string) => {
     try {
-      const detail = await timetableApi.getTimetable(timetableId);
+      const detail = await queryClient.fetchQuery(timetableDetailOptions(timetableId));
 
       if (!detail) {
         toast.error(`'${name}' 정보를 불러올 수 없습니다.`);
@@ -130,7 +130,7 @@ export function CourseSmartFilters({
         {                  }
         <div className="flex items-center justify-between">
           <Label htmlFor="available-only" className="text-sm font-medium">
-            여석 있는 강의만 보기
+            빈자리 있는 강의만 보기
           </Label>
           <Switch
             id="available-only"
@@ -190,6 +190,10 @@ export function CourseSmartFilters({
                 {!resolvedUser ? (
                   <div className="px-2 py-3 text-center text-xs text-muted-foreground">
                     로그인이 필요합니다.
+                  </div>
+                ) : isTimetableLoading ? (
+                  <div role="status" className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    시간표를 불러오는 중입니다.
                   </div>
                 ) : !resolvedTimetables || resolvedTimetables.length === 0 ? (
                   <div className="px-2 py-3 text-center text-xs text-muted-foreground">

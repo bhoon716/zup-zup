@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { MouseEvent } from "react";
+import { createQueryWrapper, createTestQueryClient } from "@/test/query-client";
 
 import { Header } from "./header";
 
@@ -15,46 +15,39 @@ type MockAuthStore = {
   user: MockUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setLoginModalOpen: (open: boolean) => void;
 };
 
 type MockNavLinksProps = {
   isMobile?: boolean;
   isAdmin: boolean;
   isLoggedIn: boolean;
-  isLoading?: boolean;
-  onGuardedAction: (event: MouseEvent) => void;
   onLinkClick?: () => void;
 };
 
-type MockUserStatusProps = {
-  user: MockUser | null | undefined;
-  isLoading: boolean;
-};
-
 const {
+  mockGetInbox,
   mockLogout,
   mockInstall,
   mockAuthStore,
   mockNavLinks,
-  mockDesktopUser,
-  mockHasMounted,
 } = vi.hoisted(() => ({
+  mockGetInbox: vi.fn(),
   mockLogout: vi.fn(),
   mockInstall: vi.fn(),
   mockAuthStore: {
     user: null as MockUser | null,
     isAuthenticated: false,
     isLoading: false,
-    setLoginModalOpen: vi.fn(),
   } as MockAuthStore,
   mockNavLinks: vi.fn(),
-  mockDesktopUser: vi.fn(),
-  mockHasMounted: { value: true },
 }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/search",
+}));
+
+vi.mock("@/features/notification/api/inbox.api", () => ({
+  getInbox: mockGetInbox,
 }));
 
 vi.mock("@/features/user/hooks/useUser", () => ({
@@ -75,10 +68,6 @@ vi.mock("@/shared/hooks/usePWAInstall", () => ({
   }),
 }));
 
-vi.mock("@/shared/hooks/useHasMounted", () => ({
-  useHasMounted: () => mockHasMounted.value,
-}));
-
 vi.mock("./ui/nav-links", () => ({
   NavLinks: (props: MockNavLinksProps) => {
     mockNavLinks(props);
@@ -86,19 +75,9 @@ vi.mock("./ui/nav-links", () => ({
   },
 }));
 
-vi.mock("./ui/user-status", () => ({
-  HeaderDesktopUser: (props: MockUserStatusProps) => {
-    mockDesktopUser(props);
-    return <div data-testid="desktop-user" />;
-  },
-
-  HeaderMobileUserStatus: () => <div data-testid="mobile-user" />,
-}));
-
 describe("Header", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockHasMounted.value = true;
     mockAuthStore.user = null;
     mockAuthStore.isAuthenticated = false;
     mockAuthStore.isLoading = false;
@@ -119,16 +98,15 @@ describe("Header", () => {
     expect(screen.getByRole("group", { name: "모바일 메뉴" })).toBeInTheDocument();
   });
 
-  it("세션 로딩 여부는 인증 스토어를 따른다", () => {
+  it("프로필을 확인하는 동안 공개 메뉴와 로그인 상태를 유지한다", () => {
     mockAuthStore.isLoading = true;
     render(<Header />);
 
-    expect(mockNavLinks).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoading: true })
-    );
+    expect(mockNavLinks).toHaveBeenCalledWith(expect.objectContaining({ isLoggedIn: false, isAdmin: false }));
+    expect(screen.getByRole("link", { name: "로그인" })).toBeInTheDocument();
   });
 
-  it("복원된 사용자는 일반 인증 내비게이션만 표시하고 사용자명과 관리자 권한은 숨긴다", () => {
+  it("캐시된 사용자 정보만 있을 때는 로그인 전용 메뉴를 표시하지 않는다", () => {
     mockAuthStore.user = {
       id: 1,
       email: "user@test.com",
@@ -141,14 +119,13 @@ describe("Header", () => {
     render(<Header />);
 
     expect(mockNavLinks).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoading: false, isLoggedIn: true, isAdmin: false })
+      expect.objectContaining({ isLoggedIn: false, isAdmin: false })
     );
-    expect(mockDesktopUser).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoading: true, user: undefined })
-    );
+    expect(screen.queryByRole("link", { name: "설정" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "알림함" })).not.toBeInTheDocument();
   });
 
-  it("서버 검증이 완료된 사용자만 사용자명과 관리자 메뉴를 표시한다", () => {
+  it("서버 검증이 완료된 사용자는 설정 링크와 관리자 메뉴를 볼 수 있다", () => {
     mockAuthStore.user = {
       id: 1,
       email: "admin@test.com",
@@ -156,15 +133,15 @@ describe("Header", () => {
       role: "ADMIN",
     };
     mockAuthStore.isAuthenticated = true;
+    mockGetInbox.mockResolvedValue({ content: [], number: 0, totalPages: 0, totalElements: 0 });
 
-    render(<Header />);
+    render(<Header />, { wrapper: createQueryWrapper(createTestQueryClient()) });
 
     expect(mockNavLinks).toHaveBeenCalledWith(
       expect.objectContaining({ isLoggedIn: true, isAdmin: true })
     );
-    expect(mockDesktopUser).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoading: false, user: mockAuthStore.user })
-    );
+    expect(screen.getByRole("link", { name: "설정" })).toHaveAttribute("href", "/profile");
+    expect(screen.getByRole("button", { name: "알림함" })).toBeInTheDocument();
   });
 
   it("세션 검증이 끝난 게스트는 로그인 상태를 표시하지 않는다", () => {
@@ -172,20 +149,7 @@ describe("Header", () => {
     render(<Header />);
 
     expect(mockNavLinks).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoading: false, isLoggedIn: false })
-    );
-  });
-
-  it("SSR과 첫 클라이언트 렌더에서는 인증 영역을 동일한 스켈레톤으로 유지한다", () => {
-    mockHasMounted.value = false;
-
-    render(<Header />);
-
-    expect(mockNavLinks).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoading: true, isLoggedIn: false })
-    );
-    expect(mockDesktopUser).toHaveBeenCalledWith(
-      expect.objectContaining({ isLoading: true, user: undefined })
+      expect.objectContaining({ isLoggedIn: false })
     );
   });
 

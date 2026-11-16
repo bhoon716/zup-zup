@@ -4,7 +4,7 @@
 - 결정일: 2026-10-12
 - 범위: 백엔드 Java 정적 검사 도구와 검사 규칙의 재선정
 - 대체 결정: 없음
-- 관련 자료: [백엔드 재설계 체크리스트](../backend-redesign-checklist.md), [현재 Checkstyle 설정](../../apps/server/config/checkstyle/checkstyle.xml), [현재 PMD 설정](../../apps/server/config/pmd/pmd-ruleset.xml), [PMD 7.5.0 코드 스타일 규칙](https://docs.pmd-code.org/pmd-doc-7.5.0/pmd_rules_java_codestyle.html), [PMD 7.5.0 오류 검사 규칙](https://docs.pmd-code.org/pmd-doc-7.5.0/pmd_rules_java_errorprone.html)
+- 관련 자료: [현재 Checkstyle 설정](../../apps/server/config/checkstyle/checkstyle.xml), [현재 PMD 설정](../../apps/server/config/pmd/pmd-ruleset.xml), [PMD 7.5.0 코드 스타일 규칙](https://docs.pmd-code.org/pmd-doc-7.5.0/pmd_rules_java_codestyle.html), [PMD 7.5.0 오류 검사 규칙](https://docs.pmd-code.org/pmd-doc-7.5.0/pmd_rules_java_errorprone.html)
 
 ## 문제와 확인된 사실
 

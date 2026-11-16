@@ -11,11 +11,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import bhoon.sugang_helper.campus.announcement.controller.AnnouncementController;
 import bhoon.sugang_helper.campus.announcement.enums.AnnouncementSearchType;
 import bhoon.sugang_helper.campus.announcement.service.AnnouncementService;
+import bhoon.sugang_helper.seatalert.notification.controller.AdminNotificationDeliveryController;
 import bhoon.sugang_helper.seatalert.notification.controller.NotificationController;
+import bhoon.sugang_helper.seatalert.notification.service.AdminNotificationDeliveryService;
 import bhoon.sugang_helper.seatalert.notification.service.NotificationHistoryQueryService;
 import bhoon.sugang_helper.support.feedback.controller.AdminFeedbackController;
+import bhoon.sugang_helper.support.feedback.dto.request.AdminFeedbackSearch;
 import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackDeletionFilter;
-import bhoon.sugang_helper.support.feedback.service.FeedbackService;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackOrder;
+import bhoon.sugang_helper.support.feedback.enums.AdminFeedbackSearchType;
+import bhoon.sugang_helper.support.feedback.service.AdminFeedbackService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,16 +44,37 @@ class FixedPageSizeContractTest {
 
     @Mock private NotificationHistoryQueryService notifications;
 
-    @Mock private FeedbackService feedback;
+    @Mock private AdminFeedbackService feedback;
+
+    @Mock private AdminNotificationDeliveryService deliveries;
 
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         mvc = MockMvcBuilders.standaloneSetup(new AnnouncementController(announcements),
-                        new NotificationController(notifications), new AdminFeedbackController(feedback))
+                        new NotificationController(notifications), new AdminFeedbackController(feedback),
+                        new AdminNotificationDeliveryController(deliveries))
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
+    }
+
+    @ParameterizedTest
+    @DisplayName("관리자 DLQ 두 번째 페이지는 요청한 크기와 관계없이 10건씩 조회한다")
+    @ValueSource(strings = {"1", "100", "-1", "invalid"})
+    void fixesDlqSizeAndOffset(String size) throws Exception {
+        // given
+        when(deliveries.getDeadLetters(any()))
+                .thenAnswer(invocation -> new PageImpl<>(List.of(), invocation.getArgument(0), 21));
+
+        // when & then
+        mvc.perform(get("/api/v1/admin/notification-deliveries/dlq").param("page", "1").param("size", size))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.number").value(1))
+                .andExpect(jsonPath("$.pageable.offset").value(10))
+                .andExpect(jsonPath("$.totalElements").value(21))
+                .andExpect(jsonPath("$.totalPages").value(3));
     }
 
     @ParameterizedTest
@@ -63,12 +89,12 @@ class FixedPageSizeContractTest {
         for (int page = 0; page < 3; page++) {
             mvc.perform(get("/api/v1/announcements").param("page", Integer.toString(page))
                             .param("size", size).param("sort", "createdAt,asc"))
-                    .andExpect(status().isOk()).andExpect(jsonPath("$.size").value(30))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.size").value(10))
                     .andExpect(jsonPath("$.number").value(page))
                     .andExpect(jsonPath("$.totalElements").value(100))
-                    .andExpect(jsonPath("$.totalPages").value(4));
+                    .andExpect(jsonPath("$.totalPages").value(10));
             verify(announcements).getPublicAnnouncements(null, AnnouncementSearchType.TITLE_CONTENT,
-                    PageRequest.of(page, 30, Sort.by("createdAt").ascending()));
+                    PageRequest.of(page, 10, Sort.by("createdAt").ascending()));
         }
     }
 
@@ -79,17 +105,21 @@ class FixedPageSizeContractTest {
         // given
         PageRequest expected = PageRequest.of(2, 30, Sort.by("createdAt").ascending());
         when(notifications.findForCurrentUser(expected)).thenReturn(new SliceImpl<>(List.of(), expected, true));
-        when(feedback.getFeedbacksForAdmin(expected, AdminFeedbackDeletionFilter.DELETED))
+        var search = new AdminFeedbackSearch("답변", AdminFeedbackSearchType.TITLE_CONTENT_REPLY);
+        when(feedback.getFeedbacksForAdmin(
+                expected, AdminFeedbackDeletionFilter.DELETED, AdminFeedbackOrder.NEWEST, search))
                 .thenReturn(new PageImpl<>(List.of(), expected, 100));
 
         // when & then
         for (String path : List.of("/api/v1/notifications/history", "/api/v1/admin/feedbacks")) {
             mvc.perform(get(path).param("size", size).param("page", "2").param("sort", "createdAt,asc")
-                            .param("deletion", "DELETED"))
+                            .param("deletion", "DELETED").param("keyword", " 답변 ")
+                            .param("searchType", "TITLE_CONTENT_REPLY"))
                     .andExpect(status().isOk()).andExpect(jsonPath("$.size").value(30))
                     .andExpect(jsonPath("$.number").value(2));
         }
         verify(notifications).findForCurrentUser(expected);
-        verify(feedback).getFeedbacksForAdmin(expected, AdminFeedbackDeletionFilter.DELETED);
+        verify(feedback).getFeedbacksForAdmin(expected, AdminFeedbackDeletionFilter.DELETED, AdminFeedbackOrder.NEWEST,
+                search);
     }
 }

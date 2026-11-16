@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { localizedErrorMessage } from "@/shared/lib/error-message";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as adminApi from '@/features/admin/api/admin.api';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
@@ -16,7 +17,7 @@ export const useCrawlCourses = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const errorMessage = error.response?.data?.message || '크롤링 요청 중 오류가 발생했습니다.';
+      const errorMessage = localizedErrorMessage(error.response?.data?.message, '크롤링 요청 중 오류가 발생했습니다.');
       toast.error(errorMessage);
     },
   });
@@ -31,18 +32,8 @@ export const useSendTestNotification = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const errorMessage = error.response?.data?.message || '알림 전송 중 오류가 발생했습니다.';
+      const errorMessage = localizedErrorMessage(error.response?.data?.message, '알림 전송 중 오류가 발생했습니다.');
       toast.error(errorMessage);
-    },
-  });
-};
-
-export const useAdminCrawlTarget = () => {
-  return useQuery({
-    queryKey: ['admin', 'crawl-target'],
-    queryFn: async () => {
-      const response = await adminApi.getCrawlTarget();
-      return response;
     },
   });
 };
@@ -60,7 +51,7 @@ export const useUpdateAdminCrawlTarget = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const errorMessage = error.response?.data?.message || '기본 크롤링 타겟 저장 중 오류가 발생했습니다.';
+      const errorMessage = localizedErrorMessage(error.response?.data?.message, '기본 크롤링 타겟 저장 중 오류가 발생했습니다.');
       toast.error(errorMessage);
     },
   });
@@ -78,7 +69,7 @@ export const useCrawlCoursesByTarget = () => {
     },
 
     onError: (error: AxiosError<{ message: string }>) => {
-      const errorMessage = error.response?.data?.message || '특정 타겟 크롤링 요청 중 오류가 발생했습니다.';
+      const errorMessage = localizedErrorMessage(error.response?.data?.message, '특정 타겟 크롤링 요청 중 오류가 발생했습니다.');
       toast.error(errorMessage);
     },
   });

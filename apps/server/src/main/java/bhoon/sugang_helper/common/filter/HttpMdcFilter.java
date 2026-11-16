@@ -12,6 +12,7 @@ import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Slf4j
@@ -53,8 +54,7 @@ public class HttpMdcFilter extends OncePerRequestFilter {
     }
 
     private static boolean isValidCorrelationId(String correlationId) {
-        return correlationId != null
-                && !correlationId.isBlank()
+        return StringUtils.hasText(correlationId)
                 && correlationId.length() <= MAX_CORRELATION_ID_LENGTH
                 && CORRELATION_ID_PATTERN.matcher(correlationId).matches();
     }

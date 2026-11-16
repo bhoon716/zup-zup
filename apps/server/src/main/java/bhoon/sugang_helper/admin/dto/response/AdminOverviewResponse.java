@@ -1,29 +1,28 @@
 package bhoon.sugang_helper.admin.dto.response;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import lombok.Builder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AdminOverviewResponse {
 
-    private long totalUsers;
+    private final long totalUsers;
 
-    private long totalActiveSubscriptions;
+    private final long totalActiveSubscriptions;
 
-    private long todayNotificationCount;
+    private final String crawlingStatus;
 
-    private String crawlingStatus;
+    private final LocalDateTime lastCrawledAt;
 
-    private LocalDateTime lastCrawledAt;
+    private final LocalDateTime serverTime;
 
-    private Long jbnuLatencyMs;
-
-    private LocalDateTime serverTime;
-
-    private List<AdminHourlyTrafficResponse> notificationTraffic;
-
-    private List<AdminRecentLogResponse> recentLogs;
+    public static AdminOverviewResponse of(long totalUsers, long totalActiveSubscriptions,
+                                           String crawlingStatus, LocalDateTime lastCrawledAt,
+                                           LocalDateTime serverTime) {
+        return new AdminOverviewResponse(totalUsers, totalActiveSubscriptions, crawlingStatus, lastCrawledAt,
+                serverTime);
+    }
 }

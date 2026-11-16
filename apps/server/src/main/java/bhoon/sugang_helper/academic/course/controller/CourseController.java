@@ -4,7 +4,6 @@ import bhoon.sugang_helper.common.api.web.PageableGuard;
 import bhoon.sugang_helper.academic.course.dto.request.CourseSearchCondition;
 import bhoon.sugang_helper.academic.course.dto.response.CourseDetailResponse;
 import bhoon.sugang_helper.academic.course.dto.response.CourseResponse;
-import bhoon.sugang_helper.academic.course.dto.response.CourseSeatHistoryResponse;
 import bhoon.sugang_helper.academic.course.service.CourseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,15 +31,6 @@ public class CourseController {
         Pageable fixedPageable = PageableGuard.fixedSize(pageable);
         Slice<CourseResponse> courses = courseService.searchCourses(condition, fixedPageable);
         return ResponseEntity.ok(courses);
-    }
-
-    @GetMapping("/{courseKey}/history")
-    public ResponseEntity<Slice<CourseSeatHistoryResponse>> getCourseHistory(
-            @PathVariable String courseKey,
-            Pageable pageable) {
-        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
-        Slice<CourseSeatHistoryResponse> histories = courseService.getCourseHistory(courseKey, fixedPageable);
-        return ResponseEntity.ok(histories);
     }
 
     @GetMapping("/{courseKey}")

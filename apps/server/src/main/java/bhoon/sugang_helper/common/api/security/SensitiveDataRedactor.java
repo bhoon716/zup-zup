@@ -10,6 +10,7 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Queue;
 import java.util.regex.Pattern;
+import org.springframework.util.StringUtils;
 
 public final class SensitiveDataRedactor {
 
@@ -17,11 +18,11 @@ public final class SensitiveDataRedactor {
             "(?i)(/(?:token|tokens|authorization|secret|password|cookie)/)[^/?]+");
 
     private SensitiveDataRedactor() {
-        throw new IllegalStateException("Utility class");
+        throw new IllegalStateException("유틸리티 클래스는 인스턴스를 생성할 수 없습니다.");
     }
 
     public static String fingerprint(String value) {
-        if (value == null || value.isBlank()) {
+        if (!StringUtils.hasText(value)) {
             return "<none>";
         }
 
@@ -29,7 +30,7 @@ public final class SensitiveDataRedactor {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
             return "sha256:" + HexFormat.of().formatHex(digest, 0, 6);
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is required to fingerprint sensitive data", e);
+            throw new IllegalStateException("민감 정보의 지문을 생성하려면 SHA-256 알고리즘이 필요합니다.", e);
         }
     }
 
@@ -87,7 +88,7 @@ public final class SensitiveDataRedactor {
     }
 
     public static String redactPath(String path) {
-        if (path == null || path.isBlank()) {
+        if (!StringUtils.hasText(path)) {
             return "";
         }
         return SENSITIVE_PATH_SEGMENT.matcher(path).replaceAll("$1[REDACTED]");

@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserOAuthAccountService {
 
+    private static final String EVENT_KEY = "event";
+    private static final String USER_ID_KEY = "userId";
+
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -37,10 +40,10 @@ public class UserOAuthAccountService {
     private User bindLegacyUser(User user, String issuer, String subject) {
         if (user.hasOAuthIdentity()) {
             throw new OAuthAccountProvisioningException(
-                    "oauth_identity_conflict", "OAuth identity is already bound");
+                    "oauth_identity_conflict", "이미 연동된 OAuth 계정입니다.");
         }
         user.bindOAuthIdentity(issuer, subject);
-        log.info("[OAuth2] 기존 사용자 로그인 식별자 연결. userId={}", user.getId());
+        logOauthUserIdentityLinked(user.getId());
         return user;
     }
 
@@ -53,9 +56,22 @@ public class UserOAuthAccountService {
                 .oauthSubject(subject)
                 .build();
         User savedUser = userRepository.save(newUser);
-        log.info("[OAuth2] 신규 사용자 가입 완료. userId={}, emailFingerprint={}",
-                savedUser.getId(), SensitiveDataRedactor.fingerprint(email));
+        logOauthUserRegistered(savedUser.getId(), SensitiveDataRedactor.fingerprint(email));
         eventPublisher.publishEvent(new UserRegisteredEvent(savedUser.getId(), email));
         return savedUser;
     }
+
+    private void logOauthUserIdentityLinked(Long userId) {
+        log.atInfo().addKeyValue(EVENT_KEY, "oauth_user_identity_linked")
+                .addKeyValue(USER_ID_KEY, userId)
+                .log("[OAuth2] 기존 사용자 로그인 식별자 연결.");
+    }
+
+    private void logOauthUserRegistered(Long userId, String emailFingerprint) {
+        log.atInfo().addKeyValue(EVENT_KEY, "oauth_user_registered")
+                .addKeyValue(USER_ID_KEY, userId)
+                .addKeyValue("emailFingerprint", emailFingerprint)
+                .log("[OAuth2] 신규 사용자 가입 완료.");
+    }
+
 }

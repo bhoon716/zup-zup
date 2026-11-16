@@ -13,11 +13,15 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +35,8 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v1/feedbacks")
 @RequiredArgsConstructor
 public class FeedbackController {
+
+    private static final int FEEDBACKS_PER_PAGE = 10;
 
     private final FeedbackService feedbackService;
 
@@ -48,8 +54,9 @@ public class FeedbackController {
 
     @GetMapping("/me")
     public ResponseEntity<Page<FeedbackResponse>> getMyFeedbacks(
-            Pageable pageable) {
-        Pageable fixedPageable = PageableGuard.fixedSize(pageable);
+            @PageableDefault(sort = {"createdAt", "id"}, direction = Sort.Direction.DESC) Pageable pageable) {
+        Pageable fixedPageable = PageableGuard.requireBounded(
+                PageRequest.of(pageable.getPageNumber(), FEEDBACKS_PER_PAGE, pageable.getSort()));
 
         return ResponseEntity.ok(feedbackService.getMyFeedbacksForCurrentUser(fixedPageable));
     }
@@ -82,7 +89,7 @@ public class FeedbackController {
 
     private String resolveClientIp(HttpServletRequest request) {
         String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
+        if (StringUtils.hasText(forwardedFor)) {
             return forwardedFor.split(",", 2)[0].trim();
         }
         return request.getRemoteAddr();

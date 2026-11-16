@@ -12,7 +12,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import jakarta.servlet.http.HttpSession;
 import java.lang.reflect.Method;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -104,10 +103,10 @@ class UserControllerDiscordOAuthTest {
         try {
             controller.discordCallback("oauth-code", state, null, new MockHttpSession());
 
-            String messages = appender.list.stream()
-                    .map(ILoggingEvent::getFormattedMessage)
-                    .collect(Collectors.joining("\n"));
-            assertThat(messages).doesNotContain(state);
+            assertThat(appender.list).singleElement().satisfies(event -> {
+                assertThat(event.getFormattedMessage()).doesNotContain(state);
+                assertThat(event.getKeyValuePairs().toString()).doesNotContain(state);
+            });
         } finally {
             logger.detachAppender(appender);
             appender.stop();
