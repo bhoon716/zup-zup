@@ -277,26 +277,23 @@ export function HomeLanding() {
       </section>
 
       {                }
-      <section className="pb-10 md:pb-14">
+      <section className="pb-6 md:pb-8">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="mb-4">
-            <h3 className="flex items-center gap-2 break-keep text-xl font-bold text-[#161118] md:text-2xl">
-              <Calendar aria-hidden="true" className="size-5 shrink-0 text-indigo-500" />
-              학사 및 수강신청 주요 일정
-            </h3>
-            <p className="mt-1.5 break-keep text-sm font-medium text-[#161118]/60">놓치지 말아야 할 전북대 수강신청 일정을 확인하세요.</p>
-          </div>
+          <h3 className="mb-2.5 flex items-center gap-2 break-keep text-lg font-bold text-[#161118] md:text-xl">
+            <Calendar aria-hidden="true" className="size-4 shrink-0 text-indigo-500" />
+            학사 및 수강신청 주요 일정
+          </h3>
 
           {isScheduleLoading ? (
-            <div className="flex min-h-16 items-center justify-center">
-              <Loader2 className="size-5 animate-spin text-slate-300" />
+            <div className="flex h-10 items-center justify-center">
+              <Loader2 className="size-4 animate-spin text-slate-300" />
             </div>
           ) : upcomingSchedules?.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm font-medium text-slate-500">
+            <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
               현재 예정된 주요 일정이 없습니다.
             </p>
           ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
               {upcomingSchedules?.map((schedule, idx) => (
                 <motion.div
                   key={schedule.id}
@@ -304,7 +301,7 @@ export function HomeLanding() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: idx * 0.1 }}
-                  className="min-w-0 rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm transition-shadow hover:border-indigo-100 hover:shadow-md"
+                  className="min-w-0 rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm transition-shadow hover:border-indigo-100 hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-2.5">
                     <h4 className="min-w-0 text-sm leading-snug font-bold break-keep wrap-anywhere text-[#161118]">
@@ -317,22 +314,22 @@ export function HomeLanding() {
                       {schedule.dDay}
                     </span>
                   </div>
-                  <div className="mt-2 flex flex-col gap-0.5 border-t border-slate-100 pt-2 text-xs font-medium text-slate-500">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">일자</span>
-                      <span>
+                  <dl className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
+                    <div className="flex items-baseline gap-1 whitespace-nowrap">
+                      <dt>일자</dt>
+                      <dd className="font-medium">
                         {schedule.startDate.substring(5).replace("-", ".")} ~ {schedule.endDate.substring(5).replace("-", ".")}
-                      </span>
+                      </dd>
                     </div>
                     {(schedule.startTime || schedule.endTime) && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-400">시간</span>
-                        <span>
+                      <div className="flex items-baseline gap-1 whitespace-nowrap">
+                        <dt>시간</dt>
+                        <dd className="font-medium">
                           {schedule.startTime ? schedule.startTime : "--:--"} ~ {schedule.endTime ? schedule.endTime : "--:--"}
-                        </span>
+                        </dd>
                       </div>
                     )}
-                  </div>
+                  </dl>
                 </motion.div>
               ))}
             </div>
