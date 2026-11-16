@@ -251,10 +251,13 @@ def resolve_prompt(config, role, repo, revision):
 
 
 def run_job(args, event, repo, revision, prompt):
-    child_env = {
-        key: value for key, value in os.environ.items()
-        if key != "BENNY_SLACK_SIGNING_SECRET" and not key.startswith("PSTACK_WEBHOOK_KEY_")
-    }
+    env_keys = (
+        "PATH", "HOME", "SHELL", "USER", "LOGNAME",
+        "LANG", "LC_ALL", "LC_CTYPE",
+        "TMPDIR", "TMP", "TEMP",
+        "CODEX_HOME",
+    )
+    child_env = {key: os.environ[key] for key in env_keys if key in os.environ}
     event = event.replace("<", r"\u003c")
     with tempfile.TemporaryDirectory(prefix="pstack-worktree-") as temp:
         checkout = Path(temp) / "checkout"
