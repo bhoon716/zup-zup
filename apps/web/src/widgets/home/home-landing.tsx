@@ -2,12 +2,12 @@
 
 import { Button } from "@/shared/ui/button";
 import { motion } from "framer-motion";
-import { Bell, Calendar, Search, Megaphone, Pin, ChevronRight, MessageSquare } from "lucide-react";
+import { Bell, Calendar, Search, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/shared/lib/utils";
 import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
-import { useAnnouncements } from "@/features/announcement/hooks/useAnnouncements";
 import { Loader2 } from "lucide-react";
+import { DashboardAnnouncements } from "./dashboard-announcements";
 import { DashboardCountdown } from "./dashboard-countdown";
 import { DashboardDDayBlock } from "./dashboard-dday-block";
 import { useClientReady } from "@/shared/lib/use-client-ready";
@@ -51,18 +51,6 @@ const everyTimeReviews = [
   },
 ];
 
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-};
-
 const features = [
   {
     title: "실시간 여석 알림",
@@ -91,11 +79,7 @@ export function HomeLanding() {
   const isClientReady = useClientReady();
 
   const { data: upcomingSchedules, isLoading: upcomingSchedulesLoading } = useUpcomingSchedules(isClientReady);
-  const { data: announcements, isLoading: announcementsLoading } = useAnnouncements({ enabled: isClientReady });
   const isScheduleLoading = !isClientReady || upcomingSchedulesLoading;
-  const isAnnouncementLoading = !isClientReady || announcementsLoading;
-
-  const latestAnnouncements = (announcements ?? []).slice(0, 4);
 
   return (
     <div className="flex flex-col">
@@ -294,60 +278,7 @@ export function HomeLanding() {
       {             }
       <section className="pb-32">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <h3 className="text-2xl md:text-3xl font-bold text-[#161118] flex items-center gap-3 mb-2">
-                <Megaphone className="text-primary w-8 h-8 fill-primary/10" />
-                공지사항
-              </h3>
-              <p className="text-[#161118]/60 text-sm md:text-base font-medium">서비스 및 학사의 주요 공지사항을 확인하세요.</p>
-            </div>
-            <Link href="/announcements">
-              <Button variant="link" className="text-primary font-bold flex items-center gap-1 hover:no-underline group p-0">
-                전체보기 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-          </div>
-
-          {isAnnouncementLoading ? (
-            <div className="flex h-36 items-center justify-center text-sm text-slate-500">
-              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-            </div>
-          ) : latestAnnouncements.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-              등록된 공지사항이 없습니다.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {latestAnnouncements.map((item, idx) => (
-                <Link key={item.id} href={`/announcements/${item.id}`}>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.4, delay: idx * 0.05 }}
-                    className="bg-white dark:bg-primary/5 p-6 rounded-2xl border border-primary/5 shadow-sm flex flex-col gap-3 hover:bg-primary/5 transition-all cursor-pointer group hover:border-primary/20 h-full"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        {item.pinned ? (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-black text-indigo-600 dark:border-indigo-900/50 dark:bg-indigo-950/50">
-                            <Pin className="h-3 w-3" />
-                            고정
-                          </span>
-                        ) : null}
-                        <h4 className="truncate text-base md:text-lg font-bold text-gray-800 transition-colors group-hover:text-primary dark:text-gray-200">
-                          {item.title}
-                        </h4>
-                      </div>
-                      <span className="shrink-0 text-xs font-medium text-gray-400">{formatDate(item.createdAt)}</span>
-                    </div>
-                    <p className="line-clamp-2 text-sm text-slate-500">{item.previewContent || "-"}</p>
-                  </motion.div>
-                </Link>
-              ))}
-            </div>
-          )}
+          <DashboardAnnouncements />
         </div>
       </section>
     </div>

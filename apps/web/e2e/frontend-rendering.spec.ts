@@ -57,7 +57,10 @@ test("운영 홈의 소개와 주요 일정 및 공지사항을 표시한다", a
   const scheduleList = page.getByRole("list", { name: "주요 일정 목록" });
   await expect(scheduleList.getByRole("heading", { name: schedule.scheduleType })).toBeVisible();
   await expect(scheduleList.getByText(schedule.dDay, { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: new RegExp(announcement.title) })).toHaveAttribute("href", "/announcements/7");
+  await expect(page.getByRole("heading", { name: "공지사항", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "전체보기", exact: true })).toHaveAttribute("href", "/announcements");
+  const pinnedAnnouncement = page.getByRole("link", { name: new RegExp(`고정 공지.*${announcement.title}`) });
+  await expect(pinnedAnnouncement).toHaveAttribute("href", `/announcements/${announcement.id}`);
 });
 
 test("긴 검색 목록은 페이지를 추가해도 카드 수를 제한하고 상세를 닫으면 초점을 돌려준다", async ({ page, baseURL }) => {
