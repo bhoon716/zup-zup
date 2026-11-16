@@ -1,13 +1,11 @@
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ArrowRight, Search } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/shared/ui/button";
 import { LandingCourseTools } from "./landing-course-tools";
 import { LandingWalkthrough } from "./landing-walkthrough";
 
-import styles from "./landing-motion.module.css";
-
-const introduction = ["수강신청 빈자리,", "이제 알림으로 잡으세요."];
+import styles from "./landing-walkthrough.module.css";
 
 const statistics = [
   { label: "누적 가입자", minimum: 680, unit: "명" },
@@ -78,52 +76,48 @@ function ReviewList({ repeated = false }: { repeated?: boolean }) {
 
 export function HomeLanding({ countdown }: { countdown: ReactNode }) {
   return (
-    <main className="flex flex-col bg-background">
-      <section className={`${styles.hero} mx-auto w-full max-w-[1200px] px-5 pt-14 pb-12 text-center sm:px-6 sm:pt-20 sm:pb-16 lg:pt-28 lg:pb-24`}>
-        <h1 className={styles.heroTitle} aria-label={introduction.join(" ")}>
-          {introduction.map((line) => (
-            <span key={line} className={styles.heroLine}>
-              {line.split(" ").map((word, index) => (
-                <Fragment key={word}>
-                  {index > 0 && " "}
-                  <span className={styles.heroWord}><span>{word}</span></span>
-                </Fragment>
-              ))}
-            </span>
-          ))}
-        </h1>
-        <p className="mx-auto mt-5 max-w-[35rem] break-keep text-sm leading-relaxed text-muted-foreground sm:mt-7 sm:text-lg">
-          듣고 싶은 분반이 마감됐다면 알림을 등록해 두세요. 수강신청 화면을 계속 새로고침하지 않아도, 빈자리가 나면 웹 푸시로 알려드려요.
-        </p>
-        <div className={`${styles.heroActions} mt-6 flex flex-wrap justify-center gap-2.5 sm:mt-8`}>
-          <Button asChild className="h-11 rounded-full text-sm font-semibold has-[>svg]:px-5 sm:h-12 sm:has-[>svg]:px-6">
-            <Link href="/login">
-              지금 시작하기
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="h-11 rounded-full border-primary/20 text-sm font-semibold text-primary hover:bg-primary/5 has-[>svg]:px-5 sm:h-12 sm:has-[>svg]:px-6">
-            <Link href="/search">
-              <Search className="size-4" aria-hidden="true" />
-              강의 먼저 둘러보기
-            </Link>
-          </Button>
+    <main className="flex flex-col bg-[#fafafa] dark:bg-black">
+      <section className="mx-auto w-full max-w-[1200px] px-6 pt-9 pb-10 sm:pt-12 lg:pt-16 lg:pb-14">
+        <div className="grid gap-5 lg:grid-cols-[1.08fr_1fr] lg:items-center lg:gap-12">
+          <h1 className="text-[clamp(1.75rem,6.5vw,3.375rem)] leading-[1.17] font-bold tracking-tight text-foreground">
+            수강신청 빈자리,<br />
+            <span className="break-keep text-primary">이제 알림으로 잡으세요.</span>
+          </h1>
+          <div className="min-w-0 space-y-5">
+            <p className="max-w-[28rem] break-keep text-sm leading-relaxed text-muted-foreground sm:text-base">
+              듣고 싶은 분반이 마감됐다면 알림을 등록해 두세요. 수강신청 화면을 계속 새로고침하지 않아도, 빈자리가 나면 웹 푸시로 알려드려요.
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              <Button asChild className="h-11 rounded-full text-sm font-semibold has-[>svg]:px-5">
+                <Link href="/login">
+                  지금 시작하기
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-11 rounded-full border-primary/20 text-sm font-semibold text-primary hover:bg-primary/5 has-[>svg]:px-5">
+                <Link href="/search">
+                  <Search className="size-4" aria-hidden="true" />
+                  강의 먼저 둘러보기
+                </Link>
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="mt-6 flex justify-center empty:hidden sm:mt-8">{countdown}</div>
+        <div className="mt-5 flex empty:hidden">{countdown}</div>
       </section>
 
       <LandingWalkthrough />
 
       <LandingCourseTools />
 
-      <section className="pb-12 md:pb-16">
+      <section className="pb-10 md:pb-12">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="grid gap-5 border-t pt-10 md:gap-7 md:pt-14">
+          <div className="grid gap-4">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight md:text-4xl">
+              <h2 className="text-2xl md:text-3xl font-bold text-[#161118] dark:text-white flex items-center gap-3">
                 생생한 사용자 후기
               </h2>
-              <p className="mt-2 text-sm text-muted-foreground md:text-base">
+              <p className="mt-2 text-[#161118]/60 dark:text-slate-400 text-sm md:text-base font-medium">
                 줍줍 서비스를 이용한 대학생들의 실제 이용 후기입니다.
               </p>
             </div>
@@ -136,10 +130,10 @@ export function HomeLanding({ countdown }: { countdown: ReactNode }) {
           </div>
         </div>
       </section>
-      <section aria-label="서비스 이용 통계" className="mx-auto w-full max-w-[1200px] px-6 pb-12 md:pb-20">
-        <dl className="grid grid-cols-2 divide-x rounded-3xl border bg-card">
+      <section aria-label="서비스 이용 통계" className="mx-auto w-full max-w-[1200px] px-6 pb-12 md:pb-16">
+        <dl className="grid grid-cols-2 divide-x rounded-2xl border bg-card">
           {statistics.map(({ label, minimum, unit }) => (
-            <div key={label} className="px-4 py-5 sm:px-8 sm:py-8">
+            <div key={label} className="px-4 py-5 sm:px-7 sm:py-6">
               <dt className="break-keep text-sm text-muted-foreground">{label}</dt>
               <dd className="mt-1.5 text-2xl font-bold tabular-nums text-primary sm:text-4xl">
                 {countFormatter.format(minimum)}+<span className="ml-1 text-sm font-medium">{unit}</span>
