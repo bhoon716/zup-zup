@@ -277,26 +277,26 @@ export function HomeLanding() {
       </section>
 
       {                }
-      <section className="pb-32">
+      <section className="pb-10 md:pb-14">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="mb-8">
-            <h3 className="text-2xl md:text-3xl font-bold text-[#161118] flex items-center gap-3">
-              <Calendar className="text-indigo-500 w-8 h-8" />
+          <div className="mb-4">
+            <h3 className="flex items-center gap-2 break-keep text-xl font-bold text-[#161118] md:text-2xl">
+              <Calendar aria-hidden="true" className="size-5 shrink-0 text-indigo-500" />
               학사 및 수강신청 주요 일정
             </h3>
-            <p className="mt-2 text-[#161118]/60 text-sm md:text-base font-medium">놓치지 말아야 할 전북대 수강신청 일정을 확인하세요.</p>
+            <p className="mt-1.5 break-keep text-sm font-medium text-[#161118]/60">놓치지 말아야 할 전북대 수강신청 일정을 확인하세요.</p>
           </div>
 
           {isScheduleLoading ? (
-            <div className="flex h-32 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+            <div className="flex min-h-16 items-center justify-center">
+              <Loader2 className="size-5 animate-spin text-slate-300" />
             </div>
           ) : upcomingSchedules?.length === 0 ? (
-            <div className="flex xl:col-span-12 h-32 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50">
-              <p className="text-sm font-medium text-slate-500">현재 예정된 주요 일정이 없습니다.</p>
-            </div>
+            <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm font-medium text-slate-500">
+              현재 예정된 주요 일정이 없습니다.
+            </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
               {upcomingSchedules?.map((schedule, idx) => (
                 <motion.div
                   key={schedule.id}
@@ -304,24 +304,20 @@ export function HomeLanding() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: idx * 0.1 }}
-                  className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow hover:border-indigo-100"
+                  className="min-w-0 rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm transition-shadow hover:border-indigo-100 hover:shadow-md"
                 >
-                  <div>
-                    <div className="flex flex-col gap-2 mb-4">
-                      <div className="flex items-center justify-between">
-                        <span className={cn(
-                          "px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase",
-                          schedule.dDay === "D-Day" ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"
-                        )}>
-                          {schedule.dDay}
-                        </span>
-                      </div>
-                    </div>
-                    <h4 className="text-[1.1rem] font-bold text-[#161118] leading-snug break-keep mb-1">
+                  <div className="flex items-start justify-between gap-2.5">
+                    <h4 className="min-w-0 text-sm leading-snug font-bold break-keep wrap-anywhere text-[#161118]">
                       {schedule.scheduleType}
                     </h4>
+                    <span className={cn(
+                      "shrink-0 rounded-full px-2 py-0.5 text-[11px] leading-4 font-semibold",
+                      schedule.dDay === "D-Day" ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"
+                    )}>
+                      {schedule.dDay}
+                    </span>
                   </div>
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-1 text-[13px] font-semibold text-slate-500">
+                  <div className="mt-2 flex flex-col gap-0.5 border-t border-slate-100 pt-2 text-xs font-medium text-slate-500">
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400">일자</span>
                       <span>
