@@ -54,7 +54,7 @@ export default function TermsPage() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold">4. 데이터 출처</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              본 서비스에서 제공하는 모든 강의 정보 및 여석 데이터의 원 출처는 <strong>전북대학교 오아시스(Oasis)</strong>이며, 모든 저작권 및 권한은 학교 본부에 있습니다.
+              본 서비스에서 제공하는 모든 강의 정보 및 빈자리 데이터의 원 출처는 <strong>전북대학교 오아시스(Oasis)</strong>이며, 모든 저작권 및 권한은 학교 본부에 있습니다.
             </p>
           </section>
 

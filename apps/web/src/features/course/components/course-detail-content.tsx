@@ -228,7 +228,7 @@ function CourseSeatStatus({ course }: { course: NormalizedCourse }) {
                 <dd className="text-lg font-bold wrap-anywhere tabular-nums text-gray-900 dark:text-gray-100">{current} / {capacity}</dd>
               </div>
               <div className="min-w-0 bg-white p-3 dark:bg-gray-800">
-                <dt className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">잔여 여석</dt>
+                <dt className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">빈자리</dt>
                 <dd className={cn("text-lg font-bold wrap-anywhere tabular-nums", isFull ? "text-red-600 dark:text-red-400" : "text-primary")}>
                   {available}
                 </dd>

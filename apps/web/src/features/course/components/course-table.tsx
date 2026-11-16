@@ -293,8 +293,8 @@ export function CourseTable({
               subscribed={subscribed}
               onClick={() => handleSubscribe(course.courseKey)}
               disabled={isSubscribing || isUnsubscribing}
-              aria-label={subscribed ? `${course.name} 여석 알림 해제` : `${course.name} 여석 알림 받기`}
-              title={subscribed ? "여석 알림 해제" : "여석 알림 받기"}
+              aria-label={subscribed ? `${course.name} 빈자리 알림 해제` : `${course.name} 빈자리 알림 받기`}
+              title={subscribed ? "빈자리 알림 해제" : "빈자리 알림 받기"}
             />
           )}
         </>}

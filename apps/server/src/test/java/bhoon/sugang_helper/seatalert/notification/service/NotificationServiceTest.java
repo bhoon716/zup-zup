@@ -370,8 +370,8 @@ class NotificationServiceTest {
     }
 
     @Test
-    @DisplayName("durable delivery는 지원하는 세 채널에 provider-safe key를 전파한다")
-    void deliversSeatOpeningWithProviderSafeIdempotencyKey() {
+    @DisplayName("세 채널 모두에 빈자리 알림 문구와 발송 중복 방지 키를 전달한다")
+    void deliversSeatOpeningMessageWithProviderSafeIdempotencyKey() {
         // given
         String canonicalKey = "d35e8a1f-3135-4f9b-92b3-635f0c9ea641";
         User user = User.builder()
@@ -403,7 +403,9 @@ class NotificationServiceTest {
         }
 
         // then
-        verify(notificationSender, times(3)).sendDelivery(any(NotificationTarget.class), anyString(), anyString(),
+        verify(notificationSender, times(3)).sendDelivery(any(NotificationTarget.class),
+                eq("[줍줍] Test Course (Test Professor) 빈자리가 생겼어요!"),
+                eq("과목명: Test Course (Test Professor)\\n과목코드: 12345-01\\n현재 빈자리가 1석 있어요."),
                 eq(NotificationDeliveryIdempotencyKey.providerKey(canonicalKey)), eq("/"));
     }
 

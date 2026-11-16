@@ -192,8 +192,8 @@ public class NotificationService implements NotificationOperations {
 
     private NotificationMessage createSeatOpenedMessage(SeatOpenedEvent event) {
         String professor = StringUtils.hasText(event.professor()) ? event.professor() : "미지정";
-        String title = String.format("[줍줍] %s (%s) 여석 발생!", event.courseName(), professor);
-        String body = String.format("과목명: %s (%s)\\n과목코드: %s\\n현재 여석이 발생했습니다! (%d명)",
+        String title = String.format("[줍줍] %s (%s) 빈자리가 생겼어요!", event.courseName(), professor);
+        String body = String.format("과목명: %s (%s)\\n과목코드: %s\\n현재 빈자리가 %d석 있어요.",
                 event.courseName(), professor, event.courseKey(), event.currentSeats());
         return new NotificationMessage(title, body);
     }

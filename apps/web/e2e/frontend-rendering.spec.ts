@@ -45,18 +45,26 @@ test("비로그인 홈에 서비스 소개, 일정 카운트다운, 누적 통�
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^수강신청 빈자리,\s*이제 알림으로 잡으세요\.$/);
   await expect(page.getByRole("link", { name: "지금 시작하기" })).toHaveAttribute("href", "/login");
   await expect(page.getByRole("link", { name: "강의 먼저 둘러보기" })).toHaveAttribute("href", "/search");
-  await expect(page.getByRole("heading", { name: "실시간 여석 알림" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "실시간 빈자리 알림" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "스마트 시간표 관리" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "정밀 강의 검색" })).toBeVisible();
+
+  const seatAlertGuide = page.getByRole("region", { name: "빈자리 알림 받는 법" });
+  await expect(seatAlertGuide.getByRole("listitem").getByRole("heading")).toHaveText([
+    "강의 검색하기",
+    "알림 구독 버튼 누르기",
+    "빈자리가 나면 알림",
+  ]);
+  await expect(seatAlertGuide.locator("figcaption")).toHaveText(/^강의 검색\s*\./);
+  await expect(seatAlertGuide.getByRole("link", { name: "강의 찾아보기" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "생생한 사용자 후기" })).toBeVisible();
   await expect(page.getByText(`앞으로 ${schedule.scheduleType}까지`, { exact: true })).toBeVisible();
   await expect(page.getByText(schedule.dDay, { exact: true })).toBeVisible();
 
   const statistics = page.getByRole("region", { name: "서비스 이용 통계" });
   await expect(statistics.getByText("누적 사용자", { exact: true })).toBeVisible();
-  await expect(statistics.getByText("700+명", { exact: true })).toBeVisible();
   await expect(statistics.getByText("보낸 빈자리 알림", { exact: true })).toBeVisible();
-  await expect(statistics.getByText("7,000+개", { exact: true })).toBeVisible();
+  await expect(statistics.locator("[data-landing-stat-count]")).toHaveText(["700+명", "7,000+개"]);
   const statisticsDate = statistics.getByText("2026년 11월 16일", { exact: true });
   await expect(statisticsDate).toBeVisible();
   await expect(statisticsDate).toHaveAttribute("datetime", "2026-11-16");

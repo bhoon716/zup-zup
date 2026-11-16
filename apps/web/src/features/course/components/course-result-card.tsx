@@ -44,7 +44,7 @@ function getSeatStatus(available: number) {
   }
 
   return {
-    label: "여석 있음",
+    label: "빈자리 있음",
     badgeClass: "bg-emerald-100 text-emerald-800",
     barClass: "bg-emerald-500",
   };

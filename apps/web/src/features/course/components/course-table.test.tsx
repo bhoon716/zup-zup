@@ -120,7 +120,7 @@ describe("CourseTable", () => {
         expect(element).toHaveAttribute("data-clarity-unmask", "true");
       }
     }
-    for (const element of [screen.getByText(testCourse.professor!), screen.getByText("공학관 101"), screen.getByRole("button", { name: `${testCourse.name} 관심 강의 추가` }), screen.getByRole("button", { name: `${testCourse.name} 여석 알림 받기` })]) {
+    for (const element of [screen.getByText(testCourse.professor!), screen.getByText("공학관 101"), screen.getByRole("button", { name: `${testCourse.name} 관심 강의 추가` }), screen.getByRole("button", { name: `${testCourse.name} 빈자리 알림 받기` })]) {
       expect(element.closest("[data-clarity-unmask]")).toBeNull();
     }
   });
@@ -143,7 +143,7 @@ describe("CourseTable", () => {
     expect(screen.getByText("GECO178")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Theories of International Relations를 시간표에 추가하려면 로그인" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Theories of International Relations 관심 강의 추가" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Theories of International Relations 여석 알림 받기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Theories of International Relations 빈자리 알림 받기" })).toBeInTheDocument();
   });
 
   it("페이지 추가가 다시 가능해지면 계속 보이는 목록 끝을 다시 관찰한다", () => {

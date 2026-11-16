@@ -268,7 +268,7 @@ export default function SearchPage() {
     if (searchCondition.isAvailableOnly) {
       filters.push({
         id: "available",
-        label: "여석 있는 강의",
+        label: "빈자리 있는 강의",
         patch: { isAvailableOnly: undefined },
       });
     }
@@ -445,7 +445,7 @@ export default function SearchPage() {
                       <SelectItem value="popular">인기(찜)</SelectItem>
                       <SelectItem value="rating">평점순</SelectItem>
                       <SelectItem value="current">현재 신청 인원</SelectItem>
-                      <SelectItem value="available">여석 수</SelectItem>
+                      <SelectItem value="available">빈자리 수</SelectItem>
                     </SelectContent>
                   </Select>
 

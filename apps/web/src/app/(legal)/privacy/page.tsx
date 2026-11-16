@@ -29,7 +29,7 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc list-inside text-sm text-muted-foreground pl-2 space-y-1">
               <li>사용자 식별 및 서비스 이용 의사 확인</li>
-              <li>강의 여석 발생 시 실시간 알림(이메일, 웹푸시, 디스코드) 발송</li>
+              <li>강의 빈자리 발생 시 실시간 알림(이메일, 웹푸시, 디스코드) 발송</li>
               <li>서비스 이용 기록 관리 및 부정 이용 방지</li>
             </ul>
           </section>

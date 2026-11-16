@@ -1,10 +1,11 @@
 import { BatteryFull, LockKeyhole, Signal, Wifi } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BRAND_ICON_32_PATH } from "@/shared/seo/branding";
 import styles from "./vacancy-notice.module.css";
 
 const NOTICE_VISIBILITY_THRESHOLD = 0.35;
+const MILLISECONDS_PER_MINUTE = 60_000;
 
 const exampleNotices = [
   { arrival: "latest", course: "운영체제 02분반", seats: 2, received: "지금" },
@@ -52,11 +53,7 @@ export function VacancyNoticePreview() {
             </div>
 
             <div className={styles.lockScreen}>
-              <div className={styles.clock} aria-hidden="true">
-                <LockKeyhole />
-                <span className={styles.date}>3월 3일 화요일</span>
-                <span className={styles.time}>9:41</span>
-              </div>
+              <LockScreenClock />
 
               <ul className={styles.notifications}>
                 {exampleNotices.map(({ arrival, course, seats, received }) => (
@@ -67,7 +64,7 @@ export function VacancyNoticePreview() {
                       <span className={styles.received}>{received}</span>
                     </div>
                     <p className={styles.notificationTitle}>빈자리가 생겼어요!</p>
-                    <p className={styles.course}>{course} · 여석 {seats}석</p>
+                    <p className={styles.course}>{course} · 빈자리 {seats}석</p>
                   </li>
                 ))}
               </ul>
@@ -78,5 +75,44 @@ export function VacancyNoticePreview() {
         </div>
       </div>
     </figure>
+  );
+}
+
+function getCurrentMinute() {
+  return Math.floor(Date.now() / MILLISECONDS_PER_MINUTE);
+}
+
+function subscribeToClock(onChange: () => void) {
+  let timer: number;
+
+  function update() {
+    window.clearTimeout(timer);
+    onChange();
+    timer = window.setTimeout(update, MILLISECONDS_PER_MINUTE - (Date.now() % MILLISECONDS_PER_MINUTE));
+  }
+
+  update();
+  document.addEventListener("visibilitychange", update);
+
+  return () => {
+    window.clearTimeout(timer);
+    document.removeEventListener("visibilitychange", update);
+  };
+}
+
+function LockScreenClock() {
+  const minute = useSyncExternalStore(subscribeToClock, getCurrentMinute, () => null);
+  const date = minute === null ? null : new Date(minute * MILLISECONDS_PER_MINUTE);
+
+  return (
+    <div className={styles.clock} aria-hidden="true">
+      <LockKeyhole />
+      <span className={styles.date}>
+        {date?.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "long" }) ?? "\u00a0"}
+      </span>
+      <span className={styles.time}>
+        {date?.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }) ?? "\u00a0"}
+      </span>
+    </div>
   );
 }

@@ -2,18 +2,15 @@
 
 import { Button } from "@/shared/ui/button";
 import { motion } from "framer-motion";
-import { ArrowRight, Bell, Calendar, MessageSquare, Search } from "lucide-react";
+import { ArrowRight, MessageSquare, Search } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/shared/lib/utils";
 import { DashboardCountdown } from "./dashboard-countdown";
+import { LandingStatistics } from "./landing-statistics";
+import { SeatAlertGuide } from "./seat-alert-guide";
 import { VacancyNoticePreview } from "./vacancy-notice-preview";
 import styles from "./vacancy-notice.module.css";
-
-const statistics = [
-  { label: "누적 사용자", minimum: 700, unit: "명" },
-  { label: "보낸 빈자리 알림", minimum: 7000, unit: "개" },
-];
-const countFormatter = new Intl.NumberFormat("ko-KR");
 
 const everyTimeReviews = [
   {
@@ -56,25 +53,19 @@ const everyTimeReviews = [
 
 const features = [
   {
-    title: "실시간 여석 알림",
-    description: "원하는 강의에 빈자리가 생기면 즉시 웹 푸시 알림으로 알려드립니다. 더 이상 모니터 앞에서 대기하지 마세요.",
-    icon: Bell,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
+    title: "실시간 빈자리 알림",
+    description: "분반마다 알림을 따로 등록할 수 있어요. 빈자리가 생기면 설정한 채널로 알려드려요.",
+    iconSrc: "/icons/home/bell.webp",
   },
   {
     title: "스마트 시간표 관리",
     description: "복잡한 경우의 수를 고려하여 최적의 시간표를 시뮬레이션 해보세요. 중복되는 시간대와 총 이수 학점까지 실시간으로 체크합니다.",
-    icon: Calendar,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
+    iconSrc: "/icons/home/calendar.webp",
   },
   {
     title: "정밀 강의 검색",
     description: "강의명, 교수님은 물론 이수 구분, 학점, 강의 시간대 등 다양한 필터로 나에게 딱 맞는 강의를 쉽고 빠르게 찾으세요.",
-    icon: Search,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
+    iconSrc: "/icons/home/search.webp",
   },
 ];
 
@@ -89,9 +80,9 @@ export function HomeLanding() {
               <span className="text-primary">이제 알림으로 잡으세요.</span>
             </h1>
 
-            <p className="mx-auto mb-6 max-w-[34rem] text-base leading-relaxed break-keep text-foreground/65 sm:mb-8 sm:text-lg md:mx-0 lg:text-xl">
-              <span className="block text-balance md:text-wrap">듣고 싶은 강의가 마감됐다면 알림을 켜두세요.</span>
-              <span className="block text-balance md:text-wrap">자리가 나면 줍줍이 휴대폰으로 알려드려요.</span>
+            <p className="mx-auto mb-6 max-w-[34rem] text-base leading-relaxed break-keep text-pretty text-foreground/65 sm:mb-8 sm:text-lg md:mx-0 lg:text-xl">
+              마감된 강의 때문에 계속 새로고침하고 있나요? 빈자리가 생기면 줍줍이 알려드려요.
+              관심 강의를 모아 시간표도 짜보세요.
             </p>
 
             <div className="mb-4 flex justify-center empty:hidden md:justify-start">
@@ -117,7 +108,7 @@ export function HomeLanding() {
       </section>
 
       {           }
-      <section className="pb-32">
+      <section className="pb-16 lg:pb-24">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {features.map((feature, idx) => (
@@ -129,12 +120,17 @@ export function HomeLanding() {
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
                 className="bg-white dark:bg-primary/10 p-10 rounded-2xl shadow-sm border border-primary/5 flex flex-col gap-6 hover:shadow-xl transition-all group cursor-default"
               >
-                <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform", feature.bgColor)}>
-                  <feature.icon className={cn("w-8 h-8", feature.color)} />
-                </div>
+                <Image
+                  src={feature.iconSrc}
+                  alt=""
+                  width={72}
+                  height={72}
+                  unoptimized
+                  className="mb-2 size-18 object-contain motion-safe:transition-transform motion-safe:group-hover:scale-110"
+                />
                 <div>
                   <h3 className="text-2xl font-bold text-[#161118] mb-4">{feature.title}</h3>
-                  <p className="text-[#161118]/60 leading-relaxed text-base font-medium">
+                  <p className="break-keep text-[#161118]/60 leading-relaxed text-base font-medium">
                     {feature.description}
                   </p>
                 </div>
@@ -143,6 +139,8 @@ export function HomeLanding() {
           </div>
         </div>
       </section>
+
+      <SeatAlertGuide />
 
       {                   }
       <section className="pb-12 md:pb-16">
@@ -248,21 +246,7 @@ export function HomeLanding() {
         </div>
       </section>
 
-      <section aria-label="서비스 이용 통계" className="mx-auto w-full max-w-[1200px] px-6 pb-12 md:pb-16">
-        <dl className="grid grid-cols-2 divide-x rounded-2xl border bg-card">
-          {statistics.map(({ label, minimum, unit }) => (
-            <div key={label} className="px-4 py-5 sm:px-7 sm:py-6">
-              <dt className="break-keep text-sm text-muted-foreground">{label}</dt>
-              <dd className="mt-1.5 text-2xl font-bold tabular-nums text-primary sm:text-4xl">
-                {countFormatter.format(minimum)}+<span className="ml-1 text-sm font-medium">{unit}</span>
-              </dd>
-            </div>
-          ))}
-        </dl>
-        <p className="mt-2.5 text-right text-xs text-muted-foreground">
-          <time dateTime="2026-11-16">2026년 11월 16일</time> 기준
-        </p>
-      </section>
+      <LandingStatistics />
     </div>
   );
 }

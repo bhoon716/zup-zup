@@ -130,7 +130,7 @@ export function CourseSmartFilters({
         {                  }
         <div className="flex items-center justify-between">
           <Label htmlFor="available-only" className="text-sm font-medium">
-            여석 있는 강의만 보기
+            빈자리 있는 강의만 보기
           </Label>
           <Switch
             id="available-only"
