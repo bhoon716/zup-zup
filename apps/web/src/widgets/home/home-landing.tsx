@@ -62,6 +62,8 @@ const formatDate = (value: string) => {
   }).format(date);
 };
 
+const formatScheduleDate = (value: string) => value.slice(5).replace("-", ".");
+
 const features = [
   {
     title: "실시간 여석 알림",
@@ -280,7 +282,7 @@ export function HomeLanding() {
       <section className="pb-6 md:pb-8">
         <div className="max-w-[1200px] mx-auto px-6">
           <h3 className="mb-2.5 flex items-center gap-2 break-keep text-lg font-bold text-[#161118] md:text-xl">
-            <Calendar aria-hidden="true" className="size-4 shrink-0 text-indigo-500" />
+            <Calendar aria-hidden="true" className="size-4 shrink-0 text-primary" />
             학사 및 수강신청 주요 일정
           </h3>
 
@@ -301,35 +303,40 @@ export function HomeLanding() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.4, delay: idx * 0.1 }}
-                  className="min-w-0 rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm transition-shadow hover:border-indigo-100 hover:shadow-md"
+                  className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border bg-card p-2.5"
                 >
-                  <div className="flex items-start justify-between gap-2.5">
-                    <h4 className="min-w-0 text-sm leading-snug font-bold break-keep wrap-anywhere text-[#161118]">
+                  <dl className="w-13 shrink-0 rounded-lg bg-primary/7 px-1 py-1 text-center tabular-nums">
+                    <dt className="sr-only">기간</dt>
+                    <dd>
+                      <time dateTime={schedule.startDate} className="block text-sm leading-4 font-semibold text-primary">
+                        {formatScheduleDate(schedule.startDate)}
+                      </time>
+                      {schedule.endDate !== schedule.startDate && (
+                        <span className="block text-[11px] leading-4 text-primary/80">
+                          ~ <time dateTime={schedule.endDate}>{formatScheduleDate(schedule.endDate)}</time>
+                        </span>
+                      )}
+                    </dd>
+                  </dl>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm leading-snug font-bold break-keep wrap-anywhere text-card-foreground">
                       {schedule.scheduleType}
                     </h4>
-                    <span className={cn(
-                      "shrink-0 rounded-full px-2 py-0.5 text-[11px] leading-4 font-semibold",
-                      schedule.dDay === "D-Day" ? "bg-red-50 text-red-600" : "bg-indigo-50 text-indigo-600"
-                    )}>
-                      {schedule.dDay}
-                    </span>
-                  </div>
-                  <dl className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
-                    <div className="flex items-baseline gap-1 whitespace-nowrap">
-                      <dt>일자</dt>
-                      <dd className="font-medium">
-                        {schedule.startDate.substring(5).replace("-", ".")} ~ {schedule.endDate.substring(5).replace("-", ".")}
-                      </dd>
-                    </div>
                     {(schedule.startTime || schedule.endTime) && (
-                      <div className="flex items-baseline gap-1 whitespace-nowrap">
-                        <dt>시간</dt>
-                        <dd className="font-medium">
-                          {schedule.startTime ? schedule.startTime : "--:--"} ~ {schedule.endTime ? schedule.endTime : "--:--"}
-                        </dd>
-                      </div>
+                      <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
+                        <span className="sr-only">시간 </span>
+                        {schedule.startTime || "--:--"} ~ {schedule.endTime || "--:--"}
+                      </p>
                     )}
-                  </dl>
+                  </div>
+                  <span className={cn(
+                    "shrink-0 rounded-md px-1.5 py-0.5 text-[11px] leading-4 font-semibold tabular-nums",
+                    schedule.dDay === "D-Day" || schedule.dDay === "진행 중"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground"
+                  )}>
+                    {schedule.dDay}
+                  </span>
                 </motion.div>
               ))}
             </div>
