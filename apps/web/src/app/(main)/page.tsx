@@ -1,30 +1,23 @@
-import { Suspense } from "react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { HomeLanding } from "@/widgets/home/home-landing";
 import { HomeSession } from "@/widgets/home/home-session";
-import { DashboardCountdown } from "@/widgets/home/dashboard-countdown";
-import type { ScheduleResponse } from "@/shared/types/api";
-import { fetchPublicData } from "@/shared/lib/public-metadata";
 
 const SESSION_COOKIE_NAME = "SESSION";
-
-async function PublicCountdown() {
-  const data = await fetchPublicData<ScheduleResponse[]>("/api/v1/schedules/ddays", { cache: "no-store" });
-  return <DashboardCountdown initialData={data} />;
-}
 
 export default async function HomePage() {
   const hasSessionCookie = (await cookies()).has(SESSION_COOKIE_NAME);
 
   return (
-    <div className="min-h-screen bg-background selection:bg-primary/10 selection:text-primary">
+    <div className="min-h-screen bg-[#fafafa] dark:bg-black selection:bg-primary/10 selection:text-primary">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-primary/5 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: "2s" }} />
+      </div>
       <HomeSession hasSessionCookie={hasSessionCookie}>
-        <HomeLanding
-          countdown={hasSessionCookie ? <DashboardCountdown /> : <Suspense><PublicCountdown /></Suspense>}
-        />
+        <HomeLanding />
       </HomeSession>
-      <footer className="bg-card border-t py-10">
+      <footer className="bg-white border-t border-gray-100 py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="text-center md:text-left">

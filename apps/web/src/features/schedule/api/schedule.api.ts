@@ -2,6 +2,11 @@ import { AxiosError, type AxiosRequestConfig } from 'axios';
 import api from '@/shared/api/client';
 import type { ScheduleRequest, ScheduleResponse } from '@/shared/types/api';
 
+export const getUpcomingSchedules = async () => {
+  const response = await api.get<ScheduleResponse[]>('/api/v1/schedules');
+  return response.data;
+};
+
 export const getAdminSchedules = async () => {
   const response = await api.get<ScheduleResponse[]>('/api/v1/admin/schedules');
   return response.data;

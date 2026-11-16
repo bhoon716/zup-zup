@@ -6,6 +6,13 @@ import type { PublicPageData } from '@/shared/lib/public-metadata';
 const SCHEDULE_QUERY_KEY = ['schedules'] as const;
 const PUBLIC_SCHEDULE_STALE_TIME_MS = 5 * 60 * 1000;
 
+export const useUpcomingSchedules = (enabled = true) => useQuery({
+  queryKey: [...SCHEDULE_QUERY_KEY, 'upcoming'],
+  queryFn: scheduleApi.getUpcomingSchedules,
+  staleTime: PUBLIC_SCHEDULE_STALE_TIME_MS,
+  enabled,
+});
+
 export const useScheduleDdays = (enabled = true, initialData?: PublicPageData<ScheduleResponse[]> | null) => useQuery({
   queryKey: [...SCHEDULE_QUERY_KEY, 'ddays'],
   queryFn: scheduleApi.getDdaySchedules,

@@ -12,6 +12,12 @@ describe("DashboardCountdown", () => {
     vi.mocked(useScheduleDdays).mockReturnValue({ data: [] } as never);
   });
 
+  it("부모가 조회를 보류한 동안 대표 일정을 추가 조회하지 않는다", () => {
+    render(<DashboardCountdown suppressFetch />);
+    expect(useScheduleDdays).toHaveBeenCalledWith(false, undefined);
+    expect(useScheduleDdays).not.toHaveBeenCalledWith(true, undefined);
+  });
+
   it("마운트 후 대표 목록을 조회하며 선택된 일정이 없으면 표시하지 않는다", async () => {
     const { container } = render(<DashboardCountdown />);
     await waitFor(() => expect(useScheduleDdays).toHaveBeenCalledWith(true, undefined));
