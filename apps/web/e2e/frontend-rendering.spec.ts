@@ -18,8 +18,9 @@ function makeCourse(number: number) {
   };
 }
 
-test("운영 홈의 소개와 주요 일정 및 공지사항을 표시한다", async ({ page, baseURL }) => {
+test("비로그인 홈에 서비스 소개, 일정 카운트다운, 누적 통계를 표시한다", async ({ page, baseURL }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  const removedSectionRequests: string[] = [];
   const schedule = {
     id: 1,
     scheduleType: "겨울 계절학기 수강신청",
@@ -27,40 +28,41 @@ test("운영 홈의 소개와 주요 일정 및 공지사항을 표시한다", a
     endDate: "2026-11-19",
     dDay: "D-2",
   };
-  const announcement = {
-    id: 7,
-    title: "겨울 계절학기 안내",
-    previewContent: "학사 일정을 확인해 주세요.",
-    createdAt: "2026-11-16T00:00:00Z",
-    pinned: true,
-  };
   await page.route("**/*", (route) => {
     const url = new URL(route.request().url());
     if (url.origin !== new URL(baseURL!).origin) return route.abort();
     if (url.pathname === "/api/v1/users/me") return route.fulfill({ status: 401, json: { code: "A001" } });
-    if (url.pathname === "/api/v1/schedules") return route.fulfill({ json: [schedule] });
-    if (url.pathname === "/api/v1/schedules/ddays") return route.fulfill({ json: [] });
-    if (url.pathname === "/api/v1/announcements") return route.fulfill({ json: { content: [announcement] } });
+    if (url.pathname === "/api/v1/schedules/ddays") return route.fulfill({ json: [schedule] });
+    if (url.pathname === "/api/v1/schedules" || url.pathname === "/api/v1/announcements") {
+      removedSectionRequests.push(url.pathname);
+      return route.abort();
+    }
     return route.continue();
   });
 
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/전북대 수강신청 빈자리,\s*이제 알림으로 잡으세요\./);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^수강신청 빈자리,\s*이제 알림으로 잡으세요\.$/);
   await expect(page.getByRole("link", { name: "지금 시작하기" })).toHaveAttribute("href", "/login");
   await expect(page.getByRole("link", { name: "강의 먼저 둘러보기" })).toHaveAttribute("href", "/search");
   await expect(page.getByRole("heading", { name: "실시간 여석 알림" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "스마트 시간표 관리" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "정밀 강의 검색" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "생생한 사용자 후기" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "주요 일정", exact: true })).toBeVisible();
-  const scheduleList = page.getByRole("list", { name: "주요 일정 목록" });
-  await expect(scheduleList.getByRole("heading", { name: schedule.scheduleType })).toBeVisible();
-  await expect(scheduleList.getByText(schedule.dDay, { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "공지사항", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "전체보기", exact: true })).toHaveAttribute("href", "/announcements");
-  const pinnedAnnouncement = page.getByRole("link", { name: new RegExp(`고정 공지.*${announcement.title}`) });
-  await expect(pinnedAnnouncement).toHaveAttribute("href", `/announcements/${announcement.id}`);
+  await expect(page.getByText(`앞으로 ${schedule.scheduleType}까지`, { exact: true })).toBeVisible();
+  await expect(page.getByText(schedule.dDay, { exact: true })).toBeVisible();
+
+  const statistics = page.getByRole("region", { name: "서비스 이용 통계" });
+  await expect(statistics.getByText("누적 사용자", { exact: true })).toBeVisible();
+  await expect(statistics.getByText("700+명", { exact: true })).toBeVisible();
+  await expect(statistics.getByText("보낸 빈자리 알림", { exact: true })).toBeVisible();
+  await expect(statistics.getByText("7,000+개", { exact: true })).toBeVisible();
+  const statisticsDate = statistics.getByText("2026년 11월 16일", { exact: true });
+  await expect(statisticsDate).toBeVisible();
+  await expect(statisticsDate).toHaveAttribute("datetime", "2026-11-16");
+  await expect(page.getByRole("heading", { name: "주요 일정", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "공지사항", exact: true })).toHaveCount(0);
+  expect(removedSectionRequests).toEqual([]);
 });
 
 test("긴 검색 목록은 페이지를 추가해도 카드 수를 제한하고 상세를 닫으면 초점을 돌려준다", async ({ page, baseURL }) => {

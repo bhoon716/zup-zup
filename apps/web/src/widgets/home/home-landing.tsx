@@ -2,15 +2,18 @@
 
 import { Button } from "@/shared/ui/button";
 import { motion } from "framer-motion";
-import { Bell, Calendar, Search, MessageSquare } from "lucide-react";
+import { ArrowRight, Bell, Calendar, MessageSquare, Search } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/shared/lib/utils";
-import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
-import { Loader2 } from "lucide-react";
-import { DashboardAnnouncements } from "./dashboard-announcements";
 import { DashboardCountdown } from "./dashboard-countdown";
-import { DashboardDDayBlock } from "./dashboard-dday-block";
-import { useClientReady } from "@/shared/lib/use-client-ready";
+import { VacancyNoticePreview } from "./vacancy-notice-preview";
+import styles from "./vacancy-notice.module.css";
+
+const statistics = [
+  { label: "누적 사용자", minimum: 700, unit: "명" },
+  { label: "보낸 빈자리 알림", minimum: 7000, unit: "개" },
+];
+const countFormatter = new Intl.NumberFormat("ko-KR");
 
 const everyTimeReviews = [
   {
@@ -76,56 +79,40 @@ const features = [
 ];
 
 export function HomeLanding() {
-  const isClientReady = useClientReady();
-
-  const { data: upcomingSchedules, isLoading: upcomingSchedulesLoading } = useUpcomingSchedules(isClientReady);
-  const isScheduleLoading = !isClientReady || upcomingSchedulesLoading;
-
   return (
     <div className="flex flex-col">
-      {                                 }
-      <section className="relative pt-16 pb-24 md:pt-32 md:pb-40 overflow-hidden flex items-center">
-        <div className="max-w-[1200px] mx-auto px-6 flex flex-col items-center text-center relative z-10 w-full">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-[#161118] mb-8 leading-[1.1]"
-          >
-            전북대 수강신청 빈자리,<br/>
-            <span className="text-primary">이제 알림으로 잡으세요.</span>
-          </motion.h1>
+      <section className="overflow-hidden pt-9 pb-12 sm:pt-12 md:pt-10 md:pb-14 lg:pt-14">
+        <div className={cn(styles.heroGrid, "mx-auto w-full max-w-[1200px] px-6")}>
+          <div className="min-w-0 text-center md:text-left" data-testid="landing-hero-copy">
+            <h1 className={cn(styles.heroTitle, "mb-5 break-keep font-bold leading-[1.12] tracking-tight text-foreground sm:mb-6")}>
+              수강신청 빈자리,<br />
+              <span className="text-primary">이제 알림으로 잡으세요.</span>
+            </h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-lg md:text-xl text-[#161118]/60 mb-12 max-w-2xl mx-auto leading-relaxed"
-          >
-            하루 종일 새로고침만 누르고 계신가요? 전북대 수강신청 빈자리 알림 서비스 &apos;줍줍&apos;이 빈자리가 생기면 가장 먼저 알려드립니다. 스마트한 시간표 관리까지 한 번에 해결하세요.
-          </motion.p>
+            <p className="mx-auto mb-6 max-w-[34rem] text-base leading-relaxed break-keep text-foreground/65 sm:mb-8 sm:text-lg md:mx-0 lg:text-xl">
+              <span className="block text-balance md:text-wrap">듣고 싶은 강의가 마감됐다면 알림을 켜두세요.</span>
+              <span className="block text-balance md:text-wrap">자리가 나면 줍줍이 휴대폰으로 알려드려요.</span>
+            </p>
 
-          <div className="mb-8 w-full flex justify-center">
-            <DashboardCountdown animateOnMount suppressFetch={isScheduleLoading} />
+            <div className="mb-4 flex justify-center empty:hidden md:justify-start">
+              <DashboardCountdown animateOnMount />
+            </div>
+
+            <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4 md:justify-start">
+              <Button asChild className="h-auto rounded-full bg-primary py-3.5 text-base font-bold text-primary-foreground shadow-lg shadow-primary/20 has-[>svg]:px-8 sm:py-4">
+                <Link href="/login">
+                  지금 시작하기 <ArrowRight aria-hidden="true" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-auto rounded-full border-2 border-primary/20 bg-card py-3.5 text-base font-bold text-primary hover:bg-primary/5 hover:text-primary has-[>svg]:px-8 sm:py-4">
+                <Link href="/search">
+                  <Search aria-hidden="true" /> 강의 먼저 둘러보기
+                </Link>
+              </Button>
+            </div>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto"
-          >
-            <Link href="/login" className="w-full sm:w-auto">
-              <Button className="h-auto w-full rounded-full bg-primary px-8 py-5 text-base font-bold text-white shadow-xl shadow-primary/30 transition-all hover:bg-primary/90">
-                지금 시작하기
-              </Button>
-            </Link>
-            <Link href="/search" className="w-full sm:w-auto">
-              <Button variant="outline" className="h-auto w-full rounded-full border-2 border-primary/20 bg-white px-8 py-5 text-base font-bold text-primary transition-all hover:bg-primary/5">
-                강의 먼저 둘러보기
-              </Button>
-            </Link>
-          </motion.div>
+          <VacancyNoticePreview />
         </div>
       </section>
 
@@ -158,7 +145,7 @@ export function HomeLanding() {
       </section>
 
       {                   }
-      <section className="pb-32">
+      <section className="pb-12 md:pb-16">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="mb-10 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
@@ -261,25 +248,20 @@ export function HomeLanding() {
         </div>
       </section>
 
-      {                }
-      <section className="pb-6 md:pb-8">
-        <div className="max-w-[1200px] mx-auto px-6">
-          {isScheduleLoading ? (
-            <div role="status" className="flex h-10 items-center justify-center">
-              <Loader2 aria-hidden="true" className="size-4 animate-spin text-slate-300" />
-              <span className="sr-only">주요 일정을 불러오는 중입니다.</span>
+      <section aria-label="서비스 이용 통계" className="mx-auto w-full max-w-[1200px] px-6 pb-12 md:pb-16">
+        <dl className="grid grid-cols-2 divide-x rounded-2xl border bg-card">
+          {statistics.map(({ label, minimum, unit }) => (
+            <div key={label} className="px-4 py-5 sm:px-7 sm:py-6">
+              <dt className="break-keep text-sm text-muted-foreground">{label}</dt>
+              <dd className="mt-1.5 text-2xl font-bold tabular-nums text-primary sm:text-4xl">
+                {countFormatter.format(minimum)}+<span className="ml-1 text-sm font-medium">{unit}</span>
+              </dd>
             </div>
-          ) : (
-            <DashboardDDayBlock upcomingSchedules={upcomingSchedules ?? []} />
-          )}
-        </div>
-      </section>
-
-      {             }
-      <section className="pb-32">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <DashboardAnnouncements />
-        </div>
+          ))}
+        </dl>
+        <p className="mt-2.5 text-right text-xs text-muted-foreground">
+          <time dateTime="2026-11-16">2026년 11월 16일</time> 기준
+        </p>
       </section>
     </div>
   );
