@@ -9,6 +9,7 @@ import { useUpcomingSchedules } from "@/features/schedule/hooks/useSchedules";
 import { useAnnouncements } from "@/features/announcement/hooks/useAnnouncements";
 import { Loader2 } from "lucide-react";
 import { DashboardCountdown } from "./dashboard-countdown";
+import { DashboardDDayBlock } from "./dashboard-dday-block";
 import { useClientReady } from "@/shared/lib/use-client-ready";
 
 const everyTimeReviews = [
@@ -61,8 +62,6 @@ const formatDate = (value: string) => {
     day: "2-digit",
   }).format(date);
 };
-
-const formatScheduleDate = (value: string) => value.slice(5).replace("-", ".");
 
 const features = [
   {
@@ -281,65 +280,13 @@ export function HomeLanding() {
       {                }
       <section className="pb-6 md:pb-8">
         <div className="max-w-[1200px] mx-auto px-6">
-          <h3 className="mb-2.5 flex items-center gap-2 break-keep text-lg font-bold text-[#161118] md:text-xl">
-            <Calendar aria-hidden="true" className="size-4 shrink-0 text-primary" />
-            학사 및 수강신청 주요 일정
-          </h3>
-
           {isScheduleLoading ? (
-            <div className="flex h-10 items-center justify-center">
-              <Loader2 className="size-4 animate-spin text-slate-300" />
+            <div role="status" className="flex h-10 items-center justify-center">
+              <Loader2 aria-hidden="true" className="size-4 animate-spin text-slate-300" />
+              <span className="sr-only">주요 일정을 불러오는 중입니다.</span>
             </div>
-          ) : upcomingSchedules?.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
-              현재 예정된 주요 일정이 없습니다.
-            </p>
           ) : (
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
-              {upcomingSchedules?.map((schedule, idx) => (
-                <motion.div
-                  key={schedule.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: idx * 0.1 }}
-                  className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border bg-card p-2.5"
-                >
-                  <dl className="w-13 shrink-0 rounded-lg bg-primary/7 px-1 py-1 text-center tabular-nums">
-                    <dt className="sr-only">기간</dt>
-                    <dd>
-                      <time dateTime={schedule.startDate} className="block text-sm leading-4 font-semibold text-primary">
-                        {formatScheduleDate(schedule.startDate)}
-                      </time>
-                      {schedule.endDate !== schedule.startDate && (
-                        <span className="block text-[11px] leading-4 text-primary/80">
-                          ~ <time dateTime={schedule.endDate}>{formatScheduleDate(schedule.endDate)}</time>
-                        </span>
-                      )}
-                    </dd>
-                  </dl>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-sm leading-snug font-bold break-keep wrap-anywhere text-card-foreground">
-                      {schedule.scheduleType}
-                    </h4>
-                    {(schedule.startTime || schedule.endTime) && (
-                      <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
-                        <span className="sr-only">시간 </span>
-                        {schedule.startTime || "--:--"} ~ {schedule.endTime || "--:--"}
-                      </p>
-                    )}
-                  </div>
-                  <span className={cn(
-                    "shrink-0 rounded-md px-1.5 py-0.5 text-[11px] leading-4 font-semibold tabular-nums",
-                    schedule.dDay === "D-Day" || schedule.dDay === "진행 중"
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground"
-                  )}>
-                    {schedule.dDay}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
+            <DashboardDDayBlock upcomingSchedules={upcomingSchedules ?? []} />
           )}
         </div>
       </section>

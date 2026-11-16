@@ -53,8 +53,10 @@ test("운영 홈의 소개와 주요 일정 및 공지사항을 표시한다", a
   await expect(page.getByRole("heading", { name: "스마트 시간표 관리" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "정밀 강의 검색" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "생생한 사용자 후기" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "학사 및 수강신청 주요 일정" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: schedule.scheduleType })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "주요 일정", exact: true })).toBeVisible();
+  const scheduleList = page.getByRole("list", { name: "주요 일정 목록" });
+  await expect(scheduleList.getByRole("heading", { name: schedule.scheduleType })).toBeVisible();
+  await expect(scheduleList.getByText(schedule.dDay, { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: new RegExp(announcement.title) })).toHaveAttribute("href", "/announcements/7");
 });
 
