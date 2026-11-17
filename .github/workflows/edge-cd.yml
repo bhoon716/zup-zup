@@ -1,13 +1,22 @@
 name: Edge CD
 on:
   workflow_dispatch:
+  pull_request:
+    paths: ["infra/edge/**", ".github/workflows/edge-cd.yml", ".github/workflows/cd.yml"]
 concurrency:
-  group: production
+  group: ${{ github.event_name == 'workflow_dispatch' && 'production' || format('edge-check-{0}', github.event.pull_request.number) }}
   cancel-in-progress: false
 permissions:
   contents: read
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash infra/edge/test.sh
   deploy:
+    needs: verify
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

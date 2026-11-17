@@ -6,7 +6,8 @@ on:
     paths:
       - "apps/server/**"
       - "infra/**"
-      - ".github/workflows/cd.yml"
+      - "!infra/edge/**"
+    # Workflow-only changes use workflow_dispatch instead of redeploying the app.
   workflow_dispatch:
     inputs:
       image_tag:

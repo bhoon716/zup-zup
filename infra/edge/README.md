@@ -24,3 +24,9 @@ Snapshots are root-readable archives beside the NPM data directory.
 
 After deployment verify public application HTTPS and certificate validity, and
 that external TCP 81 cannot connect while the SSH tunnel can open the login page.
+
+Application CD excludes `infra/edge/**`. Changes only to the application workflow
+also require manual `workflow_dispatch`; they do not redeploy the application.
+Edge CD validates its contract on pull requests and deploys only when manually
+started from `main`. Both deployment workflows share the production concurrency
+group, so they cannot deploy at the same time.
