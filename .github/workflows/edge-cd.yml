@@ -1,0 +1,38 @@
+name: Edge CD
+on:
+  workflow_dispatch:
+concurrency:
+  group: production
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST_KEY: ${{ vars.SSH_HOST_PUBLIC_KEY }}
+          HOST: ${{ secrets.SERVER_HOST }}
+        run: |
+          set -eu
+          test -n "$HOST_KEY"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          printf '%s %s\n' "$HOST" "$HOST_KEY" > ~/.ssh/known_hosts
+      - name: Deploy isolated edge configuration
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          USER: ${{ secrets.SERVER_USER }}
+        run: |
+          set -eu
+          test "$USER" = ubuntu
+          target="/home/ubuntu/jbnu-sugang-helper/.edge-releases/$GITHUB_SHA"
+          ssh -o StrictHostKeyChecking=yes "$USER@$HOST" "mkdir -p '$target'"
+          scp -o StrictHostKeyChecking=yes infra/edge/compose.yml infra/edge/deploy.sh "$USER@$HOST:$target/"
+          ssh -o StrictHostKeyChecking=yes "$USER@$HOST" "bash '$target/deploy.sh'"
